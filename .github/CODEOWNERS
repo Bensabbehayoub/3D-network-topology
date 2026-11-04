@@ -1,0 +1,78 @@
+# Propriété des fichiers. Sur chaque ligne : le propriétaire, puis son binôme.
+#
+# Le binôme n'a pas de droit de commit sur ces fichiers. Il est là parce que GitHub
+# interdit à l'auteur d'approuver sa propre pull request : avec un seul propriétaire,
+# toute PR sur ses propres fichiers serait impossible à fusionner.
+# Binômes : Khalil <-> Ayoub, Aziz <-> Ramy.
+#
+# La dernière règle qui correspond l'emporte : du général vers le particulier.
+
+# Ramy : interface
+/index.html                     @RAMY_GH @AZIZ_GH
+/styles.css                     @RAMY_GH @AZIZ_GH
+/README.md                      @RAMY_GH @AZIZ_GH
+/src/ui/                        @RAMY_GH @AZIZ_GH
+/docs/manuel.md                 @RAMY_GH @AZIZ_GH
+/docs/cahier-conceptuel.md      @RAMY_GH @AZIZ_GH
+
+# Aziz : rendu 3D
+/src/render/                    @AZIZ_GH @RAMY_GH
+/vendor/three/                  @AZIZ_GH @RAMY_GH
+/assets/models/                 @AZIZ_GH @RAMY_GH
+
+# Khalil : moteur de simulation
+/simulation.js                  @KHALIL_GH @AYOUB_GH
+/src/sim/                       @KHALIL_GH @AYOUB_GH
+/tests/                         @KHALIL_GH @AYOUB_GH
+/docs/architecture.md           @KHALIL_GH @AYOUB_GH
+
+# Ayoub : plateforme et XR
+/main.js                        @AYOUB_GH @KHALIL_GH
+/manifest.json                  @AYOUB_GH @KHALIL_GH
+/package.json                   @AYOUB_GH @KHALIL_GH
+/.gitattributes                 @AYOUB_GH @KHALIL_GH
+/.gitignore                     @AYOUB_GH @KHALIL_GH
+/sw.js                          @AYOUB_GH @KHALIL_GH
+/.github/                       @AYOUB_GH @KHALIL_GH
+/tools/                         @AYOUB_GH @KHALIL_GH
+/assets/icons/                  @AYOUB_GH @KHALIL_GH
+/src/xr/                        @AYOUB_GH @KHALIL_GH
+/src/render/packetAnimator.js   @AYOUB_GH @KHALIL_GH
+/src/sim/devices/switch.js      @AYOUB_GH @KHALIL_GH
+/tests/switch.test.js           @AYOUB_GH @KHALIL_GH
+/tests/platform.test.js         @AYOUB_GH @KHALIL_GH
+/scenarios/ping.json            @AYOUB_GH @KHALIL_GH
+/docs/decision-renderer.md      @AYOUB_GH @KHALIL_GH
+
+# Protocoles : l'auteur possède ses quatre fichiers
+/src/sim/protocols/arp.js       @KHALIL_GH @AYOUB_GH
+/scenarios/arp.json             @KHALIL_GH @AYOUB_GH
+/tests/arp.test.js              @KHALIL_GH @AYOUB_GH
+/docs/protocoles/arp.md         @KHALIL_GH @AYOUB_GH
+/src/sim/protocols/tcp.js       @KHALIL_GH @AYOUB_GH
+/scenarios/tcp.json             @KHALIL_GH @AYOUB_GH
+/tests/tcp.test.js              @KHALIL_GH @AYOUB_GH
+/docs/protocoles/tcp.md         @KHALIL_GH @AYOUB_GH
+/scenarios/routage.json         @KHALIL_GH @AYOUB_GH
+/docs/protocoles/routage.md     @KHALIL_GH @AYOUB_GH
+
+/src/sim/protocols/icmp.js      @AZIZ_GH @RAMY_GH
+/tests/icmp.test.js             @AZIZ_GH @RAMY_GH
+/docs/protocoles/icmp.md        @AZIZ_GH @RAMY_GH
+/src/sim/protocols/udp.js       @AZIZ_GH @RAMY_GH
+/scenarios/udp.json             @AZIZ_GH @RAMY_GH
+/tests/udp.test.js              @AZIZ_GH @RAMY_GH
+/docs/protocoles/udp.md         @AZIZ_GH @RAMY_GH
+/src/sim/protocols/dns.js       @AZIZ_GH @RAMY_GH
+/scenarios/dns.json             @AZIZ_GH @RAMY_GH
+/tests/dns.test.js              @AZIZ_GH @RAMY_GH
+/docs/protocoles/dns.md         @AZIZ_GH @RAMY_GH
+
+/src/sim/protocols/dhcp.js      @RAMY_GH @AZIZ_GH
+/scenarios/dhcp.json            @RAMY_GH @AZIZ_GH
+/tests/dhcp.test.js             @RAMY_GH @AZIZ_GH
+/docs/protocoles/dhcp.md        @RAMY_GH @AZIZ_GH
+/src/sim/protocols/http.js      @RAMY_GH @AZIZ_GH
+/scenarios/http.json            @RAMY_GH @AZIZ_GH
+/tests/http.test.js             @RAMY_GH @AZIZ_GH
+/docs/protocoles/http.md        @RAMY_GH @AZIZ_GH

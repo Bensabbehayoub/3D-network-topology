@@ -1,0 +1,12 @@
+{
+  "name": "3D Network Topology",
+  "short_name": "3D Network",
+  "description": "Simulateur pédagogique de réseau en 3D (WebXR)",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101418",
+  "theme_color": "#101418",
+  "icons": []
+}
