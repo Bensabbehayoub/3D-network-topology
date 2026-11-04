@@ -2,18 +2,55 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Simulateur pédagogique de protocoles réseau dans une topologie 3D (WebXR).">
+  <meta name="theme-color" content="#101418">
   <title>3D Network Topology</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="controls"></div>
-  <div id="inspector"></div>
-  <div id="explanations"></div>
-  <div id="xr-slot"></div>
-  <div id="install-slot"></div>
+  <!--
+    Points de montage (contrat du pôle ui, voir src/ui/index.js → MOUNT_POINTS).
+    Chaque élément à id est un conteneur vide rempli par son module : ne pas y écrire de contenu ici.
+      #scene            canvas 3D (pôle render, Aziz)
+      #controls         lecture, pause, pas à pas, vitesse, réinitialisation (ui)
+      #scenario-picker  choix du scénario (ui)
+      #inspector        champs du paquet sélectionné (ui)
+      #explanations     explication de l'étape + journal des messages (ui)
+      #xr-slot          bouton « Entrer en VR » (pôle xr, Ayoub)
+      #install-slot     bouton « Installer l'application » (ui)
+  -->
+  <header class="app-header">
+    <h1 class="app-title">3D Network Topology</h1>
+    <div id="scenario-picker" class="slot slot-picker"></div>
+    <div class="header-actions">
+      <div id="install-slot" class="slot"></div>
+      <div id="xr-slot" class="slot"></div>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <div id="scene" class="scene" role="region" aria-label="Topologie réseau en 3D"></div>
+    <div id="controls" class="slot slot-controls" role="toolbar" aria-label="Commandes de la simulation"></div>
+  </main>
+
+  <aside class="app-side" aria-label="Analyse pédagogique">
+    <section class="panel" aria-labelledby="inspector-title">
+      <h2 id="inspector-title" class="panel-title">Inspecteur de paquet</h2>
+      <div id="inspector" class="slot panel-body"></div>
+    </section>
+    <section class="panel" aria-labelledby="explanations-title">
+      <h2 id="explanations-title" class="panel-title">Explications</h2>
+      <div id="explanations" class="slot panel-body" aria-live="polite"></div>
+    </section>
+  </aside>
+
+  <noscript>
+    <p class="noscript">Cette application a besoin de JavaScript pour afficher la topologie et simuler les protocoles.</p>
+  </noscript>
+
   <script type="module" src="main.js"></script>
 </body>
 </html>
