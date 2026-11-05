@@ -1,0 +1,12 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {normalizeTopology} from './topology.js';
+import {createMockRenderer} from './mock.js';
+const sample=()=>({devices:[{id:'p1',type:'pc'},{id:'s1',type:'switch',position:[1,0,1]}],links:[{from:'p1',to:'s1'}]});
+test('valid topology is normalized',()=>{const v=normalizeTopology(sample());assert.equal(v.devices.length,2);assert.equal(v.links[0].id,'link-0');assert.equal(v.devices[0].label,'p1');});
+test('rejects duplicates',()=>{const s=sample();s.devices.push({id:'p1',type:'pc'});assert.throws(()=>normalizeTopology(s),/Duplicate/);});
+test('rejects dangling links',()=>{const s=sample();s.links[0].to='missing';assert.throws(()=>normalizeTopology(s),/missing device/);});
+test('rejects malformed coordinates',()=>{const s=sample();s.devices[0].position=[1,Infinity,0];assert.throws(()=>normalizeTopology(s),/position/);});
+test('rejects unsupported device',()=>{const s=sample();s.devices[0].type='firewall';assert.throws(()=>normalizeTopology(s),/Unsupported/);});
+test('rejects self links',()=>{const s=sample();s.links[0].to='p1';assert.throws(()=>normalizeTopology(s),/Self-link/);});
+test('mock matches S1 rendering interface',()=>{let clicked='';const r=createMockRenderer({onDeviceClick:id=>clicked=id});assert.deepEqual(r.loadTopology(sample()),{devices:2,links:1});assert.equal(r.highlightDevice('p1'),true);assert.equal(r.highlightDevice('missing'),false);assert.equal(r.focusDevice('s1'),true);assert.equal(r.simulateClick('p1'),true);assert.equal(clicked,'p1');r.resetView();r.resize();r.dispose();assert.throws(()=>r.loadTopology(sample()),/disposed/);});
+test('mock protects against external state mutation',()=>{const r=createMockRenderer();r.loadTopology(sample());const a=r.listDevices();a[0].position.x=500;assert.notEqual(r.getDevice('p1').position.x,500);r.dispose();});
