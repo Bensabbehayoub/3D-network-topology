@@ -1,1 +1,387 @@
-// Khalil (S2) : play, pause, step, setSpeed, reset.
+// Khalil (S1) : API de commandes de la simulation (patron Command) et son implémentation.
+//
+// CONTRAT D'ÉQUIPE, figé en S1. Consommateurs : controls.js (Ramy), vrPanel.js (Ayoub).
+// Documentation : docs/simulation/contrats.md
+//
+// En S1, app.sim est le faux moteur (mock.js) : même API, trafic de démonstration.
+// En S2/S3, il sera remplacé par createSimulation() avec les vrais protocoles, sans
+// changer une ligne côté interface.
+//
+// API publique (SimulationAPI) :
+//   await load(scenario, params?)   charge un scénario (objet déjà validé ou non) → état ready
+//   play() / pause() / step() / reset()
+//   setSpeed(speed)                 multiplicateur, borné entre MIN_SPEED et MAX_SPEED
+//   getState()                      { status, time, speed, scenarioId, pending, error }
+//   getScenario()                   scénario chargé (ou null)
+//   describe(packet)                lignes de l'inspecteur (PacketField[]) via le bon protocole
+//   isAllowed(command)              la commande est-elle permise maintenant ? (activer les boutons)
+//   on(topic, listener) / once(...) abonnement au bus (TOPICS de events.js) → désabonnement
+//
+// Les commandes renvoient true si elles ont été exécutées, false si l'état ne les permet pas
+// (aucune exception : un bouton cliqué au mauvais moment ne doit rien casser).
+
+import { createBus, createEvent, EVENT_TYPES, TOPICS, assertPacket } from './events.js';
+import { createEngine } from './engine.js';
+import { checkProtocol, describeHeaders, loadProtocol as defaultLoadProtocol } from './protocol.js';
+import { assertScenario, DEFAULT_LATENCY, findDevice, linkAt } from './scenario.js';
+import { COMMANDS, STATUS, isAllowed, nextStatus } from './state.js';
+
+export { COMMANDS } from './state.js';
+
+export const MIN_SPEED = 0.25;
+export const MAX_SPEED = 4;
+
+/**
+ * @typedef {object} SimulationState
+ * @property {string} status une valeur de STATUS
+ * @property {number} time instant simulé (ms)
+ * @property {number} speed vitesse courante
+ * @property {string|null} scenarioId
+ * @property {number} pending nombre d'actions encore programmées
+ * @property {string|null} error message de la dernière erreur d'un protocole (la lecture s'arrête alors)
+ */
+
+/**
+ * Horloge temps réel par défaut pour la lecture continue : requestAnimationFrame dans le
+ * navigateur, setInterval ailleurs. Les tests en injectent une manuelle.
+ * @typedef {{ start(onFrame: (realDeltaMs: number) => void): () => void }} Scheduler
+ * @type {Scheduler}
+ */
+export const realTimeScheduler = {
+  start(onFrame) {
+    const clock = () => globalThis.performance?.now?.() ?? Date.now();
+    let last = clock();
+    let running = true;
+    const tick = () => {
+      if (!running) return;
+      const current = clock();
+      // Onglet en arrière-plan : on ne rattrape pas plusieurs secondes d'un coup.
+      const delta = Math.min(current - last, 100);
+      last = current;
+      onFrame(delta);
+      if (running && typeof globalThis.requestAnimationFrame === 'function') globalThis.requestAnimationFrame(tick);
+    };
+    if (typeof globalThis.requestAnimationFrame === 'function') {
+      globalThis.requestAnimationFrame(tick);
+      return () => { running = false; };
+    }
+    const id = setInterval(tick, 16);
+    return () => { running = false; clearInterval(id); };
+  },
+};
+
+function deepFreeze(value) {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const key of Object.keys(value)) deepFreeze(value[key]);
+  }
+  return value;
+}
+
+/**
+ * Crée une simulation.
+ * @param {object} [options]
+ * @param {object} [options.protocol] protocole injecté (ignore scenario.protocol) : sert au mock et aux tests
+ * @param {(name: string) => Promise<object>} [options.loadProtocol] chargeur de protocoles (dynamique par défaut)
+ * @param {Scheduler} [options.scheduler] horloge temps réel de la lecture continue
+ * @param {Record<string, { onReceive(device, packet, ctx, meta): boolean }>} [options.devices]
+ *   comportements d'équipements par type (S3 : switch.js, host.js, router.js). Appelé avant le
+ *   protocole à chaque réception ; s'il renvoie true, le paquet est traité et le protocole n'est pas appelé.
+ * @param {number} [options.speed] vitesse initiale (1 par défaut)
+ */
+export function createSimulation(options = {}) {
+  const bus = createBus();
+  const engine = createEngine();
+  const scheduler = options.scheduler ?? realTimeScheduler;
+  const loader = options.loadProtocol ?? defaultLoadProtocol;
+  const deviceBehaviours = options.devices ?? {};
+
+  /** Protocoles connus, par nom : sert à describe() pour les paquets de tous les protocoles. */
+  const protocols = new Map();
+  const requested = new Set();
+  if (options.protocol) registerProtocol(options.protocol);
+
+  let status = STATUS.IDLE;
+  let speed = clampSpeed(options.speed ?? 1);
+  let scenario = null;
+  let protocol = null;
+  let params = {};
+  let stopLoop = null;
+  let lastError = null;
+  let run = null; // état propre à une exécution : recréé à chaque réinitialisation
+
+  function registerProtocol(candidate) {
+    const errors = checkProtocol(candidate);
+    if (errors.length) throw new Error(`protocole non conforme : ${errors.join(' ; ')}`);
+    protocols.set(candidate.name, candidate);
+  }
+
+  /** Charge en arrière-plan le protocole d'un paquet inconnu, pour que l'inspecteur le décrive. */
+  function ensureProtocol(name) {
+    if (protocols.has(name) || requested.has(name)) return;
+    requested.add(name);
+    Promise.resolve()
+      .then(() => loader(name))
+      .then((loaded) => { if (loaded && !protocols.has(name)) registerProtocol(loaded); })
+      .catch(() => { /* describe() se rabat sur describeHeaders */ });
+  }
+
+  function clampSpeed(value) {
+    if (!Number.isFinite(value) || value <= 0) throw new RangeError('vitesse : nombre > 0 attendu');
+    return Math.min(MAX_SPEED, Math.max(MIN_SPEED, value));
+  }
+
+  function getState() {
+    return {
+      status,
+      time: engine.now(),
+      speed,
+      scenarioId: scenario?.id ?? null,
+      pending: engine.pending(),
+      error: lastError,
+    };
+  }
+
+  function setStatus(next) {
+    status = next;
+    bus.emit(TOPICS.STATE, getState());
+  }
+
+  function stop() {
+    stopLoop?.();
+    stopLoop = null;
+  }
+
+  /** Joue une portion du moteur ; une erreur de protocole arrête la lecture proprement. */
+  function guarded(work) {
+    try {
+      work();
+      return true;
+    } catch (error) {
+      stop();
+      lastError = error?.message ?? String(error);
+      console.error('simulation : erreur pendant la lecture :', error);
+      setStatus(STATUS.PAUSED);
+      return false;
+    }
+  }
+
+  function afterProgress() {
+    bus.emit(TOPICS.TICK, { time: engine.now() });
+    if (!engine.hasPending()) {
+      stop();
+      setStatus(STATUS.FINISHED);
+    }
+  }
+
+  // --- Contexte donné au protocole (voir ProtocolContext dans protocol.js) ---
+
+  function publish(type, fields) {
+    const event = createEvent({ id: ++run.eventId, time: engine.now(), type, ...fields });
+    ensureProtocol(event.packet.protocol);
+    bus.emit(TOPICS.NETWORK, event);
+    return event;
+  }
+
+  function deviceOrThrow(id) {
+    const device = findDevice(scenario, id);
+    if (!device) throw new Error(`équipement "${id}" absent du scénario`);
+    return device;
+  }
+
+  function pickInterface(device, name) {
+    if (name) {
+      if (!device.interfaces.some((itf) => itf.name === name)) {
+        throw new Error(`${device.id} : interface "${name}" inconnue`);
+      }
+      return name;
+    }
+    const linked = device.interfaces.filter((itf) => linkAt(scenario, device.id, itf.name));
+    if (linked.length === 1) return linked[0].name;
+    throw new Error(`${device.id} a ${linked.length} interfaces reliées : préciser options.interface dans ctx.send`);
+  }
+
+  function receive(deviceId, packet, meta) {
+    const device = deviceOrThrow(deviceId);
+    const behaviour = deviceBehaviours[device.type];
+    if (behaviour?.onReceive?.(device, packet, run.ctx, meta) === true) return;
+    protocol.onReceive(device, packet, run.ctx, meta);
+  }
+
+  function createContext() {
+    const ctx = {
+      get scenario() { return scenario; },
+      get params() { return params; },
+      now: () => engine.now(),
+      device: deviceOrThrow,
+
+      memory(deviceId) {
+        deviceOrThrow(deviceId);
+        if (!run.memory.has(deviceId)) run.memory.set(deviceId, {});
+        return run.memory.get(deviceId);
+      },
+
+      nextPacketId: () => `p${++run.packetId}`,
+
+      schedule(delay, action) {
+        if (!Number.isFinite(delay) || delay < 0) throw new RangeError('ctx.schedule : délai ≥ 0 attendu');
+        engine.schedule(engine.now() + delay, action);
+      },
+
+      explain(stepId) {
+        const step = scenario.steps.find((candidate) => candidate.id === stepId);
+        if (!step) throw new Error(`ctx.explain : étape "${stepId}" absente de scenario.steps`);
+        bus.emit(TOPICS.STEP, { time: engine.now(), step: step.id, title: step.title, text: step.text });
+      },
+
+      send(deviceId, packet, { interface: name, step = null, delay = 0 } = {}) {
+        assertPacket(packet);
+        const frozen = deepFreeze(structuredClone(packet));
+        const device = deviceOrThrow(deviceId);
+        const sourceInterface = pickInterface(device, name);
+        ctx.schedule(delay, () => {
+          const attached = linkAt(scenario, device.id, sourceInterface);
+          if (!attached) {
+            publish(EVENT_TYPES.DROP, { source: device.id, sourceInterface, packet: frozen, step, reason: 'interface non reliée' });
+            return;
+          }
+          const { link, peer } = attached;
+          const arrival = engine.now() + (link.latency ?? DEFAULT_LATENCY);
+          const common = {
+            source: device.id,
+            sourceInterface,
+            destination: peer.device,
+            destinationInterface: peer.interface,
+            link: link.id,
+            packet: frozen,
+            step,
+          };
+          publish(EVENT_TYPES.SEND, { ...common, arrival });
+          engine.schedule(arrival, () => {
+            publish(EVENT_TYPES.RECEIVE, common);
+            receive(peer.device, frozen, { interface: peer.interface, link: link.id, from: device.id });
+          });
+        });
+      },
+
+      drop(deviceId, packet, reason, { step = null } = {}) {
+        assertPacket(packet);
+        deviceOrThrow(deviceId);
+        publish(EVENT_TYPES.DROP, {
+          source: deviceId,
+          packet: deepFreeze(structuredClone(packet)),
+          step,
+          reason: String(reason || 'inconnue'),
+        });
+      },
+    };
+    return Object.freeze(ctx);
+  }
+
+  /** (Re)démarre une exécution : file vide, horloge à 0, mémoires vides, start() programmé à t=0. */
+  function prepareRun() {
+    stop();
+    engine.clear();
+    lastError = null;
+    run = { eventId: 0, packetId: 0, memory: new Map(), ctx: null };
+    run.ctx = createContext();
+    engine.schedule(0, () => protocol.start(run.ctx));
+    bus.emit(TOPICS.RESET, { time: 0 });
+  }
+
+  function startLoop() {
+    stopLoop = scheduler.start((realDelta) => {
+      if (status !== STATUS.PLAYING) return;
+      if (guarded(() => engine.advanceTo(engine.now() + realDelta * speed))) afterProgress();
+    });
+  }
+
+  const api = {
+    TOPICS,
+    COMMANDS,
+    STATUS,
+
+    on: (topic, listener) => bus.on(topic, listener),
+    once: (topic, listener) => bus.once(topic, listener),
+
+    getState,
+    getScenario: () => scenario,
+    isAllowed: (command) => isAllowed(command, status),
+
+    /**
+     * @param {object} newScenario objet scénario (voir scenario.js)
+     * @param {Record<string, any>} [newParams] remplace une partie de scenario.params (ex. hôtes choisis)
+     */
+    async load(newScenario, newParams = {}) {
+      assertScenario(newScenario);
+      let nextProtocol = options.protocol;
+      if (!nextProtocol) {
+        nextProtocol = protocols.get(newScenario.protocol) ?? await loader(newScenario.protocol);
+        registerProtocol(nextProtocol);
+      }
+      scenario = deepFreeze(structuredClone(newScenario));
+      params = Object.freeze({ ...(scenario.params ?? {}), ...newParams });
+      protocol = nextProtocol;
+      bus.emit(TOPICS.SCENARIO, { scenario, params });
+      prepareRun();
+      setStatus(nextStatus(status, COMMANDS.LOAD));
+      return true;
+    },
+
+    play() {
+      if (!isAllowed(COMMANDS.PLAY, status)) return false;
+      setStatus(nextStatus(status, COMMANDS.PLAY));
+      startLoop();
+      return true;
+    },
+
+    pause() {
+      if (!isAllowed(COMMANDS.PAUSE, status)) return false;
+      stop();
+      setStatus(nextStatus(status, COMMANDS.PAUSE));
+      return true;
+    },
+
+    step() {
+      if (!isAllowed(COMMANDS.STEP, status)) return false;
+      const next = nextStatus(status, COMMANDS.STEP);
+      if (!guarded(() => engine.stepNext())) return true;
+      bus.emit(TOPICS.TICK, { time: engine.now() });
+      setStatus(engine.hasPending() ? next : STATUS.FINISHED);
+      return true;
+    },
+
+    setSpeed(value) {
+      if (!isAllowed(COMMANDS.SET_SPEED, status)) return false;
+      speed = clampSpeed(value);
+      setStatus(status);
+      return true;
+    },
+
+    reset() {
+      if (!isAllowed(COMMANDS.RESET, status)) return false;
+      prepareRun();
+      setStatus(nextStatus(status, COMMANDS.RESET));
+      return true;
+    },
+
+    /**
+     * Champs d'un paquet pour l'inspecteur, quel que soit son protocole.
+     * @returns {import('./protocol.js').PacketField[]}
+     */
+    describe(packet) {
+      const owner = protocols.get(packet?.protocol);
+      if (owner) {
+        try {
+          const fields = owner.describe(packet);
+          if (Array.isArray(fields) && fields.length) return fields;
+        } catch (error) {
+          console.error(`describe() du protocole "${packet.protocol}" a échoué :`, error);
+        }
+      }
+      return describeHeaders(packet);
+    },
+  };
+
+  return api;
+}
