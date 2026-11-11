@@ -77,3 +77,49 @@ test('un sujet inconnu est refusé (faute de frappe détectée tout de suite)', 
   assert.throws(() => bus.on('netwrok', () => {}), /sujet inconnu/);
   assert.throws(() => bus.emit('netwrok', {}), /sujet inconnu/);
 });
+
+// --- S2 : robustesse du bus ---
+
+test('se désabonner pendant un envoi ne fait sauter aucun autre abonné', () => {
+  const bus = createBus();
+  const log = [];
+  const offA = bus.on(TOPICS.TICK, () => { log.push('a'); offA(); offB(); });
+  const offB = bus.on(TOPICS.TICK, () => log.push('b'));
+  bus.on(TOPICS.TICK, () => log.push('c'));
+  bus.emit(TOPICS.TICK, { time: 1 });
+  bus.emit(TOPICS.TICK, { time: 2 });
+  assert.deepEqual(log, ['a', 'b', 'c', 'c'], 'le message en cours va à tous ; les suivants plus à a ni b');
+});
+
+test('un abonné ajouté pendant un envoi ne reçoit que les messages suivants', () => {
+  const bus = createBus();
+  const log = [];
+  bus.on(TOPICS.TICK, ({ time }) => {
+    if (time === 1) bus.on(TOPICS.TICK, ({ time: t }) => log.push(`tard${t}`));
+  });
+  bus.emit(TOPICS.TICK, { time: 1 });
+  bus.emit(TOPICS.TICK, { time: 2 });
+  assert.deepEqual(log, ['tard2']);
+});
+
+test('les sujets sont indépendants', () => {
+  const bus = createBus();
+  const log = [];
+  bus.on(TOPICS.STEP, () => log.push('step'));
+  bus.emit(TOPICS.TICK, { time: 1 });
+  bus.emit(TOPICS.STEP, {});
+  assert.deepEqual(log, ['step']);
+  assert.equal(bus.count(TOPICS.TICK), 0);
+});
+
+test('off et clear retirent les abonnés', () => {
+  const bus = createBus();
+  const listener = () => assert.fail('ne doit pas être appelé');
+  bus.on(TOPICS.STATE, listener);
+  bus.off(TOPICS.STATE, listener);
+  bus.emit(TOPICS.STATE, {});
+  bus.on(TOPICS.STATE, listener);
+  bus.clear();
+  bus.emit(TOPICS.STATE, {});
+  assert.equal(bus.count(TOPICS.STATE), 0);
+});

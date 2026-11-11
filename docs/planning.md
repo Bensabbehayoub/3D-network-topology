@@ -22,9 +22,9 @@ Méthode XP : sprints d'une semaine (lundi → dimanche), planning le lundi, sta
 |---|---|---|---|---|---|---|---|---|---|---|
 | Ramy | 7 | 8 | 7 | 7 | 6 | 6 | 4 | **45** | 20 | 4 |
 | Aziz | 7 | 8 | 7 | 7 | 6 | 6 | 4 | **45** | 20 | 4 |
-| Khalil | 7 | 8 | 7 | 7 | 6 | 6 | 4 | **45** | 19 | 4 |
+| Khalil | 7 | 8 | 7 | 7 | 6 | 6 | 4 | **45** | 19 | 7 |
 | Ayoub | 8 | 7 | 7 | 7 | 6 | 6 | 4 | **45** | 20 | 4 |
-| **Équipe** | 29 | 31 | 28 | 28 | 24 | 24 | 16 | **180** | 79 | 16 |
+| **Équipe** | 29 | 31 | 28 | 28 | 24 | 24 | 16 | **180** | 79 | 19 |
 
 ## Tâches par sprint
 
@@ -63,9 +63,9 @@ Objectif : Avoir de vrais équipements en 3D et un moteur qui fait avancer la si
 | 20 | Aziz | Préparer des modèles 3D légers (routeur, switch, PC) au format GLB. | `assets/models/` | 3 | À faire |
 | 21 | Aziz | Créer factory.js, qui place le bon modèle pour chaque équipement du fichier JSON. | `src/render/factory.js` | 2 | À faire |
 | 22 | Aziz | Dessiner les câbles entre les équipements et les étiquettes (noms, IP). | `src/render/links.js`, `labels.js` | 3 | À faire |
-| 23 | Khalil | Coder le moteur : une liste d'évènements triée par temps et une horloge simulée. | `src/sim/engine.js` | 3 | À faire |
-| 24 | Khalil | Gérer les états (prêt, lecture, pause, terminé) et les commandes. | `src/sim/state.js`, `commands.js` | 3 | À faire |
-| 25 | Khalil | Créer le bus d'évènements (Observer) qui prévient l'interface et la 3D, avec ses tests. | `src/sim/`, `tests/` | 2 | À faire |
+| 23 | Khalil | Coder le moteur : une liste d'évènements triée par temps et une horloge simulée. | `src/sim/engine.js` | 3 | ✅ Terminé |
+| 24 | Khalil | Gérer les états (prêt, lecture, pause, terminé) et les commandes. | `src/sim/state.js`, `commands.js` | 3 | ✅ Terminé |
+| 25 | Khalil | Créer le bus d'évènements (Observer) qui prévient l'interface et la 3D, avec ses tests. | `src/sim/`, `tests/` | 2 | ✅ Terminé |
 | 26 | Ayoub | Animer les paquets qui avancent sur les câbles au rythme de l'horloge simulée (et non des images). | `src/render/packetAnimator.js` | 5 | À faire |
 | 27 | Ayoub | Écrire le script qui génère tout seul la liste des fichiers à mettre en cache, lancé par la CI. | `tools/`, `.github/` | 2 | À faire |
 

@@ -14,6 +14,8 @@
 //   getState()                      { status, time, speed, scenarioId, pending, error }
 //   getScenario()                   scénario chargé (ou null)
 //   describe(packet)                lignes de l'inspecteur (PacketField[]) via le bon protocole
+//   getHistory()                    évènements réseau publiés depuis la dernière réinitialisation (S2)
+//   getPacketsInFlight()            paquets en cours de trajet et leur avancement 0..1 (S2, animateur)
 //   isAllowed(command)              la commande est-elle permise maintenant ? (activer les boutons)
 //   on(topic, listener) / once(...) abonnement au bus (TOPICS de events.js) → désabonnement
 //
@@ -178,6 +180,7 @@ export function createSimulation(options = {}) {
 
   function publish(type, fields) {
     const event = createEvent({ id: ++run.eventId, time: engine.now(), type, ...fields });
+    run.history.push(event);
     ensureProtocol(event.packet.protocol);
     bus.emit(TOPICS.NETWORK, event);
     return event;
@@ -223,9 +226,12 @@ export function createSimulation(options = {}) {
 
       nextPacketId: () => `p${++run.packetId}`,
 
+      /** @returns {() => boolean} annule l'action si elle n'a pas encore été jouée (temporisations) */
       schedule(delay, action) {
         if (!Number.isFinite(delay) || delay < 0) throw new RangeError('ctx.schedule : délai ≥ 0 attendu');
-        engine.schedule(engine.now() + delay, action);
+        if (typeof action !== 'function') throw new TypeError('ctx.schedule : action doit être une fonction');
+        const id = engine.schedule(engine.now() + delay, action);
+        return () => engine.cancel(id);
       },
 
       explain(stepId) {
@@ -256,8 +262,10 @@ export function createSimulation(options = {}) {
             packet: frozen,
             step,
           };
-          publish(EVENT_TYPES.SEND, { ...common, arrival });
+          const sent = publish(EVENT_TYPES.SEND, { ...common, arrival });
+          run.inFlight.set(sent.id, sent);
           engine.schedule(arrival, () => {
+            run.inFlight.delete(sent.id);
             publish(EVENT_TYPES.RECEIVE, common);
             receive(peer.device, frozen, { interface: peer.interface, link: link.id, from: device.id });
           });
@@ -283,7 +291,7 @@ export function createSimulation(options = {}) {
     stop();
     engine.clear();
     lastError = null;
-    run = { eventId: 0, packetId: 0, memory: new Map(), ctx: null };
+    run = { eventId: 0, packetId: 0, memory: new Map(), history: [], inFlight: new Map(), ctx: null };
     run.ctx = createContext();
     engine.schedule(0, () => protocol.start(run.ctx));
     bus.emit(TOPICS.RESET, { time: 0 });
@@ -363,6 +371,32 @@ export function createSimulation(options = {}) {
       prepareRun();
       setStatus(nextStatus(status, COMMANDS.RESET));
       return true;
+    },
+
+    /**
+     * Évènements réseau publiés depuis la dernière réinitialisation, dans l'ordre.
+     * Permet à un module monté en retard (journal, inspecteur) de se remettre à jour.
+     * @returns {ReadonlyArray<import('./events.js').NetworkEvent>}
+     */
+    getHistory() {
+      return Object.freeze([...(run?.history ?? [])]);
+    },
+
+    /**
+     * Paquets en cours de trajet sur un lien à l'instant courant, avec leur avancement.
+     * progress = (maintenant − départ) / (arrivée − départ), entre 0 et 1.
+     * L'animateur (Ayoub) peut redessiner toute la scène à partir de cette seule fonction,
+     * par exemple après une pause, un pas à pas ou un changement de vitesse.
+     * @returns {Array<{ event: import('./events.js').NetworkEvent, progress: number }>}
+     */
+    getPacketsInFlight() {
+      if (!run) return [];
+      const now = engine.now();
+      return [...run.inFlight.values()].map((event) => {
+        const span = event.arrival - event.time;
+        const progress = span > 0 ? Math.min(1, Math.max(0, (now - event.time) / span)) : 1;
+        return { event, progress };
+      });
     },
 
     /**

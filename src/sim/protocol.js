@@ -33,7 +33,8 @@
  * @property {(deviceId: string, packet: import('./events.js').Packet, reason: string,
  *   options?: { step?: string }) => void} drop publie la perte d'un paquet sur un équipement
  * @property {(stepId: string) => void} explain affiche l'explication d'une étape (scenario.steps)
- * @property {(delay: number, action: () => void) => void} schedule exécute une action plus tard (ms simulées)
+ * @property {(delay: number, action: () => void) => (() => boolean)} schedule exécute une action plus tard
+ *   (ms simulées) ; renvoie une fonction qui l'annule si elle n'a pas encore été jouée (temporisations)
  * @property {() => string} nextPacketId fabrique un id de paquet unique ('p1', 'p2'...)
  */
 

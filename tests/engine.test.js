@@ -100,3 +100,88 @@ test('une boucle infinie au même instant est arrêtée par le garde-fou', () =>
   engine.schedule(0, again);
   assert.throws(() => engine.stepNext(), new RegExp(String(MAX_ACTIONS_PER_ADVANCE)));
 });
+
+// --- S2 : tas binaire et annulation ---
+
+/** Générateur pseudo-aléatoire reproductible (mulberry32). */
+function random(seed) {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+test('ordre identique à un tri de référence sur 2 000 actions aléatoires', () => {
+  const rand = random(42);
+  const engine = createEngine();
+  const expected = [];
+  const played = [];
+  for (let i = 0; i < 2000; i++) {
+    const time = Math.floor(rand() * 500); // beaucoup d'instants égaux : teste le FIFO
+    expected.push({ time, i });
+    engine.schedule(time, () => played.push(i));
+  }
+  expected.sort((a, b) => a.time - b.time || a.i - b.i);
+  engine.advanceTo(1000);
+  assert.deepEqual(played, expected.map((e) => e.i));
+});
+
+test('cancel retire une action programmée, une seule fois', () => {
+  const engine = createEngine();
+  const log = [];
+  const a = engine.schedule(100, () => log.push('a'));
+  engine.schedule(200, () => log.push('b'));
+  assert.equal(engine.pending(), 2);
+  assert.equal(engine.cancel(a), true);
+  assert.equal(engine.cancel(a), false);
+  assert.equal(engine.pending(), 1);
+  assert.equal(engine.nextTime(), 200, 'nextTime ignore les actions annulées');
+  engine.advanceTo(1000);
+  assert.deepEqual(log, ['b']);
+});
+
+test('une action peut annuler une temporisation déjà programmée (cas TCP : ACK reçu avant le délai)', () => {
+  const engine = createEngine();
+  const log = [];
+  const timeout = engine.schedule(500, () => log.push('retransmission'));
+  engine.schedule(300, () => {
+    log.push('ACK reçu');
+    engine.cancel(timeout);
+  });
+  while (engine.stepNext());
+  assert.deepEqual(log, ['ACK reçu']);
+  assert.equal(engine.now(), 300, 'pas de saut vers l\'instant de l\'action annulée');
+});
+
+test('annuler une action déjà jouée ne fait rien', () => {
+  const engine = createEngine();
+  const id = engine.schedule(10, () => {});
+  engine.advanceTo(20);
+  assert.equal(engine.cancel(id), false);
+  assert.equal(engine.cancel(9999), false);
+});
+
+test('stepNext saute les instants dont toutes les actions sont annulées', () => {
+  const engine = createEngine();
+  const log = [];
+  engine.cancel(engine.schedule(100, () => log.push('annulée')));
+  engine.schedule(400, () => log.push('jouée'));
+  assert.equal(engine.stepNext(), true);
+  assert.deepEqual(log, ['jouée']);
+  assert.equal(engine.now(), 400);
+  assert.equal(engine.stepNext(), false);
+});
+
+test('50 000 actions sont jouées en moins d\'une demi-seconde', () => {
+  const engine = createEngine();
+  const rand = random(7);
+  let count = 0;
+  const start = performance.now();
+  for (let i = 0; i < 50_000; i++) engine.schedule(Math.floor(rand() * 1e6), () => count++);
+  engine.advanceTo(1e6);
+  const elapsed = performance.now() - start;
+  assert.equal(count, 50_000);
+  assert.ok(elapsed < 500, `trop lent : ${elapsed.toFixed(0)} ms`);
+});
