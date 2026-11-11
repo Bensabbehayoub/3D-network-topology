@@ -98,7 +98,7 @@ Le moteur publie tout sur un bus (patron Observer). On s'abonne avec `app.sim.on
 | `TOPICS.TICK` | l'horloge simulée avance | `{ time }` | animateur |
 | `TOPICS.STATE` | état ou vitesse changent | `SimulationState` (section 4) | contrôles, panneau VR |
 
-Comme `app.sim` est créé avant les autres pôles, le scénario de départ est déjà chargé quand ils s'initialisent : le lire avec `app.sim.getScenario()`, puis s'abonner pour la suite.
+Comme `app.sim` est créé avant les autres pôles, le scénario de départ est déjà chargé quand ils s'initialisent : le lire avec `app.sim.getScenario()`, puis s'abonner pour la suite. Un module qui s'abonne après le début d'une lecture (journal, inspecteur) récupère ce qu'il a manqué avec `app.sim.getHistory()` (S2).
 
 ### `NetworkEvent` (objet gelé)
 
@@ -118,6 +118,20 @@ Comme `app.sim` est créé avant les autres pôles, le scénario de départ est 
 ```
 
 Pour animer : à un `send`, faire partir le paquet sur `link` de `source` vers `destination`, et le placer à la fraction `(time_courant - event.time) / (event.arrival - event.time)` du trajet, où `time_courant` vient de `TOPICS.TICK`. Le paquet disparaît au `receive` correspondant (même `packet.id`, même `link`). Ainsi pause, pas à pas et vitesse restent cohérents, puisque tout suit l'horloge simulée.
+
+**Plus simple (S2)** : à chaque `TOPICS.TICK`, appeler `app.sim.getPacketsInFlight()`. Le moteur renvoie la liste `{ event, progress }` des paquets actuellement sur un lien, où `progress` va de 0 (départ) à 1 (arrivée). L'animateur n'a alors aucun état à tenir : il place chaque paquet à `progress` le long de `event.link`, et retire ceux qui ne sont plus dans la liste. Après une réinitialisation, la liste est vide.
+
+```js
+app.sim.on(TOPICS.TICK, () => {
+  for (const { event, progress } of app.sim.getPacketsInFlight()) {
+    placePacket(event.packet.id, event.link, event.source, progress); // fonction de l'animateur
+  }
+});
+```
+
+**Garanties testées** (`tests/mock.test.js`) :
+- la lecture continue, quelle que soit la durée des images et la vitesse, produit **exactement** la même suite d'évènements que le pas à pas ;
+- ordre des messages au chargement : `SCENARIO`, `RESET`, `STATE` ; à chaque pas : `STEP` et `NETWORK` dans l'ordre où le protocole les produit, puis `TICK`, puis `STATE` ; à la réinitialisation : `RESET`, `STATE`.
 
 ### `Packet` (objet gelé)
 
@@ -181,7 +195,7 @@ Aucun registre à modifier : le moteur charge le fichier d'après le champ `prot
 | `ctx.send(deviceId, packet, { interface?, step?, delay? })` | émet par l'interface donnée, ou par la seule interface reliée. Publie `send`, puis `receive` après la latence du lien, puis appelle `onReceive` sur l'équipement d'en face |
 | `ctx.drop(deviceId, packet, reason, { step? })` | publie une perte |
 | `ctx.explain(stepId)` | publie l'étape `stepId` de `scenario.steps` (erreur si elle n'existe pas) |
-| `ctx.schedule(delay, action)` | exécute `action` après `delay` ms simulées (délais de traitement, temporisations) |
+| `ctx.schedule(delay, action)` | exécute `action` après `delay` ms simulées (délais de traitement, temporisations). **Renvoie une fonction d'annulation** (S2) : `const cancel = ctx.schedule(3000, retransmettre); … cancel();` quand l'ACK arrive |
 | `ctx.nextPacketId()` | `'p1'`, `'p2'`... |
 
 ### Règles
@@ -204,6 +218,8 @@ sim.getState();              // { status, time, speed, scenarioId, pending, erro
 sim.getScenario();
 sim.isAllowed('pause');      // activer / désactiver un bouton
 sim.describe(packet);        // lignes de l'inspecteur
+sim.getHistory();            // évènements réseau depuis la dernière réinitialisation (S2)
+sim.getPacketsInFlight();    // [{ event, progress }] : paquets sur les liens maintenant (S2)
 sim.on(TOPICS.STATE, (state) => { /* rafraîchir les boutons */ });
 ```
 

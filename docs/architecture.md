@@ -97,6 +97,8 @@ sequenceDiagram
 - Le **temps simulé** (en ms) avance de *durée réelle de l'image × vitesse*. Pause, pas à pas et vitesse restent donc cohérents quelle que soit la fluidité de l'affichage.
 - **Pas à pas** saute directement au prochain instant où il se passe quelque chose.
 - **Réinitialiser** vide la file, remet l'horloge à 0 et rejoue le scénario à l'identique.
+- La file d'évènements est un **tas binaire** trié par (instant, ordre de programmation) : insertion et retrait en O(log n), ordre stable à instant égal. Une action programmée peut être **annulée** (temporisation TCP quand l'ACK arrive à temps).
+- Le moteur garde l'**historique** de l'exécution et la liste des **paquets en vol** : l'animateur et le journal peuvent se reconstruire à tout instant (`getPacketsInFlight()`, `getHistory()`).
 
 ## 5. Patrons de conception (cahier §8.2)
 
