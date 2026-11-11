@@ -10,3 +10,13 @@ test('rejects unsupported device',()=>{const s=sample();s.devices[0].type='firew
 test('rejects self links',()=>{const s=sample();s.links[0].to='p1';assert.throws(()=>normalizeTopology(s),/Self-link/);});
 test('mock matches S1 rendering interface',()=>{let clicked='';const r=createMockRenderer({onDeviceClick:id=>clicked=id});assert.deepEqual(r.loadTopology(sample()),{devices:2,links:1});assert.equal(r.highlightDevice('p1'),true);assert.equal(r.highlightDevice('missing'),false);assert.equal(r.focusDevice('s1'),true);assert.equal(r.simulateClick('p1'),true);assert.equal(clicked,'p1');r.resetView();r.resize();r.dispose();assert.throws(()=>r.loadTopology(sample()),/disposed/);});
 test('mock protects against external state mutation',()=>{const r=createMockRenderer();r.loadTopology(sample());const a=r.listDevices();a[0].position.x=500;assert.notEqual(r.getDevice('p1').position.x,500);r.dispose();});
+test('accepte le format des scénarios du moteur (liens a/b, adresses dans interfaces)',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const arp=JSON.parse(await readFile(new URL('../../scenarios/arp.json',import.meta.url),'utf8'));
+ const v=normalizeTopology(arp);
+ assert.equal(v.devices.length,4);
+ assert.deepEqual(v.links.map(l=>`${l.from}-${l.to}`),['pc1-sw1','pc2-sw1','pc3-sw1']);
+ const pc1=v.devices.find(d=>d.id==='pc1');
+ assert.equal(pc1.ip,'192.168.1.10');assert.equal(pc1.mac,'02:00:00:00:00:01');
+ assert.equal(v.devices.find(d=>d.id==='sw1').ip,null);
+});
