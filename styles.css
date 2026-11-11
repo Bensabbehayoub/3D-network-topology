@@ -237,6 +237,93 @@ body {
   min-height: calc(var(--touch) + 20px);
 }
 
+/* ---------- Barre de commandes (src/ui/controls.js) ---------- */
+
+.controls-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.speed-field input[type="range"] {
+  width: 120px;
+}
+
+/* Largeur fixe : le texte ne fait pas bouger les boutons quand la vitesse change (×0,25 → ×4). */
+.speed-value {
+  display: inline-block;
+  min-width: 4ch;
+  font: 600 0.9rem var(--mono);
+  color: var(--text);
+  text-align: right;
+}
+
+.controls-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.sim-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.sim-status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.sim-status[data-status="playing"]::before {
+  background: #3ddc84;
+}
+
+.sim-status[data-status="paused"]::before {
+  background: var(--focus);
+}
+
+.sim-status[data-status="finished"]::before {
+  background: var(--accent);
+}
+
+.sim-status[data-status="unavailable"]::before {
+  background: var(--danger);
+}
+
+.sim-time {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.controls-error {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.controls-error[hidden] {
+  display: none;
+}
+
 /* ---------- Panneau latéral ---------- */
 
 .app-side {
@@ -419,6 +506,17 @@ input[type="range"] {
     bottom: 0;
     z-index: 5;
     justify-content: center;
+  }
+
+  .controls-buttons {
+    justify-content: center;
+  }
+
+  /* L'état et le temps passent sur leur propre ligne, centrée sous les boutons. */
+  .controls-status {
+    flex-basis: 100%;
+    justify-content: center;
+    margin-left: 0;
   }
 
   .app-side {
