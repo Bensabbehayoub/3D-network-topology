@@ -437,6 +437,82 @@ input[type="range"] {
   outline-offset: 2px;
 }
 
+/* ---------- Inspecteur : équipement sélectionné (src/ui/inspector.js) ---------- */
+
+.inspector-device[hidden] {
+  display: none;
+}
+
+/* Quand un équipement est affiché, la zone du paquet (S3) reste dessous, séparée par un trait. */
+.inspector-device:not([hidden]) + .inspector-packet {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.device-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.device-props {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+}
+
+.device-props dt {
+  color: var(--text-muted);
+}
+
+.device-props dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.device-interfaces {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.device-interfaces th,
+.device-interfaces td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.device-interfaces th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.device-interfaces tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Adresses en chasse fixe, coupées si le panneau est étroit plutôt que de déborder. */
+.device-interfaces td.mono {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.device-note {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
 .log {
   margin: 12px 0 0;
   padding: 0;
