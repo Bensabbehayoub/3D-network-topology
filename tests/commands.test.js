@@ -267,3 +267,110 @@ test('le protocole est chargé dynamiquement à partir du champ "protocol"', asy
   await sim.load(SCENARIO);
   assert.deepEqual(requested, ['echo']);
 });
+
+// --- S2 : états × commandes, historique, paquets en vol, temporisations ---
+
+import { isAllowed, nextStatus } from '../src/sim/state.js';
+
+/** Amène une simulation neuve dans l'état demandé. */
+async function reach(status) {
+  const scheduler = manualScheduler();
+  const sim = createSimulation({ protocol: ECHO, scheduler });
+  if (status === STATUS.IDLE) return { sim, scheduler };
+  await sim.load(SCENARIO);
+  if (status === STATUS.PLAYING) sim.play();
+  if (status === STATUS.PAUSED) sim.step();
+  if (status === STATUS.FINISHED) while (sim.step());
+  assert.equal(sim.getState().status, status);
+  return { sim, scheduler };
+}
+
+const CALLS = {
+  play: (sim) => sim.play(),
+  pause: (sim) => sim.pause(),
+  step: (sim) => sim.step(),
+  setSpeed: (sim) => sim.setSpeed(2),
+  reset: (sim) => sim.reset(),
+  load: (sim) => sim.load(SCENARIO),
+};
+
+test('chaque commande, dans chaque état, suit exactement la table des états', async () => {
+  for (const status of Object.values(STATUS)) {
+    for (const [command, call] of Object.entries(CALLS)) {
+      const { sim } = await reach(status);
+      const result = await call(sim);
+      const allowed = isAllowed(command, status);
+      assert.equal(result, allowed, `${command} depuis ${status} : renvoie ${result}`);
+      const after = sim.getState().status;
+      if (!allowed) {
+        assert.equal(after, status, `${command} refusé depuis ${status} ne doit rien changer`);
+      } else if (command === 'step') {
+        assert.ok([STATUS.PAUSED, STATUS.FINISHED].includes(after), `step depuis ${status} → ${after}`);
+      } else {
+        assert.equal(after, nextStatus(status, command), `${command} depuis ${status}`);
+      }
+    }
+  }
+});
+
+test('getHistory garde les évènements de l\'exécution courante, et repart à vide après reset', async () => {
+  const { sim } = await setup();
+  assert.deepEqual(sim.getHistory(), []);
+  while (sim.step());
+  const history = sim.getHistory();
+  assert.deepEqual(history.map((e) => `${e.time} ${e.type}`), ['0 send', '100 receive', '100 send', '200 receive']);
+  assert.ok(Object.isFrozen(history));
+  assert.deepEqual(history.map((e) => e.id), [1, 2, 3, 4]);
+  sim.reset();
+  assert.deepEqual(sim.getHistory(), []);
+});
+
+test('getPacketsInFlight donne les paquets sur les liens et leur avancement', async () => {
+  const { sim, scheduler } = await setup();
+  assert.deepEqual(sim.getPacketsInFlight(), []);
+  sim.play();
+  scheduler.frame(25); // t = 25 : la question est à 25 % du lien (latence 100)
+  let flying = sim.getPacketsInFlight();
+  assert.equal(flying.length, 1);
+  assert.equal(flying[0].event.packet.type, 'ask');
+  assert.equal(flying[0].event.link, 'ab');
+  assert.equal(flying[0].progress, 0.25);
+
+  scheduler.frame(100); // t = 125 : question arrivée, réponse partie à 100, donc à 25 %
+  flying = sim.getPacketsInFlight();
+  assert.deepEqual(flying.map((f) => [f.event.packet.type, f.progress]), [['answer', 0.25]]);
+
+  scheduler.frame(200); // tout est arrivé
+  assert.deepEqual(sim.getPacketsInFlight(), []);
+  sim.reset();
+  assert.deepEqual(sim.getPacketsInFlight(), []);
+});
+
+test('ctx.schedule renvoie une annulation : une temporisation annulée n\'est jamais jouée', async () => {
+  const timer = {
+    ...ECHO,
+    start(ctx) {
+      const cancel = ctx.schedule(1000, () => ctx.explain('answer'));
+      ctx.schedule(10, () => { assert.equal(cancel(), true); });
+      ctx.explain('ask');
+    },
+  };
+  const { sim, record } = await setup({ protocol: timer });
+  while (sim.step());
+  assert.deepEqual(record.steps, ['ask']);
+  assert.equal(sim.getState().time, 10);
+  assert.equal(sim.getState().status, STATUS.FINISHED);
+});
+
+test('changer de vitesse pendant la lecture ne change pas la séquence', async () => {
+  const { sim, scheduler, record } = await setup();
+  sim.play();
+  scheduler.frame(30);
+  sim.setSpeed(4);
+  scheduler.frame(10);
+  sim.setSpeed(0.25);
+  scheduler.frame(100);
+  sim.setSpeed(4);
+  while (sim.getState().status === STATUS.PLAYING) scheduler.frame(16);
+  assert.deepEqual(record.network, FULL_RUN);
+});
