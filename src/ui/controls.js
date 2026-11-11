@@ -11,6 +11,7 @@
 //   mount()                    écrit la barre dans #controls et la relie au contrôleur
 
 import { COMMANDS, MAX_SPEED, MIN_SPEED, STATUS, TOPICS } from '../../simulation.js';
+import { isEditable, isSpace } from './keyboard.js';
 
 /** Pas du curseur de vitesse. */
 export const SPEED_STEP = 0.25;
@@ -102,15 +103,6 @@ export function controlsView(state, isAllowed) {
     enabled,
   };
 }
-
-/** Le focus est-il dans un champ où les touches servent à la saisie ? */
-function isEditable(target) {
-  if (!target) return false;
-  if (target.isContentEditable) return true;
-  return ['INPUT', 'SELECT', 'TEXTAREA'].includes(String(target.tagName ?? '').toUpperCase());
-}
-
-const isSpace = (key) => key === ' ' || key === 'Spacebar';
 
 /**
  * Contrôleur de la barre, sans DOM : commandes, abonnements au bus, raccourcis clavier.
