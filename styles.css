@@ -108,6 +108,88 @@ body {
   display: none;
 }
 
+/* ---------- Statut WebXR et bouton VR (pôle xr, Ayoub : src/xr/session.js) ---------- */
+
+.xr-status {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+  list-style: none;
+}
+
+.xr-badge::-webkit-details-marker {
+  display: none;
+}
+
+.xr-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+
+.xr-status[data-state="vr"] .xr-dot {
+  background: #3ddc84;
+}
+
+.xr-status[data-state="no-vr"] .xr-dot {
+  background: var(--focus);
+}
+
+.xr-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 10;
+  width: min(420px, 92vw);
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  font-size: 0.85rem;
+}
+
+.xr-hint {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+}
+
+.xr-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.xr-list dd {
+  margin: 0;
+  text-align: right;
+}
+
+.xr-list dd[data-ok="true"] {
+  color: #3ddc84;
+}
+
+.xr-list dd[data-ok="false"] {
+  color: var(--text-muted);
+}
+
 /* ---------- Zone principale : scène + commandes ---------- */
 
 .app-main {

@@ -1,5 +1,17 @@
-/** S1 adapter: deliberately narrow until Khalil approves the final shared schema. */
+/** Adaptateur de topologie pour le rendu.
+ * Accepte deux formes :
+ * - le format des scénarios (docs/simulation/contrats.md) : liens { a: 'pc1:eth0', b: 'sw1:p1' },
+ *   adresses dans devices[].interfaces[] ;
+ * - la forme simple du S1 : liens { from, to }, ip/mac directement sur l'équipement.
+ */
 const TYPES = new Set(['pc','host','router','switch','server']);
+/** 'pc1:eth0' → 'pc1' */
+function endpointDevice(value) { return typeof value === 'string' && value.includes(':') ? value.slice(0, value.indexOf(':')) : value; }
+/** Première adresse d'un équipement au format scénario (sans le préfixe /24). */
+function firstAddress(d, key) {
+  const value = (d.interfaces || []).map(i => i && i[key]).find(v => typeof v === 'string');
+  return value ? value.split('/')[0] : null;
+}
 function nonempty(x, field) { if(typeof x !== 'string'||!x.trim())throw new TypeError(`${field} must be non-empty string`);return x.trim(); }
 function position(value,index) {
   if(value === undefined || value === null) return {x:(index%4)*3.5-5.25,y:0,z:Math.floor(index/4)*3.5-1.75};
@@ -17,12 +29,14 @@ export function normalizeTopology(data) {
   const type=nonempty(d.type,`devices[${i}].type`).toLowerCase();
   if(!TYPES.has(type))throw new TypeError(`Unsupported device type ${type}`);
   const label=typeof d.label==='string'&&d.label.trim()?d.label.trim():id;
-  return {id,type,label,ip:typeof d.ip==='string'?d.ip:null,mac:typeof d.mac==='string'?d.mac:null,position:position(d.position,i)};
+  const ip=typeof d.ip==='string'?d.ip:firstAddress(d,'ip');
+  const mac=typeof d.mac==='string'?d.mac:firstAddress(d,'mac');
+  return {id,type,label,ip,mac,position:position(d.position,i)};
  });
  const linkIds=new Set();
  const links=data.links.map((l,i)=>{
   if(!l||typeof l!=='object')throw new TypeError(`link ${i} invalid`);
-  const from=nonempty(l.from,`links[${i}].from`),to=nonempty(l.to,`links[${i}].to`);
+  const from=nonempty(endpointDevice(l.from ?? l.a),`links[${i}].from`),to=nonempty(endpointDevice(l.to ?? l.b),`links[${i}].to`);
   if(!ids.has(from)||!ids.has(to))throw new TypeError(`Link ${i} references missing device`);
   if(from===to)throw new TypeError(`Self-link ${i}`);
   const id=typeof l.id==='string'&&l.id.trim()?l.id.trim():`link-${i}`;

@@ -34,3 +34,14 @@ are not supported by the device`. Three.js r187 exige la fonctionnalité de sess
 - IWER ne simule pas non plus la fonctionnalité `webgpu` : l'essai ne dit rien du
   navigateur d'un casque qui la fournirait.
 - Le nombre d'images mesuré n'est pas une mesure de performance.
+
+## Mise à jour (S1, après revue du superviseur)
+
+- **Version réellement embarquée : Three.js r180 (0.180.0)**, dans `vendor/three/` (voir `vendor/three/VERSION.txt`).
+  L'essai ci-dessus avait été mené avec r187. Le comportement constaté est le même avec r180 :
+  la session `immersive-vr` s'ouvre avec `WebGLRenderer` et la scène s'affiche dans l'émulateur.
+- **WebGPU n'est pas abandonné en silence** : la page détecte `navigator.gpu` et l'affiche dans le panneau
+  de statut WebXR (« détecté, non utilisé »). Le rendu reste en WebGL 2 pour garder une seule voie
+  compatible avec la VR (raisons ci-dessus).
+- Le code WebXR actif est dans `src/xr/session.js` (détection, statut, entrée/sortie de session) et
+  `src/render/scene.js` (`renderer.xr.enabled`, boucle `setAnimationLoop`, mise à l'échelle de la scène en VR).

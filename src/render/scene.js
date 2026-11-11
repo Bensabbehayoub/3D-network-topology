@@ -17,15 +17,23 @@ export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.domElement.style.display='block';renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';
  renderer.domElement.style.touchAction='none';container.appendChild(renderer.domElement);
+ // WebXR : la même scène sert au mode classique et à la VR (docs/decision-renderer.md).
+ renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local-floor');
  const controls=new OrbitControls(camera,renderer.domElement);
  controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=3;controls.maxDistance=80;
  controls.maxPolarAngle=Math.PI*.49;
  scene.add(new THREE.HemisphereLight(0xdceaff,0x17233d,2.25));
  const key=new THREE.DirectionalLight(0xffffff,2);key.position.set(8,15,10);scene.add(key);
- const floor=new THREE.GridHelper(40,40,0x42617c,0x203247);floor.position.y=-0.06;scene.add(floor);
- const content=new THREE.Group();scene.add(content);
+ // world regroupe sol et topologie : en VR on le réduit et on le place devant l'utilisateur.
+ const world=new THREE.Group();scene.add(world);
+ const floor=new THREE.GridHelper(40,40,0x42617c,0x203247);floor.position.y=-0.06;world.add(floor);
+ const content=new THREE.Group();world.add(content);
+ const VR_SCALE=.18,VR_OFFSET=new THREE.Vector3(0,1,-1.4);
+ const onXRStart=()=>{world.scale.setScalar(VR_SCALE);world.position.copy(VR_OFFSET);floor.visible=false;};
+ const onXREnd=()=>{world.scale.setScalar(1);world.position.set(0,0,0);floor.visible=true;resize();};
+ renderer.xr.addEventListener('sessionstart',onXRStart);renderer.xr.addEventListener('sessionend',onXREnd);
  const deviceMeshes=new Map(), edgeMeshes=new Map();
- let model={devices:[],links:[]},disposed=false,raf=0;
+ let model={devices:[],links:[]},disposed=false;
  const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
  let downPoint=null;
  const resize=()=>{if(disposed)return;const width=Math.max(container.clientWidth||640,1),height=Math.max(container.clientHeight||420,1);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height,false);};
@@ -45,7 +53,8 @@ export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={
    content.add(curve);edgeMeshes.set(l.id,curve);
  };
  const clear=()=>{for(const obj of [...content.children]){content.remove(obj);obj.traverse(child=>{child.geometry?.dispose();const mats=child.material?Array.isArray(child.material)?child.material:[child.material]:[];mats.forEach(m=>m.dispose());});}deviceMeshes.clear();edgeMeshes.clear();};
- const frame=()=>{if(disposed)return;raf=requestAnimationFrame(frame);controls.update();renderer.render(scene,camera);};frame();
+ // setAnimationLoop et non requestAnimationFrame : seule cette boucle continue pendant une session XR.
+ const frame=()=>{if(disposed)return;if(!renderer.xr.isPresenting)controls.update();renderer.render(scene,camera);};renderer.setAnimationLoop(frame);
  const click=(e)=>{if(disposed||!downPoint||Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)>6)return;
   const rect=renderer.domElement.getBoundingClientRect();if(rect.width===0||rect.height===0)return;
   pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
@@ -62,6 +71,10 @@ export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={
   focusDevice(id){const mesh=deviceMeshes.get(id);if(!mesh)return false;controls.target.copy(mesh.position);controls.update();return true;},
   resetView(){camera.position.set(10,12,17);controls.target.set(0,0,0);controls.update();},
   resize,
-  dispose(){if(disposed)return;disposed=true;cancelAnimationFrame(raf);observer?.disconnect();window.removeEventListener('resize',resize);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',click);controls.dispose();clear();floor.geometry.dispose();floor.material.dispose();renderer.dispose();renderer.domElement.remove();},
+  /** Démarre l'affichage dans une session WebXR déjà ouverte (pôle xr). */
+  startXR(session){if(disposed)throw new Error('Renderer disposed');return renderer.xr.setSession(session);},
+  isPresenting(){return renderer.xr.isPresenting;},
+  renderer,
+  dispose(){if(disposed)return;disposed=true;renderer.setAnimationLoop(null);renderer.xr.removeEventListener('sessionstart',onXRStart);renderer.xr.removeEventListener('sessionend',onXREnd);observer?.disconnect();window.removeEventListener('resize',resize);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',click);controls.dispose();clear();floor.geometry.dispose();floor.material.dispose();renderer.dispose();renderer.domElement.remove();},
  };
 }
