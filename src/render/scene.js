@@ -25,19 +25,33 @@ export function pickDeviceFromObjects(raycaster,objects,origin,direction,boundar
 
 /** Initializes an independent renderer. GLBs upgrade immediate fallbacks asynchronously. */
 export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={}) {
- if(!container||typeof container.appendChild!=='function')throw new TypeError('A DOM container is required');
- const scene=new THREE.Scene();scene.background=new THREE.Color(background);
- const camera=new THREE.PerspectiveCamera(48,1,.1,1000);camera.position.set(10,12,17);
- const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;
- Object.assign(renderer.domElement.style,{display:'block',width:'100%',height:'100%',touchAction:'none'});container.appendChild(renderer.domElement);
- const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=3;controls.maxDistance=80;controls.maxPolarAngle=Math.PI*.49;
- scene.add(new THREE.HemisphereLight(0xdceaff,0x17233d,2.25));const key=new THREE.DirectionalLight(0xffffff,2);key.position.set(8,15,10);scene.add(key);
- const floor=new THREE.GridHelper(40,40,0x42617c,0x203247);floor.position.y=-.06;scene.add(floor);
- const content=new THREE.Group();content.name='Topology';scene.add(content);
+ if(!container || typeof container.appendChild!=='function')throw new TypeError('A DOM container is required');
+ const scene = new THREE.Scene(); scene.background=new THREE.Color(background);
+ const camera=new THREE.PerspectiveCamera(48,1,0.1,1000); camera.position.set(10,12,17);
+ const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+ renderer.outputColorSpace=THREE.SRGBColorSpace;
+ renderer.domElement.style.display='block';renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';
+ renderer.domElement.style.touchAction='none';container.appendChild(renderer.domElement);
+ // WebXR : la même scène sert au mode classique et à la VR (docs/decision-renderer.md).
+ renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local-floor');
+ const controls=new OrbitControls(camera,renderer.domElement);
+ controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=3;controls.maxDistance=80;
+ controls.maxPolarAngle=Math.PI*.49;
+ scene.add(new THREE.HemisphereLight(0xdceaff,0x17233d,2.25));
+ const key=new THREE.DirectionalLight(0xffffff,2);key.position.set(8,15,10);scene.add(key);
+ // world regroupe sol et topologie : en VR on le réduit et on le place devant l'utilisateur.
+ const world=new THREE.Group();world.name='World';scene.add(world);
+ const floor=new THREE.GridHelper(40,40,0x42617c,0x203247);floor.position.y=-0.06;world.add(floor);
+ const content=new THREE.Group();content.name='Topology';world.add(content);
+ const VR_SCALE=.18,VR_OFFSET=new THREE.Vector3(0,1,-1.4);
+ const onXRStart=()=>{world.scale.setScalar(VR_SCALE);world.position.copy(VR_OFFSET);floor.visible=false;};
+ const onXREnd=()=>{world.scale.setScalar(1);world.position.set(0,0,0);floor.visible=true;resize();};
+ renderer.xr.addEventListener('sessionstart',onXRStart);renderer.xr.addEventListener('sessionend',onXREnd);
  const factory=createDeviceFactory(),generations=createGenerationTracker(),deviceMeshes=new Map(),highlightModes=new Map();
- let model={devices:[],links:[]},linkLayer=null,labelLayer=null,disposed=false,raf=0,ready=Promise.resolve([]);
- const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let downPoint=null;
-
+ let model={devices:[],links:[]},linkLayer=null,labelLayer=null,disposed=false,ready=Promise.resolve([]);
+ const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
+ let downPoint=null;
  const resize=()=>{if(disposed)return;const width=Math.max(container.clientWidth||640,1),height=Math.max(container.clientHeight||420,1);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height,false);};
  const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;observer?.observe(container);window.addEventListener('resize',resize);resize();
  const clearTopology=()=>{
@@ -50,7 +64,8 @@ export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={
   if(!next||disposed||!generations.isCurrent(token))return false;const previous=deviceMeshes.get(device.id);if(previous){factory.setHighlight(previous,'normal');content.remove(previous);}
   const mode=highlightModes.get(device.id);if(mode)factory.setHighlight(next,mode);deviceMeshes.set(device.id,next);content.add(next);refreshLayers();return true;
  };
- const frame=()=>{if(disposed)return;raf=requestAnimationFrame(frame);controls.update();renderer.render(scene,camera);};frame();
+ // setAnimationLoop is required for immersive sessions and also drives the desktop view.
+ const frame=()=>{if(disposed)return;if(!renderer.xr.isPresenting)controls.update();renderer.render(scene,camera);};renderer.setAnimationLoop(frame);
  const click=e=>{
   if(disposed||!downPoint||Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)>6)return;const rect=renderer.domElement.getBoundingClientRect();if(!rect.width||!rect.height)return;
   pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);raycaster.setFromCamera(pointer,camera);
@@ -71,7 +86,13 @@ export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={
   getDevice(id){return model.devices.find(device=>device.id===id)||null;},
   listDevices(){return model.devices.map(device=>({...device,position:{...device.position}}));},
   focusDevice(id){const root=deviceMeshes.get(id);if(!root)return false;controls.target.copy(root.position);controls.update();return true;},
-  resetView(){camera.position.set(10,12,17);controls.target.set(0,0,0);controls.update();},resize,
-  dispose(){if(disposed)return;disposed=true;generations.dispose();cancelAnimationFrame(raf);observer?.disconnect();window.removeEventListener('resize',resize);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',click);controls.dispose();linkLayer?.dispose();labelLayer?.dispose();for(const root of deviceMeshes.values())factory.setHighlight(root,'normal');deviceMeshes.clear();content.clear();factory.dispose();floor.geometry.dispose();(Array.isArray(floor.material)?floor.material:[floor.material]).forEach(material=>material.dispose());renderer.dispose();renderer.domElement.remove();},
+  resetView(){camera.position.set(10,12,17);controls.target.set(0,0,0);controls.update();},
+  resize,
+  /** Démarre l'affichage dans une session WebXR déjà ouverte (pôle xr). */
+  startXR(session){if(disposed)throw new Error('Renderer disposed');return renderer.xr.setSession(session);},
+  isPresenting(){return renderer.xr.isPresenting;},
+  renderer,
+  world,
+  dispose(){if(disposed)return;disposed=true;generations.dispose();renderer.setAnimationLoop(null);renderer.xr.removeEventListener('sessionstart',onXRStart);renderer.xr.removeEventListener('sessionend',onXREnd);observer?.disconnect();window.removeEventListener('resize',resize);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',click);controls.dispose();linkLayer?.dispose();labelLayer?.dispose();for(const root of deviceMeshes.values())factory.setHighlight(root,'normal');deviceMeshes.clear();content.clear();factory.dispose();floor.geometry.dispose();(Array.isArray(floor.material)?floor.material:[floor.material]).forEach(material=>material.dispose());renderer.dispose();renderer.domElement.remove();},
  };
 }

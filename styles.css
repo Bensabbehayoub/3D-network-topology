@@ -108,6 +108,88 @@ body {
   display: none;
 }
 
+/* ---------- Statut WebXR et bouton VR (pôle xr, Ayoub : src/xr/session.js) ---------- */
+
+.xr-status {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+  list-style: none;
+}
+
+.xr-badge::-webkit-details-marker {
+  display: none;
+}
+
+.xr-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+
+.xr-status[data-state="vr"] .xr-dot {
+  background: #3ddc84;
+}
+
+.xr-status[data-state="no-vr"] .xr-dot {
+  background: var(--focus);
+}
+
+.xr-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 10;
+  width: min(420px, 92vw);
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  font-size: 0.85rem;
+}
+
+.xr-hint {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+}
+
+.xr-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.xr-list dd {
+  margin: 0;
+  text-align: right;
+}
+
+.xr-list dd[data-ok="true"] {
+  color: #3ddc84;
+}
+
+.xr-list dd[data-ok="false"] {
+  color: var(--text-muted);
+}
+
 /* ---------- Zone principale : scène + commandes ---------- */
 
 .app-main {
@@ -153,6 +235,93 @@ body {
   background: var(--surface);
   border-top: 1px solid var(--border);
   min-height: calc(var(--touch) + 20px);
+}
+
+/* ---------- Barre de commandes (src/ui/controls.js) ---------- */
+
+.controls-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.speed-field input[type="range"] {
+  width: 120px;
+}
+
+/* Largeur fixe : le texte ne fait pas bouger les boutons quand la vitesse change (×0,25 → ×4). */
+.speed-value {
+  display: inline-block;
+  min-width: 4ch;
+  font: 600 0.9rem var(--mono);
+  color: var(--text);
+  text-align: right;
+}
+
+.controls-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.sim-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.sim-status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.sim-status[data-status="playing"]::before {
+  background: #3ddc84;
+}
+
+.sim-status[data-status="paused"]::before {
+  background: var(--focus);
+}
+
+.sim-status[data-status="finished"]::before {
+  background: var(--accent);
+}
+
+.sim-status[data-status="unavailable"]::before {
+  background: var(--danger);
+}
+
+.sim-time {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.controls-error {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.controls-error[hidden] {
+  display: none;
 }
 
 /* ---------- Panneau latéral ---------- */
@@ -268,6 +437,82 @@ input[type="range"] {
   outline-offset: 2px;
 }
 
+/* ---------- Inspecteur : équipement sélectionné (src/ui/inspector.js) ---------- */
+
+.inspector-device[hidden] {
+  display: none;
+}
+
+/* Quand un équipement est affiché, la zone du paquet (S3) reste dessous, séparée par un trait. */
+.inspector-device:not([hidden]) + .inspector-packet {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.device-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.device-props {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+}
+
+.device-props dt {
+  color: var(--text-muted);
+}
+
+.device-props dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.device-interfaces {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.device-interfaces th,
+.device-interfaces td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.device-interfaces th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.device-interfaces tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Adresses en chasse fixe, coupées si le panneau est étroit plutôt que de déborder. */
+.device-interfaces td.mono {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.device-note {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
 .log {
   margin: 12px 0 0;
   padding: 0;
@@ -337,6 +582,17 @@ input[type="range"] {
     bottom: 0;
     z-index: 5;
     justify-content: center;
+  }
+
+  .controls-buttons {
+    justify-content: center;
+  }
+
+  /* L'état et le temps passent sur leur propre ligne, centrée sous les boutons. */
+  .controls-status {
+    flex-basis: 100%;
+    justify-content: center;
+    margin-left: 0;
   }
 
   .app-side {

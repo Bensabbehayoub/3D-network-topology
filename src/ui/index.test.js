@@ -56,6 +56,13 @@ test('init ne plante pas sans document ni app (chargement sous Node, pôles en �
   assert.equal(ui.mountPoints, MOUNT_POINTS);
 });
 
+test('l\'API du pôle ui (app.ui) expose la sélection pour les autres pôles', async () => {
+  const ui = await init({}, { root: fakeRoot(Object.values(MOUNT_POINTS)) });
+  for (const name of ['select', 'clear', 'getSelection', 'onChange']) {
+    assert.equal(typeof ui[name], 'function', `app.ui.${name} manquant`);
+  }
+});
+
 test('index.html déclare chaque point de montage une seule fois', async () => {
   const html = await read('index.html');
   for (const id of Object.values(MOUNT_POINTS)) {
@@ -73,7 +80,8 @@ test('index.html charge main.js, le manifest et les styles par des chemins relat
 
 test('aucune ressource externe dans l\'interface : le hors ligne doit rester possible', async () => {
   const files = ['index.html', 'styles.css', 'src/ui/index.js', 'src/ui/controls.js',
-    'src/ui/inspector.js', 'src/ui/explanations.js', 'src/ui/scenarioPicker.js'];
+    'src/ui/inspector.js', 'src/ui/explanations.js', 'src/ui/scenarioPicker.js',
+    'src/ui/selection.js', 'src/ui/keyboard.js'];
   for (const path of files) {
     assert.doesNotMatch(await read(path), /(https?:)?\/\/[a-z0-9-]+\.[a-z]/i, path);
   }

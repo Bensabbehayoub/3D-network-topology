@@ -15,6 +15,7 @@ export function createMockRenderer({onDeviceClick=()=>{}}={}){
   listDevices(){guard();return data.devices.map(d=>({...d,position:{...d.position}}));},
   focusDevice(id){guard();return data.devices.some(d=>d.id===id);},
   resetView(){guard();},resize(){guard();},
+  startXR(){guard();return Promise.reject(new Error('Pas de WebXR dans le mock de rendu'));},isPresenting(){return false;},
   simulateClick(id){guard();const d=data.devices.find(d=>d.id===id);if(d)onDeviceClick(id,d);return !!d;},
   dispose(){disposed=true;data={devices:[],links:[]};}
  };
