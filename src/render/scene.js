@@ -1,18 +1,34 @@
 import * as THREE from '../../vendor/three/build/three.module.js';
 import { OrbitControls } from '../../vendor/three/examples/jsm/controls/OrbitControls.js';
+import { createDeviceFactory, createGenerationTracker } from './factory.js';
+import { createLinkLayer } from './links.js';
+import { createLabelLayer } from './labels.js';
+import { normalizePickRay } from './picking.js';
 import { normalizeTopology } from './topology.js';
 
-const PALETTE={pc:0x3b82f6,host:0x3b82f6,router:0xffb454,switch:0x10b981,server:0xa78bfa};
 const VALID_HIGHLIGHTS=new Set(['selected','active','error','normal']);
 
-/** Initializes an independent 3D renderer in the supplied DOM element.
- * All DOM, GPU, observers, and listeners are owned by the returned handle.
- */
+export function resolveDeviceId(object,boundary=null){
+ for(let current=object;current&&current!==boundary;current=current.parent)if(current.userData?.deviceId)return current.userData.deviceId;
+ return null;
+}
+
+/** Internal testable picker used by the public scene handle. Intersections are nearest-first. */
+export function pickDeviceFromObjects(raycaster,objects,origin,direction,boundary=null){
+ const ray=normalizePickRay(origin,direction);for(const object of objects)object.updateWorldMatrix(true,true);
+ raycaster.set(new THREE.Vector3(ray.origin.x,ray.origin.y,ray.origin.z),new THREE.Vector3(ray.direction.x,ray.direction.y,ray.direction.z));
+ for(const hit of raycaster.intersectObjects(objects,true)){
+  if(hit.object.userData?.isHighlight)continue;const id=resolveDeviceId(hit.object,boundary);if(id)return id;
+ }
+ return null;
+}
+
+/** Initializes an independent renderer. GLBs upgrade immediate fallbacks asynchronously. */
 export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={}) {
  if(!container || typeof container.appendChild!=='function')throw new TypeError('A DOM container is required');
  const scene = new THREE.Scene(); scene.background=new THREE.Color(background);
  const camera=new THREE.PerspectiveCamera(48,1,0.1,1000); camera.position.set(10,12,17);
- const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+ const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.domElement.style.display='block';renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';
@@ -25,56 +41,58 @@ export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={
  scene.add(new THREE.HemisphereLight(0xdceaff,0x17233d,2.25));
  const key=new THREE.DirectionalLight(0xffffff,2);key.position.set(8,15,10);scene.add(key);
  // world regroupe sol et topologie : en VR on le réduit et on le place devant l'utilisateur.
- const world=new THREE.Group();scene.add(world);
+ const world=new THREE.Group();world.name='World';scene.add(world);
  const floor=new THREE.GridHelper(40,40,0x42617c,0x203247);floor.position.y=-0.06;world.add(floor);
- const content=new THREE.Group();world.add(content);
+ const content=new THREE.Group();content.name='Topology';world.add(content);
  const VR_SCALE=.18,VR_OFFSET=new THREE.Vector3(0,1,-1.4);
  const onXRStart=()=>{world.scale.setScalar(VR_SCALE);world.position.copy(VR_OFFSET);floor.visible=false;};
  const onXREnd=()=>{world.scale.setScalar(1);world.position.set(0,0,0);floor.visible=true;resize();};
  renderer.xr.addEventListener('sessionstart',onXRStart);renderer.xr.addEventListener('sessionend',onXREnd);
- const deviceMeshes=new Map(), edgeMeshes=new Map();
- let model={devices:[],links:[]},disposed=false;
+ const factory=createDeviceFactory(),generations=createGenerationTracker(),deviceMeshes=new Map(),highlightModes=new Map();
+ let model={devices:[],links:[]},linkLayer=null,labelLayer=null,disposed=false,ready=Promise.resolve([]);
  const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
  let downPoint=null;
  const resize=()=>{if(disposed)return;const width=Math.max(container.clientWidth||640,1),height=Math.max(container.clientHeight||420,1);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height,false);};
- const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;
- observer?.observe(container);window.addEventListener('resize',resize);resize();
- const buildDevice=d=>{
-  const geo=d.type==='router'?new THREE.SphereGeometry(.68,24,16):d.type==='switch'?new THREE.BoxGeometry(1.9,.42,1):d.type==='server'?new THREE.BoxGeometry(.95,1.8,.85):new THREE.BoxGeometry(1.25,.85,.7);
-  const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:PALETTE[d.type],roughness:.5,metalness:.08,emissive:0x000000}));
-  mesh.position.set(d.position.x,d.position.y+.85,d.position.z);mesh.userData.deviceId=d.id;mesh.userData.baseColor=PALETTE[d.type];
-  const base=new THREE.Mesh(new THREE.CylinderGeometry(.92,.95,.09,32),new THREE.MeshStandardMaterial({color:0x243a57}));base.position.y=-.55;mesh.add(base);
-  content.add(mesh);deviceMeshes.set(d.id,mesh);
+ const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;observer?.observe(container);window.addEventListener('resize',resize);resize();
+ const clearTopology=()=>{
+  generations.next();linkLayer?.dispose();labelLayer?.dispose();linkLayer=null;labelLayer=null;
+  for(const root of deviceMeshes.values()){factory.setHighlight(root,'normal');content.remove(root);}deviceMeshes.clear();highlightModes.clear();
+  for(const child of [...content.children])content.remove(child);
  };
- const buildLink=l=>{
-   const a=deviceMeshes.get(l.from).position,b=deviceMeshes.get(l.to).position;
-   const start=new THREE.Vector3(a.x,.16,a.z),end=new THREE.Vector3(b.x,.16,b.z);
-   const curve=new THREE.Line(new THREE.BufferGeometry().setFromPoints([start,end]),new THREE.LineBasicMaterial({color:0x72a3c8}));
-   content.add(curve);edgeMeshes.set(l.id,curve);
+ const refreshLayers=()=>{linkLayer?.refresh();labelLayer?.refresh();};
+ const replaceDevice=(device,next,token)=>{
+  if(!next||disposed||!generations.isCurrent(token))return false;const previous=deviceMeshes.get(device.id);if(previous){factory.setHighlight(previous,'normal');content.remove(previous);}
+  const mode=highlightModes.get(device.id);if(mode)factory.setHighlight(next,mode);deviceMeshes.set(device.id,next);content.add(next);refreshLayers();return true;
  };
- const clear=()=>{for(const obj of [...content.children]){content.remove(obj);obj.traverse(child=>{child.geometry?.dispose();const mats=child.material?Array.isArray(child.material)?child.material:[child.material]:[];mats.forEach(m=>m.dispose());});}deviceMeshes.clear();edgeMeshes.clear();};
- // setAnimationLoop et non requestAnimationFrame : seule cette boucle continue pendant une session XR.
+ // setAnimationLoop is required for immersive sessions and also drives the desktop view.
  const frame=()=>{if(disposed)return;if(!renderer.xr.isPresenting)controls.update();renderer.render(scene,camera);};renderer.setAnimationLoop(frame);
- const click=(e)=>{if(disposed||!downPoint||Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)>6)return;
-  const rect=renderer.domElement.getBoundingClientRect();if(rect.width===0||rect.height===0)return;
-  pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
-  raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects([...deviceMeshes.values()],false);
-  if(hits.length){const id=hits[0].object.userData.deviceId;onDeviceClick(id,model.devices.find(d=>d.id===id));}
+ const click=e=>{
+  if(disposed||!downPoint||Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)>6)return;const rect=renderer.domElement.getBoundingClientRect();if(!rect.width||!rect.height)return;
+  pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);raycaster.setFromCamera(pointer,camera);
+  const hit=raycaster.intersectObjects([...deviceMeshes.values()],true).find(item=>!item.object.userData?.isHighlight);const id=hit&&resolveDeviceId(hit.object,content);if(id)onDeviceClick(id,model.devices.find(device=>device.id===id));
  };
- const down=e=>{downPoint={x:e.clientX,y:e.clientY};};
- renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',click);
+ const down=e=>{downPoint={x:e.clientX,y:e.clientY};};renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',click);
+
  return {
-  loadTopology(data){if(disposed)throw new Error('Renderer disposed');const next=normalizeTopology(data);clear();model=next;for(const d of next.devices)buildDevice(d);for(const l of next.links)buildLink(l);return {devices:next.devices.length,links:next.links.length};},
-  highlightDevice(id,mode='selected'){if(!VALID_HIGHLIGHTS.has(mode))throw new TypeError(`Invalid highlight mode ${mode}`);const mesh=deviceMeshes.get(id);if(!mesh)return false;mesh.material.emissive.setHex(mode==='error'?0x8a1b23:mode==='selected'?0x265b8f:mode==='active'?0x19704b:0);return true;},
-  getDevice(id){return model.devices.find(d=>d.id===id)||null;},
-  listDevices(){return model.devices.map(d=>({...d,position:{...d.position}}));},
-  focusDevice(id){const mesh=deviceMeshes.get(id);if(!mesh)return false;controls.target.copy(mesh.position);controls.update();return true;},
+  loadTopology(data){
+   if(disposed)throw new Error('Renderer disposed');const next=normalizeTopology(data);clearTopology();model=next;const token=generations.current;
+   for(const device of next.devices){const root=factory.createFallback(device);deviceMeshes.set(device.id,root);content.add(root);}
+   linkLayer=createLinkLayer(next.links,deviceMeshes);labelLayer=createLabelLayer(next.devices,deviceMeshes);content.add(linkLayer.group,labelLayer.group);
+   const pending=next.devices.map(device=>factory.loadModel(device).then(root=>replaceDevice(device,root,token)));ready=Promise.allSettled(pending);return {devices:next.devices.length,links:next.links.length};
+  },
+  whenReady(){return ready;},
+  pickDevice(origin,direction){if(disposed)throw new Error('Renderer disposed');return pickDeviceFromObjects(raycaster,[...deviceMeshes.values()],origin,direction,content);},
+  highlightDevice(id,mode='selected'){if(disposed)throw new Error('Renderer disposed');if(!VALID_HIGHLIGHTS.has(mode))throw new TypeError(`Invalid highlight mode ${mode}`);const root=deviceMeshes.get(id);if(!root)return false;factory.setHighlight(root,mode);if(mode==='normal')highlightModes.delete(id);else highlightModes.set(id,mode);return true;},
+  getDevice(id){return model.devices.find(device=>device.id===id)||null;},
+  listDevices(){return model.devices.map(device=>({...device,position:{...device.position}}));},
+  focusDevice(id){const root=deviceMeshes.get(id);if(!root)return false;controls.target.copy(root.position);controls.update();return true;},
   resetView(){camera.position.set(10,12,17);controls.target.set(0,0,0);controls.update();},
   resize,
   /** Démarre l'affichage dans une session WebXR déjà ouverte (pôle xr). */
   startXR(session){if(disposed)throw new Error('Renderer disposed');return renderer.xr.setSession(session);},
   isPresenting(){return renderer.xr.isPresenting;},
   renderer,
-  dispose(){if(disposed)return;disposed=true;renderer.setAnimationLoop(null);renderer.xr.removeEventListener('sessionstart',onXRStart);renderer.xr.removeEventListener('sessionend',onXREnd);observer?.disconnect();window.removeEventListener('resize',resize);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',click);controls.dispose();clear();floor.geometry.dispose();floor.material.dispose();renderer.dispose();renderer.domElement.remove();},
+  world,
+  dispose(){if(disposed)return;disposed=true;generations.dispose();renderer.setAnimationLoop(null);renderer.xr.removeEventListener('sessionstart',onXRStart);renderer.xr.removeEventListener('sessionend',onXREnd);observer?.disconnect();window.removeEventListener('resize',resize);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',click);controls.dispose();linkLayer?.dispose();labelLayer?.dispose();for(const root of deviceMeshes.values())factory.setHighlight(root,'normal');deviceMeshes.clear();content.clear();factory.dispose();floor.geometry.dispose();(Array.isArray(floor.material)?floor.material:[floor.material]).forEach(material=>material.dispose());renderer.dispose();renderer.domElement.remove();},
  };
 }
