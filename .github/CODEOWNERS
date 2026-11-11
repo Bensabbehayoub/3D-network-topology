@@ -47,6 +47,7 @@
 /src/render/packetAnimator.js   @Bensabbehayoub @111JOJO111
 /src/sim/devices/switch.js      @Bensabbehayoub @111JOJO111
 /tests/switch.test.js           @Bensabbehayoub @111JOJO111
+/tests/packetAnimator.test.js   @Bensabbehayoub @111JOJO111
 /tests/platform.test.js         @Bensabbehayoub @111JOJO111
 /scenarios/ping.json            @Bensabbehayoub @111JOJO111
 /docs/decision-renderer.md      @Bensabbehayoub @111JOJO111
