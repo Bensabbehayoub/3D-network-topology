@@ -46,5 +46,8 @@ export async function init(app = {}) {
     show(FALLBACK_TOPOLOGY);
   }
 
+  const { mountPacketAnimator } = await import('./packetAnimator.js');
+  mountPacketAnimator({ sim: app.sim, render: handle });
+
   return {available:true,...handle};
 }
