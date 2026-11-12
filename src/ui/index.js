@@ -10,6 +10,7 @@
 import { mount as mountControls } from './controls.js';
 import { mount as mountExplanations } from './explanations.js';
 import { mount as mountInspector } from './inspector.js';
+import { mount as mountInstall } from './install.js';
 import { mount as mountScenarioPicker } from './scenarioPicker.js';
 import { attachSelection, createSelection, deviceExists, renderHighlighter } from './selection.js';
 
@@ -29,12 +30,13 @@ export const MOUNT_POINTS = Object.freeze({
 });
 
 // Modules montés par ce pôle, dans l'ordre d'affichage.
-// install.js (S5) viendra s'ajouter ici. selection.js n'a pas de zone à lui : il est créé à part.
+// selection.js n'a pas de zone à lui : il est créé à part.
 const MODULES = [
   { name: 'scenarioPicker', id: MOUNT_POINTS.scenarioPicker, mount: mountScenarioPicker },
   { name: 'controls', id: MOUNT_POINTS.controls, mount: mountControls },
   { name: 'inspector', id: MOUNT_POINTS.inspector, mount: mountInspector },
   { name: 'explanations', id: MOUNT_POINTS.explanations, mount: mountExplanations },
+  { name: 'install', id: MOUNT_POINTS.install, mount: mountInstall },
 ];
 
 /**

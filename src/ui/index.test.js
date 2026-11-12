@@ -14,15 +14,15 @@ function fakeRoot(ids) {
   return { elements, getElementById: (id) => elements.get(id) ?? null };
 }
 
-const UI_IDS = ['controls', 'scenario-picker', 'inspector', 'explanations'];
+const UI_IDS = ['controls', 'scenario-picker', 'inspector', 'explanations', 'install-slot'];
 
-test('init monte les quatre modules quand app est vide (S1 : sim et render non livrés)', async (t) => {
+test('init monte tous les modules quand app est vide (pôles sim et render absents)', async (t) => {
   t.mock.method(console, 'warn', () => {});
   const root = fakeRoot(Object.values(MOUNT_POINTS));
 
   const ui = await init({}, { root });
 
-  assert.deepEqual(Object.keys(ui.modules).sort(), ['controls', 'explanations', 'inspector', 'scenarioPicker']);
+  assert.deepEqual(Object.keys(ui.modules).sort(), ['controls', 'explanations', 'inspector', 'install', 'scenarioPicker']);
   for (const id of UI_IDS) {
     assert.notEqual(root.elements.get(id).innerHTML.trim(), '', `#${id} est resté vide`);
   }
@@ -44,7 +44,7 @@ test('init continue si un point de montage manque, avec un avertissement', async
   const ui = await init({}, { root });
 
   assert.ok(!('inspector' in ui.modules));
-  assert.equal(Object.keys(ui.modules).length, 3);
+  assert.equal(Object.keys(ui.modules).length, 4);
   assert.equal(console.warn.mock.callCount(), 1);
   assert.match(console.warn.mock.calls[0].arguments[0], /#inspector/);
 });
@@ -81,7 +81,7 @@ test('index.html charge main.js, le manifest et les styles par des chemins relat
 test('aucune ressource externe dans l\'interface : le hors ligne doit rester possible', async () => {
   const files = ['index.html', 'styles.css', 'src/ui/index.js', 'src/ui/controls.js',
     'src/ui/inspector.js', 'src/ui/explanations.js', 'src/ui/scenarioPicker.js',
-    'src/ui/selection.js', 'src/ui/keyboard.js'];
+    'src/ui/selection.js', 'src/ui/keyboard.js', 'src/ui/install.js'];
   for (const path of files) {
     assert.doesNotMatch(await read(path), /(https?:)?\/\/[a-z0-9-]+\.[a-z]/i, path);
   }
