@@ -106,6 +106,13 @@ export function validateScenario(scenario) {
         error(`${name}.position : [x, y, z] attendu`);
       }
       if (device.gateway !== undefined && !isIpv4(device.gateway)) error(`${name}.gateway : adresse IPv4 attendue`);
+      if (device.routes !== undefined) {
+        if (!Array.isArray(device.routes)) error(`${name}.routes : tableau attendu`);
+        else device.routes.forEach((route, k) => {
+          if (!route || !parseCidr(route.network)) error(`${name}.routes[${k}].network : réseau au format 192.168.3.0/24 attendu`);
+          if (!route || !isIpv4(route.via)) error(`${name}.routes[${k}].via : adresse IPv4 du routeur suivant attendue`);
+        });
+      }
 
       const names = new Set();
       if (!Array.isArray(device.interfaces) || device.interfaces.length === 0) {

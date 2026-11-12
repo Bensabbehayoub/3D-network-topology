@@ -57,7 +57,8 @@ Un fichier `scenarios/<protocole>.json` par scénario. Il contient **sa** topolo
 
 - `mac` est obligatoire pour `host`, `server` et `router`, facultatif pour `switch`. Une MAC n'appartient qu'à une interface.
 - `ip` est au format CIDR (`adresse/préfixe`). Elle peut manquer (client DHCP avant d'obtenir son adresse).
-- D'autres champs propres à un protocole sont permis (ex. `routes` d'un routeur en S5, `pool` d'un serveur DHCP) : le validateur les ignore, le protocole les lit.
+- `routes` (facultatif, tout équipement, surtout les routeurs) : routes statiques `[{ "network": "192.168.3.0/24", "via": "10.0.0.2" }]`. `via` est l'adresse du routeur suivant, dans un réseau connecté. `"0.0.0.0/0"` est une route par défaut. Le validateur vérifie le format (phase 4).
+- D'autres champs propres à un protocole sont permis (ex. `pool` d'un serveur DHCP) : le validateur les ignore, le protocole les lit.
 
 ### Lien
 
@@ -75,6 +76,10 @@ Un fichier `scenarios/<protocole>.json` par scénario. Il contient **sa** topolo
 ```
 
 Le protocole affiche une étape avec `ctx.explain('arp-request')` et y rattache ses messages avec `ctx.send(..., { step: 'arp-request' })`.
+
+### Liste des scénarios proposés
+
+`scenarios/index.json` liste, dans l'ordre d'affichage, les identifiants des scénarios terminés : `{ "scenarios": ["arp", "ping", "routage", "ttl"] }`. Chaque id correspond au fichier `scenarios/<id>.json`, dont le champ `id` doit être identique. Un fichier absent de la liste est une ébauche : il n'est pas proposé dans l'application. Un scénario invalide est écarté au chargement, avec son erreur dans la console, sans bloquer les autres.
 
 ### Vérifier son scénario
 
@@ -204,7 +209,27 @@ Aucun registre à modifier : le moteur charge le fichier d'après le champ `prot
 
 - Le protocole n'agit **que** par `ctx` : ni `setTimeout`, ni `Date.now()`, ni DOM, ni Three.js. Il est donc déterministe et testable sous Node.
 - `describe(packet)` renvoie un tableau `{ layer, field, value }` de chaînes. L'inspecteur l'affiche sans connaître le protocole, avec `app.sim.describe(packet)`, qui choisit le bon protocole d'après `packet.protocol`.
-- Comportements d'équipements (S3) : `switch.js`, `host.js` et `router.js` sont appelés **avant** le protocole à chaque réception. S'ils renvoient `true`, le paquet est traité (ex. le switch commute la trame) et le protocole n'est pas appelé.
+- Comportements d'équipements (phase 4, `src/sim/devices/`) : `switch.js`, `host.js` (aussi pour `server`) et `router.js` sont appelés **avant** le protocole à chaque réception. S'ils renvoient `true`, le paquet est traité et le protocole n'est pas appelé. Ils traitent tout ce qui ne dépend pas du scénario :
+  - **switch** : table MAC apprise, inondation (diffusion ou MAC inconnue), transmission par le seul bon port, filtrage ; renvoie toujours `true` ;
+  - **hôte / serveur** : ignore les trames pour une autre MAC ; ARP ; rejette un paquet IP pour une autre adresse ; répond aux pings ; laisse le reste (réponses de ping, UDP, TCP…) au protocole ;
+  - **routeur** : ARP pour l'adresse de l'interface interrogée ; répond aux pings qui lui sont adressés ; fait suivre les autres paquets (TTL − 1, route la plus précise, ARP du saut suivant) ; à TTL 0 ou sans route, perte et erreur ICMP (`time-exceeded`, `unreachable`) renvoyée à l'émetteur.
+- **Pile commune** (`src/sim/stack.js`, `src/sim/net.js`) à utiliser par les protocoles : `sendIp(ctx, deviceId, { protocol, type, ip: { dst, src?, ttl? }, transport?, data? }, { step? })` route le paquet, fait l'ARP si besoin, puis l'émet ; `resolveMac(ctx, device, interface, ip, { onResolved, onFailed })` ; `explainOnce(ctx, [ids])` ; `lookupRoute(device, ip)`, `routingTable(device)`, `primaryIp(device)`.
+
+### Étapes standard
+
+La pile et les équipements annoncent chaque action par une liste d'identifiants d'étapes, du plus précis au plus général. Seule la première présente dans `scenario.steps` est expliquée, **une fois par exécution** ; les messages envoyés y sont rattachés (`event.step`). Le scénario choisit donc ce qu'il explique, sans code. `<eq>` est l'id d'un équipement, `<n>` un numéro de séquence.
+
+| Identifiants | Moment |
+| --- | --- |
+| `arp-cache-miss[-<eq>]`, `arp-request[-<eq>]` | adresse MAC inconnue, requête ARP diffusée |
+| `arp-reply[-<eq>]`, `arp-ignore[-<eq>]` | réponse de la cible ; requête ignorée par un autre équipement |
+| `arp-cache-update[-<eq>]`, `arp-timeout[-<eq>]` | réponse reçue et mise en cache ; pas de réponse après 3 s |
+| `arp-done`, `arp-failed` | fin du scénario ARP |
+| `switch-learn[-<eq>]`, `switch-flood[-<eq>]`, `<protocole>-flood`, `switch-forward[-<eq>]`, `<protocole>-switch-forward` | table MAC, inondation, transmission |
+| `route-direct[-<eq>]`, `route-gateway[-<eq>]`, `no-route[-<eq>]` | décision de l'émetteur : même réseau, passerelle, aucune route |
+| `host-not-for-me[-<eq>]` | paquet IP rejeté par un hôte |
+| `router-forward[-<eq>]`, `router-ttl[-<eq>]`, `router-no-route[-<eq>]` | routeur : transmission, TTL expiré, pas de route |
+| `icmp-start`, `icmp-request[-<n>]`, `icmp-reply[-<eq>]`, `icmp-reply-received[-<n>]`, `icmp-timeout[-<n>]`, `icmp-time-exceeded`, `icmp-unreachable`, `icmp-summary`, `icmp-summary-loss` | ping |
 - Chaque protocole a un test de sa séquence de messages (définition de « terminé »). Le test `tests/protocol.test.js` vérifie automatiquement que chaque fichier respecte l'interface.
 
 ---
@@ -246,9 +271,20 @@ Une commande non permise renvoie `false` sans exception : un clic au mauvais mom
 
 ---
 
+### Choix du scénario (phase 4)
+
+`app.sim` (créé par `src/sim/index.js`) ajoute à l'API ci-dessus :
+
+| Membre | Rôle |
+| --- | --- |
+| `listScenarios()` → `[{ id, title, protocol, description }]` | scénarios de `scenarios/index.json`, dans l'ordre |
+| `loadScenario(id, params?)` → promesse de booléen | charge le scénario (comme `load`) ; `false` si l'id est inconnu |
+
 ## 5. Faux moteur (mock)
 
-En S1, `app.sim` est un faux moteur (`app.sim.mock === true`) : c'est le vrai contrôleur, mais avec un protocole « demo » qui fait faire un aller-retour à un paquet entre `params.source` et `params.target` sur **n'importe quelle** topologie valide. Les routeurs décrémentent le TTL et les étapes du scénario s'affichent dans l'ordre.
+Depuis la phase 4, `app.sim` est le vrai moteur. Le faux moteur ne sert plus qu'aux tests des autres pôles et de **repli** : si aucun scénario de `scenarios/index.json` ne peut être lu, `init` charge la démonstration (`app.sim.mock === true`, `listScenarios()` ne contient que `demo`).
+
+Le faux moteur (`app.sim.mock === true`) : c'est le vrai contrôleur, mais avec un protocole « demo » qui fait faire un aller-retour à un paquet entre `params.source` et `params.target` sur **n'importe quelle** topologie valide. Les routeurs décrémentent le TTL et les étapes du scénario s'affichent dans l'ordre.
 
 Au démarrage, il charge `DEMO_SCENARIO` (deux réseaux reliés par un routeur, voir `src/sim/mock.js`). On peut lui donner n'importe quel scénario :
 
@@ -258,7 +294,7 @@ await app.sim.load(json);
 app.sim.play();
 ```
 
-En S2-S3, `src/sim/index.js` passera au vrai moteur. L'API ne changera pas, les autres pôles n'auront rien à modifier.
+L'API est la même que celle du vrai moteur : les autres pôles n'ont rien eu à modifier au passage de la phase 4.
 
 ## 6. API du pôle ui (`app.ui`)
 

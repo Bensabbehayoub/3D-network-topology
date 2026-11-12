@@ -1,0 +1,8 @@
+{
+  "scenarios": [
+    "arp",
+    "ping",
+    "routage",
+    "ttl"
+  ]
+}

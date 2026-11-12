@@ -40,9 +40,9 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 | N° | Phase | Statut |
 | --- | --- | --- |
 | 1 | PWA complète (icônes, précache, hors ligne, bouton Installer) | ✅ Terminé (12 nov), à commiter par Ramy |
-| 2 | Three.js r187, rendu 100 % WebGPU (mode classique et VR), boucle d'animation WebXR unique | ✅ Terminé (12 nov), à commiter par Ramy (un seul commit, version 100 % WebGPU) |
+| 2 | Three.js r187, rendu 100 % WebGPU (mode classique et VR), boucle d'animation WebXR unique | ✅ Terminé et commité (`ac653fc`) ; testé par Ramy avec l'extension Immersive Web Emulator 2.0 |
 | 3 | Session immersive complète (panneau VR, manettes, fiches en VR) | ✅ Terminé (12 nov), à commiter par Ramy |
-| 4 | Moteur réel, équipements et protocoles | À faire |
+| 4 | Moteur réel, équipements et protocoles | ⏳ En cours, en quatre sous-étapes (un commit chacune) : **4a ✅** (12 nov, à commiter) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; 4b UDP, DNS, DHCP ; 4c TCP, HTTP ; 4d inspecteur de paquets, journal, explications en 2D |
 | 5 | Caractéristiques des équipements, débit et bande passante | À faire |
 | 6 | Diagnostic et recommandations | À faire |
 | 7 | Éditeur de topologie et choix du protocole | À faire |
@@ -70,6 +70,11 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 12 nov | VR en WebGPU : `XRGPUBinding` du navigateur s'il accorde la fonctionnalité `webgpu` ; sinon (Immersive Web Emulator) pont `src/render/xrBridge.js` (XRGPUBinding fourni par le pont, copie WebGPU dans un canevas WebGPU, couche-surface sans WebGL remise à l'émulateur). | L'émulateur ne connaît pas l'API WebXR/WebGPU ; le `XRGPUBinding` de Chrome (derrière un drapeau) refuse ses sessions. |
 | 12 nov | Sans WebGPU : message « WebGPU requis » à la place de la scène, aucun repli. | Choix du 100 % WebGPU ; le repli WebGL 2 de `WebGPURenderer` n'est jamais déclenché. |
 | 12 nov | La vue classique (caméra, cible) est sauvegardée à l'entrée en VR et rendue à la sortie. | Three.js recopie la pose du casque dans la caméra : la vue revenait collée au routeur. |
+| 12 nov | Phase 4 découpée en 4a, 4b, 4c, 4d, un commit chacune. | Taille de la phase ; accord de Ramy. |
+| 12 nov | Pile réseau commune (`stack.js`, `net.js`) : les équipements font ARP, routage, TTL et réponse au ping ; les protocoles ne gèrent que leur côté « application ». | Mêmes équipements pour tous les scénarios ; les protocoles de 4b/4c (DNS, DHCP, TCP, HTTP) s'appuieront sur `sendIp`. |
+| 12 nov | Explications choisies par le scénario : la pile annonce des identifiants d'étapes standard (du plus précis au plus général), seules celles présentes dans `steps` sont affichées, une fois par exécution. | Ajouter ou retirer une explication sans toucher au code. |
+| 12 nov | `scenarios/index.json` liste les scénarios terminés ; les ébauches restent hors liste. Repli sur le faux moteur si aucun scénario n'est lisible. | Pas de listage de dossier possible sur un site statique. |
+| 12 nov | Durées ralenties : 400 ms par lien, ping toutes les 7 s, délais de 10 à 12 s. | Paquets visibles à vitesse 1 ; la vitesse ×4 accélère. |
 | 12 nov | Le bouton « Installer » est visible tant que l'application n'est pas installée. Sans invite du navigateur, le clic explique comment installer. | « Message clair si l'installation est indisponible » sans encombrer l'en-tête. |
 
 ## Journal des phases
@@ -179,3 +184,25 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
   différer d'IWER 2.8) ; un vrai casque (voie native `XRGPUBinding`).
 - Fragilité connue : le pont dépend du fonctionnement interne de Three.js r187 et d'IWER 2.8.
 - Passage mono ↔ stéréo de l'émulateur pendant une session : vérifié, l'image suit sans sortir de la VR.
+
+### Phase 4a — équipements, ARP, ICMP, routage statique, vrai moteur (12 novembre)
+
+- Tests : 294 tests, 289 réussis, 5 « à faire » (UDP, DNS, DHCP, TCP, HTTP), 0 échec.
+- Moteur : `src/sim/net.js` (adressage, tables de routage, plus long préfixe), `src/sim/stack.js`
+  (ARP avec file d'attente et délai, `sendIp`, réponse au ping, erreurs ICMP, routage, étapes
+  standard), `src/sim/devices/host.js`, `switch.js`, `router.js`, `devices/index.js`,
+  `src/sim/protocols/arp.js`, `icmp.js`, `src/sim/library.js`, `src/sim/index.js` (vrai moteur,
+  `listScenarios`, `loadScenario`, repli sur le faux moteur), `scenario.js` (validation de `routes`).
+- Scénarios : `ping.json`, `routage.json`, `ttl.json` (nouveau), `index.json` ; `arp.json` inchangé.
+- Interface : `src/ui/scenarioPicker.js` (+ test), `styles.css` (message d'erreur du choix).
+- Tests : `tests/net.test.js`, `arp.test.js`, `icmp.test.js`, `routage.test.js`, `switch.test.js`,
+  `host.test.js`, `router.test.js` (les « à faire » remplacés), `mock.test.js` et `scenario.test.js`
+  complétés ; aides `tests/netRun.js` et `tests/fakeCtx.js`.
+- Docs : `contrats.md` (§1 `routes` et liste des scénarios, §3 équipements, pile et étapes standard,
+  §4 choix du scénario, §5 faux moteur en repli).
+- Vérifié dans Chrome 157 piloté : liste des 4 scénarios, changement de scénario (scène 3D, état,
+  temps), lecture complète de ping (10,2 s simulées), routage, TTL ; session VR sur ping avec les
+  vraies explications dans le panneau VR ; 390 px sans débordement ; console vide.
+- Reste pour 4d : les explications et le contenu des paquets ne sont pas encore affichés en 2D
+  (panneaux « Inspecteur » et « Explications » encore au gabarit S1 ; en VR, les explications
+  s'affichent déjà).

@@ -96,6 +96,14 @@ body {
   min-width: 0;
 }
 
+/* Erreur de chargement d'un scénario, sous la liste. */
+.picker-error {
+  display: block;
+  margin-top: 4px;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
 .header-actions {
   display: flex;
   align-items: center;

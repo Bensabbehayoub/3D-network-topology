@@ -19,6 +19,27 @@ test('scenarios/arp.json respecte le format', async () => {
   assert.equal(result.ok, true);
 });
 
+test('scenarios/index.json : chaque scénario listé est valide et porte le nom de son fichier', async () => {
+  const index = JSON.parse(await readFile(new URL('../scenarios/index.json', import.meta.url), 'utf8'));
+  assert.ok(index.scenarios.length >= 4);
+  for (const id of index.scenarios) {
+    const scenario = await readScenario(id);
+    assert.deepEqual(validateScenario(scenario).errors, [], id);
+    assert.equal(scenario.id, id);
+  }
+});
+
+test('routes statiques : réseau CIDR et routeur suivant vérifiés', () => {
+  const scenario = copy(DEMO_SCENARIO);
+  const router = scenario.devices.find((d) => d.type === 'router');
+  router.routes = [{ network: '10.0.0.0/8', via: '192.168.2.254' }];
+  assert.deepEqual(validateScenario(scenario).errors, []);
+  router.routes = [{ network: '10.0.0.0', via: 'routeur' }];
+  assert.equal(validateScenario(scenario).errors.length, 2);
+  router.routes = 'aucune';
+  assert.match(validateScenario(scenario).errors[0], /routes : tableau attendu/);
+});
+
 test('le scénario de démonstration du mock respecte le format', () => {
   assert.deepEqual(validateScenario(DEMO_SCENARIO).errors, []);
 });

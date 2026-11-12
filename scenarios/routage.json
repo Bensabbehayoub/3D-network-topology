@@ -1,6 +1,222 @@
 {
+  "schema": 1,
+  "id": "routage",
+  "title": "Routage statique : traverser deux routeurs",
   "protocol": "icmp",
-  "devices": [],
-  "links": [],
-  "steps": []
+  "description": "Trois réseaux : le réseau de PC 1, une liaison point à point entre deux routeurs, le réseau du serveur. Chaque routeur ne connaît directement que ses deux réseaux ; une route statique lui indique où envoyer le troisième. Un ping de PC 1 vers le serveur montre la décision de chaque routeur et la baisse du TTL.",
+  "params": {
+    "source": "pc1",
+    "target": "srv1",
+    "count": 1,
+    "timeout": 12000
+  },
+  "devices": [
+    {
+      "id": "pc1",
+      "type": "host",
+      "label": "PC 1",
+      "position": [
+        -8,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:10",
+          "ip": "192.168.1.10/24"
+        }
+      ],
+      "gateway": "192.168.1.1"
+    },
+    {
+      "id": "sw1",
+      "type": "switch",
+      "label": "Switch 1",
+      "position": [
+        -5,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        }
+      ]
+    },
+    {
+      "id": "r1",
+      "type": "router",
+      "label": "Routeur 1",
+      "position": [
+        -2,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "g0",
+          "mac": "02:00:00:00:00:a0",
+          "ip": "192.168.1.1/24"
+        },
+        {
+          "name": "g1",
+          "mac": "02:00:00:00:00:a1",
+          "ip": "10.0.0.1/30"
+        }
+      ],
+      "routes": [
+        {
+          "network": "192.168.3.0/24",
+          "via": "10.0.0.2"
+        }
+      ]
+    },
+    {
+      "id": "r2",
+      "type": "router",
+      "label": "Routeur 2",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "g0",
+          "mac": "02:00:00:00:00:b0",
+          "ip": "10.0.0.2/30"
+        },
+        {
+          "name": "g1",
+          "mac": "02:00:00:00:00:b1",
+          "ip": "192.168.3.1/24"
+        }
+      ],
+      "routes": [
+        {
+          "network": "192.168.1.0/24",
+          "via": "10.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "sw2",
+      "type": "switch",
+      "label": "Switch 2",
+      "position": [
+        5,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        }
+      ]
+    },
+    {
+      "id": "srv1",
+      "type": "server",
+      "label": "Serveur",
+      "position": [
+        8,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:03:10",
+          "ip": "192.168.3.10/24"
+        }
+      ],
+      "gateway": "192.168.3.1"
+    }
+  ],
+  "links": [
+    {
+      "id": "l1",
+      "a": "pc1:eth0",
+      "b": "sw1:p1"
+    },
+    {
+      "id": "l2",
+      "a": "sw1:p2",
+      "b": "r1:g0"
+    },
+    {
+      "id": "l3",
+      "a": "r1:g1",
+      "b": "r2:g0"
+    },
+    {
+      "id": "l4",
+      "a": "r2:g1",
+      "b": "sw2:p1"
+    },
+    {
+      "id": "l5",
+      "a": "sw2:p2",
+      "b": "srv1:eth0"
+    }
+  ],
+  "steps": [
+    {
+      "id": "icmp-start",
+      "title": "Ping vers le serveur",
+      "text": "PC 1 envoie une requête d'écho au serveur 192.168.3.10, situé deux routeurs plus loin."
+    },
+    {
+      "id": "route-gateway",
+      "title": "Passerelle par défaut",
+      "text": "192.168.3.10 n'appartient pas au réseau 192.168.1.0/24 de PC 1 : le paquet est confié à la passerelle par défaut, 192.168.1.1 (Routeur 1)."
+    },
+    {
+      "id": "arp-request-pc1",
+      "title": "MAC de la passerelle",
+      "text": "PC 1 demande par ARP l'adresse MAC de 192.168.1.1, puis envoie le paquet au Routeur 1."
+    },
+    {
+      "id": "router-forward-r1",
+      "title": "Routeur 1 : route statique",
+      "text": "Table du Routeur 1 : 192.168.1.0/24 sur g0, 10.0.0.0/30 sur g1, et la route statique 192.168.3.0/24 via 10.0.0.2. C'est la seule route qui contient 192.168.3.10 : le paquet part par g1 vers 10.0.0.2 (Routeur 2). TTL 64 → 63."
+    },
+    {
+      "id": "arp-request-r1",
+      "title": "ARP sur la liaison entre routeurs",
+      "text": "Le Routeur 1 ne connaît pas encore la MAC de 10.0.0.2 : il la demande par ARP sur la liaison point à point (réseau 10.0.0.0/30, deux adresses utilisables)."
+    },
+    {
+      "id": "router-forward-r2",
+      "title": "Routeur 2 : réseau connecté",
+      "text": "Le réseau 192.168.3.0/24 est directement connecté à g1 du Routeur 2 : plus besoin de routeur suivant, le paquet est remis au serveur lui-même. TTL 63 → 62."
+    },
+    {
+      "id": "arp-request-r2",
+      "title": "ARP dans le réseau du serveur",
+      "text": "Le Routeur 2 cherche la MAC de 192.168.3.10 par ARP, puis lui transmet la requête d'écho."
+    },
+    {
+      "id": "icmp-reply-srv1",
+      "title": "Le serveur répond",
+      "text": "Le serveur renvoie une réponse d'écho vers 192.168.1.10 par sa passerelle 192.168.3.1. Pour le retour, le Routeur 2 utilise sa route statique 192.168.1.0/24 via 10.0.0.1 : sans elle, la réponse serait perdue."
+    },
+    {
+      "id": "icmp-reply-received-1",
+      "title": "Réponse reçue",
+      "text": "La réponse arrive avec un TTL de 62 : elle a traversé deux routeurs. Chaque routeur ne connaît que le saut suivant ; c'est l'enchaînement des tables qui forme le chemin."
+    },
+    {
+      "id": "icmp-summary",
+      "title": "Bilan",
+      "text": "1 requête, 1 réponse. Pour aller et revenir, il faut une route dans chaque sens : sur le Routeur 1 vers 192.168.3.0/24 et sur le Routeur 2 vers 192.168.1.0/24."
+    }
+  ]
 }

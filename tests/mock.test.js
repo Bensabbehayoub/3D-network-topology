@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
 import { init } from '../src/sim/index.js';
+import { createScenarioLibrary } from '../src/sim/library.js';
 import { createMockSimulation, DEMO_PROTOCOL, DEMO_SCENARIO } from '../src/sim/mock.js';
 import { STATUS, TOPICS } from '../simulation.js';
 
@@ -17,14 +18,61 @@ function collect(sim) {
   return { network, steps };
 }
 
-test('init renvoie un faux moteur déjà chargé avec la démo', async () => {
-  const sim = await init({}, { options: { scheduler: manual } });
-  assert.equal(sim.mock, true);
-  assert.equal(sim.getScenario().id, 'demo');
+/** Bibliothèque de scénarios lue sur le disque (fetch ne lit pas les fichiers sous Node). */
+const diskLibrary = () => createScenarioLibrary({ readJson: async (url) => JSON.parse(await readFile(url, 'utf8')) });
+
+test('init : vrai moteur chargé avec le premier scénario de scenarios/index.json', async () => {
+  const sim = await init({}, { library: diskLibrary(), options: { scheduler: manual } });
+  assert.equal(sim.mock, undefined, 'plus le faux moteur');
+  assert.equal(sim.getScenario().id, 'arp');
   assert.equal(sim.getState().status, STATUS.READY);
-  for (const method of ['load', 'play', 'pause', 'step', 'setSpeed', 'reset', 'getState', 'describe', 'on', 'isAllowed']) {
+  for (const method of ['load', 'play', 'pause', 'step', 'setSpeed', 'reset', 'getState', 'describe', 'on', 'isAllowed', 'tick', 'listScenarios', 'loadScenario']) {
     assert.equal(typeof sim[method], 'function', method);
   }
+  assert.deepEqual(sim.listScenarios().map((s) => s.id), ['arp', 'ping', 'routage', 'ttl']);
+  assert.ok(sim.listScenarios().every((s) => s.title && s.protocol && typeof s.description === 'string'));
+  const scenarios = [];
+  sim.on(TOPICS.SCENARIO, ({ scenario }) => scenarios.push(scenario.id));
+  assert.equal(await sim.loadScenario('routage'), true);
+  assert.equal(sim.getScenario().id, 'routage');
+  assert.deepEqual(scenarios, ['routage']);
+  assert.equal(await sim.loadScenario('inconnu'), false);
+  assert.equal(sim.getScenario().id, 'routage');
+});
+
+test('init : sans aucun scénario lisible, repli sur le faux moteur et sa démonstration', async () => {
+  const errors = [];
+  const original = console.error;
+  console.error = (...args) => errors.push(args.join(' '));
+  try {
+    const broken = createScenarioLibrary({ readJson: async () => { throw new Error('hors ligne'); } });
+    const sim = await init({}, { library: broken, options: { scheduler: manual } });
+    assert.equal(sim.mock, true);
+    assert.equal(sim.getScenario().id, 'demo');
+    assert.deepEqual(sim.listScenarios().map((s) => s.id), ['demo']);
+    assert.equal(await sim.loadScenario('arp'), false);
+  } finally {
+    console.error = original;
+  }
+  assert.ok(errors.some((line) => line.includes('hors ligne')));
+});
+
+test('bibliothèque : scénario invalide ou mal nommé écarté, les autres gardés', async () => {
+  const files = {
+    'index.json': { scenarios: ['arp', 'casse', 'renomme', 'absent'] },
+    'arp.json': JSON.parse(await readFile(new URL('../scenarios/arp.json', import.meta.url), 'utf8')),
+    'casse.json': { id: 'casse' },
+    'renomme.json': { ...JSON.parse(await readFile(new URL('../scenarios/arp.json', import.meta.url), 'utf8')), id: 'autre' },
+  };
+  const library = createScenarioLibrary({ base: new URL('https://exemple.invalid/s/'), readJson: async (url) => {
+    const name = url.pathname.split('/').pop();
+    if (!(name in files)) throw new Error('introuvable');
+    return files[name];
+  } });
+  const { scenarios, errors } = await library.loadAll();
+  assert.deepEqual(scenarios.map((s) => s.id), ['arp']);
+  assert.equal(errors.length, 3);
+  assert.ok(errors[1].includes('"autre"'));
 });
 
 test('la démo fait un aller-retour pc1 ⇄ pc2 et le routeur décrémente le TTL', async () => {
