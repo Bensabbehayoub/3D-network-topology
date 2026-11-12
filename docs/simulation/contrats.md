@@ -326,6 +326,9 @@ Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle x
 | `onChange(listener)` → désabonnement | `listener(id, précédent)` à chaque changement de sélection |
 | `modules` | API de chaque module monté : `scenarioPicker`, `controls`, `inspector`, `explanations`, `install` |
 | `modules.install` | `getView()` → `{ showButton, buttonTitle, offline, message }`, `install()` → `'accepted' \| 'dismissed' \| 'failed' \| 'unavailable'` |
+| `packets` (phase 4d) | paquet sélectionné, désigné par l'id de son évènement d'envoi : `select(eventId)` → booléen (id présent dans `app.sim.getHistory()`), `clear()`, `get()`, `onChange(listener)`. Effacé à chaque réinitialisation et changement de scénario ; met le paquet en avant dans la scène (`app.render.highlightPacket`) |
+| `modules.explanations` | `getView()` → `{ heading, title, text, time, hint }` (étape en cours), `getLog()` → lignes du journal `{ eventId, kind, time, label, route, protocol, broadcast, reason }` |
+| `modules.inspector` | `getView()` (équipement sélectionné), `getPacketView()` → `{ eventId, title, meta, layers }` ou `null` (paquet sélectionné) |
 
 ## 7. API du pôle render (`app.render`) utilisée par les autres pôles
 
@@ -342,11 +345,13 @@ Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle x
 | `getRenderer()`, `getReferenceSpace()` | le `WebGPURenderer` de la scène (le même toute la vie de la page) et l'espace de référence de la session (`null` hors VR) |
 | `getRenderingInfo()` → `{ classic, xr }` | rendu réellement utilisé : `classic` vaut `'WebGPU'` ; `xr` vaut `{ backend: 'WebGPU', path: 'natif' \| 'pont émulateur' }` pendant une session, sinon `null` |
 | `getVRAnchor()` → `{ x, y, z, width, depth }` ou `null` | centre et taille (m) de la maquette pendant une session VR ; les panneaux VR s'y accrochent |
+| `packetStyle(protocol, broadcast?)` → `{ color, radius }` | couleur (`'#rrggbb'`) et taille d'un paquet, une couleur par protocole (`src/render/packetStyles.js`) ; le journal de l'interface utilise les mêmes |
+| `highlightPacket(eventId)` | met en avant (plus gros) le paquet en vol de cet évènement d'envoi ; `null` : aucun |
 | `scene`, `world`, `camera` | objets Three.js : `scene` est dans l'espace de référence WebXR (mètres), `world` porte la topologie mise à l'échelle |
 
 `initScene(container, options)` est **asynchrone** depuis la phase 2 (`WebGPURenderer` s'initialise avant le premier rendu) ; `init(app)` du pôle render l'attend. Sans WebGPU, `initScene` lève `WebGPUUnavailableError` : `init(app)` affiche « WebGPU requis » et renvoie `{ available: false, reason }` (pas de repli WebGL).
 
-Sur `#scene`, le rendu émet `topology:device-selected` (`detail: { id, device }`) à chaque clic ou toucher sur un équipement.
+Sur `#scene`, le rendu émet `topology:device-selected` (`detail: { id, device }`) à chaque clic ou toucher sur un équipement, et `topology:packet-selected` (`detail: { eventId, packetId }`) sur un paquet en vol (prioritaire sur l'équipement derrière lui).
 
 ## Tests
 

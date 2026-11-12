@@ -603,11 +603,177 @@ input[type="range"] {
 }
 
 .log {
-  margin: 12px 0 0;
+  margin: 6px 0 0;
   padding: 0;
   list-style: none;
-  font: 0.85rem/1.4 var(--mono);
+}
+
+/* ---------- Explications (phase 4d) ---------- */
+
+/* L'explication reste visible en haut ; seul le journal défile en dessous. */
+#explanations {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.explanation {
+  flex: 0 0 auto;
+  max-height: 60%;
+  overflow: auto;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+#explanations .log {
+  flex: 1 1 auto;
+  min-height: 92px; /* au moins deux lignes du journal visibles */
+  overflow: auto;
+}
+
+.explanation-scenario {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.explanation-title {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.explanation-time {
+  font: 0.8rem var(--mono);
+  font-weight: 400;
   color: var(--text-muted);
+}
+
+.explanation-text {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.log-title {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Une ligne du journal = un bouton (clavier, lecteur d'écran, cible tactile de 44 px). */
+.log-entry {
+  display: grid;
+  grid-template-columns: 4.2em 12px minmax(0, 1fr);
+  grid-template-areas: "time dot label" "time dot route";
+  align-items: center;
+  column-gap: 8px;
+  width: 100%;
+  min-height: var(--touch);
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.log-entry:hover {
+  background: var(--surface-2);
+}
+
+.log-entry:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.log-entry[aria-pressed="true"] {
+  background: var(--surface-2);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.log-time {
+  grid-area: time;
+  font: 0.8rem var(--mono);
+  color: var(--text-muted);
+}
+
+.log-dot {
+  grid-area: dot;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dot, var(--text-muted));
+}
+
+.log-dot-broadcast {
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dot, var(--text-muted)) 35%, transparent);
+}
+
+.log-label {
+  grid-area: label;
+  font-weight: 600;
+}
+
+.log-route {
+  grid-area: route;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.log-drop .log-label,
+.log-drop .log-route {
+  color: var(--danger);
+}
+
+/* ---------- Inspecteur : paquet sélectionné ---------- */
+
+.inspector-device:not([hidden]) + .inspector-packet {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.packet-layer {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.packet-layer-name {
+  padding: 4px 0;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.packet-layer th,
+.packet-layer td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.packet-layer th {
+  width: 45%;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.packet-layer td {
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
 }
 
 .noscript {

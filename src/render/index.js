@@ -6,6 +6,7 @@
 import { TOPICS } from '../../simulation.js';
 import { initScene } from './scene.js';
 import { WEBGPU_REQUIRED_MESSAGE } from './renderers.js';
+import { packetStyle } from './packetStyles.js';
 export { initScene } from './scene.js';
 export { createMockRenderer } from './mock.js';
 export { normalizeTopology } from './topology.js';
@@ -46,6 +47,9 @@ export async function init(app = {}) {
     handle = await initScene(mount, {
       onDeviceClick(id, device) {
         mount.dispatchEvent(new CustomEvent('topology:device-selected', {detail:{id,device}}));
+      },
+      onPacketClick(eventId, info) {
+        mount.dispatchEvent(new CustomEvent('topology:packet-selected', {detail:{eventId, packetId: info.packetId}}));
       }
     });
   } catch (error) {
@@ -76,10 +80,13 @@ export async function init(app = {}) {
   if (typeof sim?.tick === 'function') handle.onFrame(({ delta }) => sim.tick(delta));
 
   const { mountPacketAnimator } = await import('./packetAnimator.js');
-  mountPacketAnimator({ sim: app.sim, render: handle });
+  const animator = mountPacketAnimator({ sim: app.sim, render: handle });
+  /** Couleur et taille d'un paquet (le journal de l'interface utilise les mêmes couleurs). */
+  handle.packetStyle = packetStyle;
+  /** Met en avant dans la scène le paquet d'un évènement d'envoi (null : aucun). */
+  handle.highlightPacket = (eventId) => { animator?.select(eventId); return Boolean(animator); };
 
-  // On renvoie l'objet lui-même (pas une copie) : ses fonctions lisent le renderer courant,
-  // qui change à l'entrée et à la sortie de la VR.
+  // On renvoie l'objet lui-même (pas une copie) : les fonctions ajoutées ci-dessus en font partie.
   handle.available = true;
   return handle;
 }

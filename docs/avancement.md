@@ -42,7 +42,7 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 | 1 | PWA complète (icônes, précache, hors ligne, bouton Installer) | ✅ Terminé (12 nov), à commiter par Ramy |
 | 2 | Three.js r187, rendu 100 % WebGPU (mode classique et VR), boucle d'animation WebXR unique | ✅ Terminé et commité (`ac653fc`) ; testé par Ramy avec l'extension Immersive Web Emulator 2.0 |
 | 3 | Session immersive complète (panneau VR, manettes, fiches en VR) | ✅ Terminé (12 nov), à commiter par Ramy |
-| 4 | Moteur réel, équipements et protocoles | ⏳ En cours, en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (commité, `1151dfd`) UDP, DNS, DHCP ; **4c ✅** (12 nov, à commiter) TCP, HTTP ; 4d inspecteur de paquets, journal, explications en 2D |
+| 4 | Moteur réel, équipements et protocoles | ✅ Terminé en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (commité, `1151dfd`) UDP, DNS, DHCP ; **4c ✅** (commité, `eaa4efc`) TCP, HTTP ; **4d ✅** (12 nov, à commiter) inspecteur de paquets, journal, explications en 2D, couleurs par protocole |
 | 5 | Caractéristiques des équipements, débit et bande passante | À faire |
 | 6 | Diagnostic et recommandations | À faire |
 | 7 | Éditeur de topologie et choix du protocole | À faire |
@@ -82,6 +82,9 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 12 nov | TCP simplifié mais fidèle : poignée de main, séquences et ACK cumulatifs, segments mis de côté dans le désordre, ACK dupliqués, une seule temporisation (RTO) qui renvoie le plus ancien segment, FIN, RST. Numéros initiaux fixes, pas de congestion ni de TIME_WAIT (dit dans les explications). | Montrer la fiabilité de TCP sans noyer l'élève. |
 | 12 nov | Perte simulée par paramètre de scénario (`loseSegment`), publiée comme une perte sur l'émetteur. | Pas de modèle de perte sur les liens à ce stade ; la phase 5 (débit, liens) pourra en ajouter un. |
 | 12 nov | HTTP/1.1 avec connexion persistante : deux requêtes sur une connexion (200 puis 404). Pas de HTTPS. | Montrer DNS + TCP + HTTP et l'intérêt de garder la connexion ouverte. |
+| 12 nov | Un paquet se désigne par l'id de son évènement d'envoi ; sélection depuis le journal ou par clic sur le paquet en vol (prioritaire sur l'équipement). | Un même paquet traverse plusieurs câbles : chaque passage a son trajet, son instant et son TTL. |
+| 12 nov | Couleurs par protocole définies par le pôle render et lues par l'interface (`app.render.packetStyle`). | Même couleur dans la scène et dans le journal, sans dépendance directe entre pôles. |
+| 12 nov | Journal limité aux envois et pertes (pas les réceptions), 400 lignes au plus. | Lisible ; la réception est l'arrivée de l'envoi. |
 | 12 nov | Le bouton « Installer » est visible tant que l'application n'est pas installée. Sans invite du navigateur, le clic explique comment installer. | « Message clair si l'installation est indisponible » sans encombrer l'en-tête. |
 
 ## Journal des phases
@@ -245,3 +248,24 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 - Docs : `contrats.md` (champ `pages`, API TCP, étapes standard TCP et HTTP).
 - Vérifié dans Chrome 157 piloté : 9 scénarios ; TCP (14,6 s) et HTTP (22,7 s) joués jusqu'au bout ;
   console vide.
+
+### Phase 4d — explications en 2D, journal, inspecteur de paquets, couleurs (12 novembre)
+
+- Tests : 325 tests, 325 réussis, 0 échec.
+- Rendu : `src/render/packetStyles.js` (+ test : une couleur par protocole, diffusion plus grosse),
+  `packetAnimator.js` (couleurs, mise en avant du paquet sélectionné), `scene.js` (clic sur un paquet
+  en vol → `onPacketClick`), `index.js` (`topology:packet-selected`, `packetStyle`,
+  `highlightPacket`), `mock.js`.
+- Interface : `src/ui/packets.js` (+ test : libellés, lignes du journal, vue de l'inspecteur,
+  sélection), `explanations.js` (+ test : étape en cours, journal cliquable), `inspector.js`
+  (section paquet, `renderPacketInfo`), `index.js` (sélection de paquet partagée, `app.ui.packets`),
+  `styles.css` (explication, journal, tableaux par couche).
+- Docs : `contrats.md` (§6 `app.ui.packets` et modules, §7 `packetStyle`, `highlightPacket`,
+  évènement `topology:packet-selected`).
+- Vérifié dans Chrome 157 piloté sur le scénario HTTP : explication de l'étape avec son instant,
+  journal de 40 lignes à pastilles colorées, clic sur une ligne → inspecteur (Ethernet, IP, TCP,
+  HTTP) ; explication toujours visible pendant que le journal défile ; 390 px sans débordement ;
+  console vide.
+- Non vérifié automatiquement : le clic sur un paquet en vol dans la scène (à essayer à la main,
+  en pause).
+- **Phase 4 terminée** : 7 protocoles, 9 scénarios, explications, journal et inspecteur.

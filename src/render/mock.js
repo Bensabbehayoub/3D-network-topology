@@ -1,5 +1,6 @@
 import {normalizeTopology} from './topology.js';
 import {normalizePickRay} from './picking.js';
+import {packetStyle} from './packetStyles.js';
 /** Deterministic, headless API-compatible mock used by team modules and unit tests. */
 export function createMockRenderer({onDeviceClick=()=>{}}={}){
  let data={devices:[],links:[]},disposed=false;
@@ -24,6 +25,8 @@ export function createMockRenderer({onDeviceClick=()=>{}}={}){
   getReferenceSpace(){guard();return null;},
   getRenderingInfo(){guard();return {classic:null,xr:null};},
   xrSessionFeatures(){guard();return [];},
+  packetStyle(protocol,broadcast=false){return packetStyle(protocol,broadcast);},
+  highlightPacket(){guard();return false;},
   highlightDevice(id,mode='selected'){guard();if(!['selected','active','error','normal'].includes(mode))throw new TypeError('Invalid mode');return data.devices.some(d=>d.id===id);},
   getDevice(id){guard();return data.devices.find(d=>d.id===id)||null;},
   listDevices(){guard();return data.devices.map(d=>({...d,position:{...d.position}}));},

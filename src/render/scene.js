@@ -42,7 +42,7 @@ export function pickDeviceFromObjects(raycaster,objects,origin,direction,boundar
  * Lève WebGPUUnavailableError si le navigateur ne fournit pas WebGPU.
  * GLBs upgrade immediate fallbacks asynchronously.
  */
-export async function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={}) {
+export async function initScene(container,{onDeviceClick=()=>{},onPacketClick=()=>{},background=0x0b1323}={}) {
  if(!container || typeof container.appendChild!=='function')throw new TypeError('A DOM container is required');
  const pixelRatio=Math.min(globalThis.devicePixelRatio||1,2);
  const renderer=await createRenderer({pixelRatio});
@@ -129,6 +129,9 @@ export async function initScene(container,{onDeviceClick=()=>{},background=0x0b1
  const click=e=>{
   if(disposed||!downPoint||Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)>6)return;const rect=renderer.domElement.getBoundingClientRect();if(!rect.width||!rect.height)return;
   pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);raycaster.setFromCamera(pointer,camera);
+  // Un paquet en vol devant un équipement est prioritaire (groupe « packets » de packetAnimator.js).
+  const packets=world.getObjectByName('packets');const packetHit=packets?raycaster.intersectObjects(packets.children,false)[0]:null;
+  if(Number.isInteger(packetHit?.object.userData?.eventId)){onPacketClick(packetHit.object.userData.eventId,packetHit.object.userData);return;}
   const hit=raycaster.intersectObjects([...deviceMeshes.values()],true).find(item=>!item.object.userData?.isHighlight);const id=hit&&resolveDeviceId(hit.object,content);if(id)onDeviceClick(id,model.devices.find(device=>device.id===id));
  };
  const down=e=>{downPoint={x:e.clientX,y:e.clientY};};

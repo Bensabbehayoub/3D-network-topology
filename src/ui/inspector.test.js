@@ -6,7 +6,7 @@ import { test } from 'node:test';
 
 import { createMockRenderer } from '../render/mock.js';
 import { createMockSimulation, DEMO_SCENARIO } from '../../simulation.js';
-import { describeSelection, deviceInfo, findDevice, mount, renderDeviceInfo } from './inspector.js';
+import { describeSelection, deviceInfo, findDevice, mount, PACKET_HINT, renderDeviceInfo, renderPacketInfo } from './inspector.js';
 import { createSelection } from './selection.js';
 
 const silentScheduler = { start: () => () => {} };
@@ -102,8 +102,8 @@ test('le panneau suit la sélection (selection.onChange), et revient au message 
   const inspector = mount(container, { sim }, { selection });
 
   assert.equal(inspector.getView(), null);
-  assert.match(container.innerHTML, /Sélectionnez un paquet/);
-  assert.match(container.innerHTML, /data-role="packet"/, 'la zone du paquet (S3) est gardée');
+  assert.equal(inspector.getPacketView(), null);
+  assert.match(container.innerHTML, /data-role="packet"/, 'la zone du paquet est gardée');
 
   selection.select('pc1');
   assert.equal(inspector.getView().info.title, 'PC 1');
@@ -121,7 +121,8 @@ test('mount sans service de sélection (appel S1) : message d\'attente, aucune e
   const container = { innerHTML: '' };
   const inspector = mount(container, {});
   assert.equal(inspector.getView(), null);
-  assert.match(container.innerHTML, /Sélectionnez un paquet/);
+  assert.equal(inspector.getPacketView(), null);
+  assert.match(PACKET_HINT, /journal/);
 });
 
 test('rendu : nom, propriétés et tableau des interfaces écrits en texte', async () => {
@@ -150,4 +151,33 @@ test('un label piégé reste du texte (textContent), jamais du HTML', async () =
   const uses = source.match(/\.innerHTML\s*=/g) ?? [];
   assert.deepEqual(uses.length, 1);
   assert.match(source, /container\.innerHTML = TEMPLATE;/);
+});
+
+test("paquet : rendu de l'instant, du trajet et des champs par couche, en texte", () => {
+  const node = renderPacketInfo(fakeDocument(), {
+    eventId: 3, title: 'ARP requête',
+    meta: [{ label: 'Instant', value: '0,4 s' }, { label: 'De', value: 'PC 1 (eth0)' }],
+    layers: [{ layer: 'Ethernet', fields: [{ field: 'MAC destination', value: 'ff:ff:ff:ff:ff:ff' }] }, { layer: 'ARP', fields: [{ field: 'IP cible', value: '<b>x</b>' }] }],
+  });
+  assert.equal(node.findAll('h3')[0].textContent, 'ARP requête');
+  assert.deepEqual(node.findAll('caption').map((c) => c.textContent), ['Ethernet', 'ARP']);
+  assert.deepEqual(node.findAll('td').map((td) => td.textContent), ['ff:ff:ff:ff:ff:ff', '<b>x</b>'], 'valeurs écrites telles quelles (textContent)');
+  assert.ok(node.findAll('th').every((th) => th.attributes.scope === 'row'));
+});
+
+test("paquet : l'inspecteur suit la sélection de paquet", async () => {
+  const sim = await loadedSim();
+  sim.play();
+  sim.pause();
+  while (sim.getHistory().length === 0) sim.step();
+  const listeners = new Set();
+  let current = null;
+  const packets = { get: () => current, onChange: (fn) => { listeners.add(fn); return () => listeners.delete(fn); } };
+  const inspector = mount({ innerHTML: '' }, { sim }, { packets });
+  current = sim.getHistory()[0].id;
+  listeners.forEach((fn) => fn(current));
+  assert.equal(inspector.getPacketView().eventId, current);
+  current = null;
+  listeners.forEach((fn) => fn(null));
+  assert.equal(inspector.getPacketView(), null);
 });

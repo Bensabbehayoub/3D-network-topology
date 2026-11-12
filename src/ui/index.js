@@ -12,6 +12,7 @@ import { mount as mountExplanations } from './explanations.js';
 import { mount as mountInspector } from './inspector.js';
 import { mount as mountInstall } from './install.js';
 import { mount as mountScenarioPicker } from './scenarioPicker.js';
+import { createPacketSelection, PACKET_SELECTED_EVENT } from './packets.js';
 import { attachSelection, createSelection, deviceExists, renderHighlighter } from './selection.js';
 
 /**
@@ -50,7 +51,8 @@ const MODULES = [
  *     son lancer de rayon en VR) ; false si l'id est inconnu ;
  *   - clear() → boolean : retire la sélection ;
  *   - getSelection() → id de l'équipement sélectionné, ou null ;
- *   - onChange(listener) → désabonnement ; listener(id, previous) à chaque changement.
+ *   - onChange(listener) → désabonnement ; listener(id, previous) à chaque changement ;
+ *   - packets : paquet sélectionné (packets.js) : select(eventId), clear(), get(), onChange(listener).
  */
 export async function init(app = {}, { root = globalThis.document } = {}) {
   const shared = app ?? {};
@@ -61,9 +63,12 @@ export async function init(app = {}, { root = globalThis.document } = {}) {
     highlight: renderHighlighter(shared),
     isKnown: (id) => deviceExists(shared, id),
   });
+  // Paquet sélectionné (journal ou clic dans la scène), détaillé par l'inspecteur (phase 4d).
+  const packets = createPacketSelection(shared);
   const api = {
     mountPoints: MOUNT_POINTS,
     modules,
+    packets,
     select: selection.select,
     clear: selection.clear,
     getSelection: selection.getSelection,
@@ -81,6 +86,10 @@ export async function init(app = {}, { root = globalThis.document } = {}) {
     return api;
   }
 
+  root.getElementById(MOUNT_POINTS.scene)?.addEventListener?.(PACKET_SELECTED_EVENT, (event) => {
+    packets.select(event?.detail?.eventId);
+  });
+
   for (const { name, id, mount } of MODULES) {
     const container = root.getElementById(id);
     if (!container) {
@@ -88,8 +97,8 @@ export async function init(app = {}, { root = globalThis.document } = {}) {
       continue;
     }
     try {
-      // Troisième paramètre : services partagés entre modules (la sélection pour l'inspecteur).
-      modules[name] = mount(container, shared, { selection }) ?? {};
+      // Troisième paramètre : services partagés entre modules (sélections d'équipement et de paquet).
+      modules[name] = mount(container, shared, { selection, packets }) ?? {};
     } catch (error) {
       // Un module en panne ne doit pas empêcher les autres de s'afficher.
       console.error(`Module ui "${name}" non monté :`, error);

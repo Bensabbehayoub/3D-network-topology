@@ -1,8 +1,8 @@
 // Ramy : inspecteur.
 // S2 (tâche 19) : infos de l'équipement sélectionné (nom, type, interfaces avec IP et MAC,
 //      passerelle), mises à jour à chaque changement de la sélection (selection.onChange).
-// S3 (tâche 28) : champs du paquet sélectionné, via app.sim.describe(packet), dans la zone
-//      [data-role="packet"] gardée pour cela.
+// Phase 4d : paquet sélectionné (dans le journal ou dans la scène) : instant, trajet, étape et
+//      champs de chaque couche, fournis par son protocole (app.sim.describe, voir packets.js).
 //
 // Les valeurs viennent des scénarios : elles sont écrites avec textContent, jamais innerHTML.
 //
@@ -11,6 +11,12 @@
 //   deviceInfo()        lignes à afficher pour un équipement (pur)
 //   describeSelection() ce que le panneau doit afficher pour un id sélectionné (pur)
 //   renderDeviceInfo()  construit les éléments à partir d'un document (vrai ou faux)
+//   renderPacketInfo()  idem pour un paquet (vue calculée par packets.js → packetView)
+
+import { packetView } from './packets.js';
+
+/** Message affiché tant qu'aucun paquet n'est sélectionné. */
+export const PACKET_HINT = 'Choisissez un message dans le journal, ou cliquez sur un paquet dans la scène (plus facile en pause), pour voir ses champs : MAC, IP, TTL, ports, données…';
 
 /** Libellés des types d'équipements (format des scénarios, plus « pc » de la scène de secours). */
 export const TYPE_LABELS = Object.freeze({
@@ -151,10 +157,44 @@ export function renderDeviceInfo(doc, view) {
   return root;
 }
 
+/**
+ * Construit le bloc d'un paquet (textContent uniquement).
+ * @param {{ createElement(tag: string): object }} doc
+ * @param {NonNullable<ReturnType<typeof packetView>>} view
+ */
+export function renderPacketInfo(doc, view) {
+  const el = (tag, className, content) => {
+    const node = doc.createElement(tag);
+    if (className) node.className = className;
+    if (content !== undefined) node.textContent = content;
+    return node;
+  };
+  const root = el('div', 'packet-info');
+  root.append(el('h3', 'device-title', view.title));
+  const meta = el('dl', 'device-props');
+  for (const { label, value } of view.meta) meta.append(el('dt', '', label), el('dd', '', value));
+  root.append(meta);
+  for (const { layer, fields } of view.layers) {
+    const table = el('table', 'packet-layer');
+    table.append(el('caption', 'packet-layer-name', layer));
+    const body = el('tbody');
+    for (const { field, value } of fields) {
+      const row = el('tr');
+      const th = el('th', '', field);
+      th.setAttribute('scope', 'row');
+      row.append(th, el('td', 'mono', value));
+      body.append(row);
+    }
+    table.append(body);
+    root.append(table);
+  }
+  return root;
+}
+
 const TEMPLATE = `
   <section class="inspector-device" data-role="device" aria-label="Équipement sélectionné" aria-live="polite" hidden></section>
-  <section class="inspector-packet" data-role="packet" aria-label="Paquet sélectionné">
-    <p class="placeholder">Sélectionnez un paquet dans la scène pour afficher ses champs (MAC, IP, TTL, type…).</p>
+  <section class="inspector-packet" data-role="packet" aria-label="Paquet sélectionné" aria-live="polite">
+    <p class="placeholder" data-role="packet-hint"></p>
   </section>
 `;
 
@@ -165,13 +205,29 @@ const TEMPLATE = `
  *   services du pôle ui (index.js) ; sans sélection, le panneau garde son message d'attente
  * @returns {object} API du module : getView(), refresh(), destroy()
  */
-export function mount(container, app, { selection } = {}) {
+export function mount(container, app, { selection, packets } = {}) {
   container.innerHTML = TEMPLATE;
 
   const hasDom = typeof container.querySelector === 'function';
   const slot = hasDom ? container.querySelector('[data-role="device"]') : null;
+  const packetSlot = hasDom ? container.querySelector('[data-role="packet"]') : null;
   const doc = container.ownerDocument ?? globalThis.document;
   let view = null;
+  let packet = null;
+
+  const showPacket = (eventId) => {
+    packet = eventId === null || eventId === undefined ? null : packetView(app, eventId);
+    if (!packetSlot) return;
+    if (packet) {
+      packetSlot.replaceChildren(renderPacketInfo(doc, packet));
+      packetSlot.scrollIntoView?.({ block: 'nearest' });
+    } else {
+      const hint = doc.createElement('p');
+      hint.className = 'placeholder';
+      hint.textContent = PACKET_HINT;
+      packetSlot.replaceChildren(hint);
+    }
+  };
 
   const show = (id) => {
     view = describeSelection(app, id);
@@ -188,10 +244,16 @@ export function mount(container, app, { selection } = {}) {
   const canListen = typeof selection?.onChange === 'function';
   const off = canListen ? selection.onChange((id) => show(id)) : null;
   show(canListen ? selection.getSelection?.() ?? null : null);
+  const offPacket = typeof packets?.onChange === 'function' ? packets.onChange((eventId) => showPacket(eventId)) : null;
+  showPacket(packets?.get?.() ?? null);
 
   return {
     getView: () => view,
+    getPacketView: () => packet,
     refresh: () => show(canListen ? selection.getSelection?.() ?? null : null),
-    destroy: () => off?.(),
+    destroy: () => {
+      off?.();
+      offPacket?.();
+    },
   };
 }
