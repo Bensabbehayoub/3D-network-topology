@@ -9,6 +9,7 @@ Ce document décrit ce que le moteur attend des autres et ce qu'il leur fournit 
 3. [Interface protocole](#3-interface-protocole) : auteurs de protocoles (Aziz, Ramy, Khalil)
 4. [API de commandes et états](#4-api-de-commandes-et-états) : Ramy (`controls.js`), Ayoub (`vrPanel.js`)
 5. [Faux moteur](#5-faux-moteur-mock) : tout le monde, dès maintenant
+6. [API du pôle ui](#6-api-du-pôle-ui-appui) : Ayoub (sélection en VR)
 
 Tout s'importe depuis la façade `simulation.js` à la racine :
 
@@ -255,6 +256,20 @@ app.sim.play();
 ```
 
 En S2-S3, `src/sim/index.js` passera au vrai moteur. L'API ne changera pas, les autres pôles n'auront rien à modifier.
+
+## 6. API du pôle ui (`app.ui`)
+
+Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle xr.
+
+| Membre | Rôle |
+| --- | --- |
+| `mountPoints` | id des points de montage de `index.html` |
+| `select(id)` → booléen | sélectionne un équipement (après un lancer de rayon en VR) ; `false` si l'id est inconnu |
+| `clear()` → booléen | retire la sélection |
+| `getSelection()` | id de l'équipement sélectionné, ou `null` |
+| `onChange(listener)` → désabonnement | `listener(id, précédent)` à chaque changement de sélection |
+| `modules` | API de chaque module monté : `scenarioPicker`, `controls`, `inspector`, `explanations`, `install` |
+| `modules.install` | `getView()` → `{ showButton, buttonTitle, offline, message }`, `install()` → `'accepted' \| 'dismissed' \| 'failed' \| 'unavailable'` |
 
 ## Tests
 

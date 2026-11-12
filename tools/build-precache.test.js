@@ -27,7 +27,8 @@ test('le vrai dépôt : la page, les quatre pôles, Three.js et les scénarios s
     './', './index.html', './styles.css', './main.js', './simulation.js', './manifest.json',
     './src/sim/index.js', './src/render/index.js', './src/ui/index.js', './src/xr/index.js',
     './vendor/three/build/three.module.js', './vendor/three/examples/jsm/controls/OrbitControls.js',
-    './scenarios/arp.json',
+    './scenarios/arp.json', './assets/icons/icon-192.png', './assets/icons/icon-512.png',
+    './assets/icons/icon-maskable-512.png', './src/ui/install.js',
   ]) {
     assert.ok(files.includes(url), `${url} manquant`);
   }

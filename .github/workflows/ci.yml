@@ -40,7 +40,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      # Liste de précache publiée avec le site (lue par sw.js à partir de S6).
+      # Liste de précache publiée avec le site : sw.js la lit pour le mode hors ligne.
       - run: node tools/build-precache.js
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5

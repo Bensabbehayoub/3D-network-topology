@@ -108,6 +108,61 @@ body {
   display: none;
 }
 
+/* ---------- Installation PWA et indicateur hors ligne (src/ui/install.js) ---------- */
+
+#install-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.offline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--focus);
+  border-radius: 999px;
+  color: var(--focus);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.offline-badge::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--focus);
+}
+
+.offline-badge[hidden],
+.btn-install[hidden],
+.install-message[hidden] {
+  display: none;
+}
+
+.btn-install {
+  white-space: nowrap;
+}
+
+.install-message {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 11;
+  width: min(340px, 86vw);
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  font-size: 0.85rem;
+}
+
 /* ---------- Statut WebXR et bouton VR (pôle xr, Ayoub : src/xr/session.js) ---------- */
 
 .xr-status {
@@ -566,6 +621,26 @@ input[type="range"] {
   .slot-picker {
     order: 3;
     flex-basis: 100%;
+  }
+
+  /* Installer, Hors ligne, statut WebXR et bouton VR passent à la ligne au lieu de déborder. */
+  .header-actions {
+    position: relative;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
+  /* Le message d'installation prend la largeur de la zone d'actions, sans sortir de l'écran. */
+  #install-slot {
+    position: static;
+  }
+
+  .install-message {
+    left: 0;
+    right: 0;
+    width: auto;
   }
 
   .app-main {

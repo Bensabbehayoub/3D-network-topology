@@ -4,7 +4,7 @@
 //
 // Lancé par la CI à chaque pull request (vérification) et avant chaque déploiement : personne
 // ne maintient la liste à la main, et personne n'édite sw.js pour ajouter un fichier.
-// En S6, sw.js chargera la liste avec importScripts('./precache-manifest.js').
+// sw.js charge la liste avec importScripts('./precache-manifest.js') et précache chaque fichier.
 //
 // Le fichier généré n'est pas versionné (.gitignore) : il est recréé à chaque déploiement.
 
@@ -73,7 +73,7 @@ export async function listFiles(root) {
 
 /**
  * Construit la liste et sa version. La version change dès qu'un fichier listé change,
- * ce qui permettra au Service Worker (S6) de remplacer l'ancien cache.
+ * ce qui permet au Service Worker de remplacer l'ancien cache (nom du cache = version).
  * @param {string} root
  * @returns {Promise<{ version: string, files: string[] }>}
  */
