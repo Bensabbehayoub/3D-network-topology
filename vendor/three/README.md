@@ -1,18 +1,17 @@
-Three.js S1 proposed pin: 0.180.0 (confirm with Ayoub before merging).
+Three.js 0.187.0 (r187), copié ici pour fonctionner sans CDN et hors ligne. Licence MIT : `LICENSE`.
 
-From the repository root, run:
+Mise à jour (aucune dépendance ajoutée au projet) :
 
-    npm install --no-save three@0.180.0
-    node vendor/three/install.mjs
+    npm pack three@0.187.0
+    tar -xzf three-0.187.0.tgz
+    node vendor/three/install.mjs ./package
 
-Commit the resulting `vendor/three/build/*.js`, the controls and GLTF loader
-under `vendor/three/examples/jsm/`, and VERSION.txt. The install script rewrites
-the addon imports to use locally committed Three.js,
-so the website works on GitHub Pages without a CDN or importmap changes.
+ou, après `npm install --no-save three@0.187.0`, simplement `node vendor/three/install.mjs`.
 
-Testing:
-    node --test src/render/topology.test.mjs
+Le script vérifie la version, copie les fichiers listés dans `FILES` (le build WebGPU `three.webgpu.js`,
+le cœur `three.core.js` qu'il importe, `three.tsl.js`, les contrôles de caméra et le chargeur glTF),
+remplace l'import `from 'three'` des modules complémentaires par le chemin relatif de `three.webgpu.js`,
+puis copie `LICENSE` et écrit `VERSION.txt`. Le build WebGL (`three.module.js`, `WebGLRenderer`) n'est
+volontairement pas copié : le rendu est 100 % WebGPU.
 
-Rendered output is mounted in existing #scene through main.js -> render.init(app).
-Ramy-owned index.html and Ayoub-owned main.js are not modified.
-The display uses provisional fallback sample data until Khalil's JSON schema is approved.
+Choix du renderer : `docs/decision-renderer.md`. Tests : `node --test src/render/renderers.test.mjs src/render/xrBridge.test.mjs`.

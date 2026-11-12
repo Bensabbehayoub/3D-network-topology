@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import * as THREE from '../../vendor/three/build/three.module.js';
+import * as THREE from '../../vendor/three/build/three.webgpu.js';
 import { createMockSimulation, DEMO_SCENARIO } from '../../simulation.js';
 import { createMockRenderer } from './mock.js';
 import { pickHitFromObjects } from './scene.js';

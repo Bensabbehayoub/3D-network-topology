@@ -39,15 +39,15 @@
 
 Aucune bibliothèque n'est chargée depuis un CDN à l'exécution : les fichiers sont **copiés dans le dépôt** (`vendor/`), ce qui permet le mode hors ligne de la PWA. La version est figée et vérifiée par `vendor/three/install.mjs`, qui refuse toute autre version.
 
-*   **Bibliothèque :** Three.js (`three.module.js`, `three.core.js`)
-    *   **Version fixée :** r180 (paquet npm `three@0.180.0`), voir `vendor/three/VERSION.txt`
-    *   **Lien CDN de référence :** https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js (référence uniquement ; non utilisé à l'exécution)
+*   **Bibliothèque :** Three.js (`three.core.js`, `three.webgpu.js`, `three.tsl.js`)
+    *   **Version fixée :** r187 (paquet npm `three@0.187.0`), voir `vendor/three/VERSION.txt` ; licence copiée dans `vendor/three/LICENSE`
+    *   **Lien CDN de référence :** https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.webgpu.js (référence uniquement ; non utilisé à l'exécution)
     *   **Licence :** MIT, Copyright 2010-2025 Three.js Authors (en-tête conservé dans les fichiers)
-    *   **Rôle dans le projet :** moteur de rendu 3D (`WebGLRenderer`, WebGL 2) et intégration WebXR (`renderer.xr`) pour le mode classique et la VR. Choix de WebGL 2 plutôt que WebGPU : `docs/decision-renderer.md`.
+    *   **Rôle dans le projet :** moteur de rendu 3D et intégration WebXR (`renderer.xr`). Rendu 100 % WebGPU avec `WebGPURenderer`, en mode classique et en VR ; le build WebGL (`three.module.js`) n'est pas embarqué : voir `docs/decision-renderer.md`.
 
 *   **Bibliothèque :** OrbitControls (module complémentaire de Three.js, `vendor/three/examples/jsm/controls/OrbitControls.js`)
-    *   **Version fixée :** r180 (`three@0.180.0`)
-    *   **Lien CDN de référence :** https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js
+    *   **Version fixée :** r187 (`three@0.187.0`)
+    *   **Lien CDN de référence :** https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/controls/OrbitControls.js
     *   **Licence :** MIT (Three.js Authors)
     *   **Rôle dans le projet :** rotation, zoom et déplacement de la caméra à la souris et au toucher. Seul changement : l'import `from 'three'` est réécrit vers le fichier local (voir §3).
 
@@ -72,9 +72,9 @@ Aucune bibliothèque n'est chargée depuis un CDN à l'exécution : les fichiers
 ## 3. Extraits de code copiés ou adaptés (StackOverflow, Tutoriels, Dépôts tiers)
 
 *   **Fonction / Fichier :** `vendor/three/examples/jsm/controls/OrbitControls.js` (fichier entier)
-    *   **Source du code original :** dépôt officiel Three.js r180, https://github.com/mrdoob/three.js/blob/r180/examples/jsm/controls/OrbitControls.js
+    *   **Source du code original :** dépôt officiel Three.js r187, https://github.com/mrdoob/three.js/blob/r187/examples/jsm/controls/OrbitControls.js (de même pour `GLTFLoader.js`, `BufferGeometryUtils.js` et `SkeletonUtils.js`, copiés par `vendor/three/install.mjs`)
     *   **Auteur :** Three.js Authors (licence MIT)
-    *   **Adaptation effectuée :** aucune modification de la logique. Le script `vendor/three/install.mjs` (Mohamed Aziz Saoudi) remplace seulement `from 'three'` par `from '../../../build/three.module.js'`, pour charger Three.js depuis le dépôt sans CDN ni import map.
+    *   **Adaptation effectuée :** aucune modification de la logique. Le script `vendor/three/install.mjs` (Mohamed Aziz Saoudi) remplace seulement `from 'three'` par `from '../../../build/three.webgpu.js'`, pour charger Three.js depuis le dépôt sans CDN ni import map.
 
 *   **Fonction / Fichier :** `tests/engine.test.js`, fonction `random(seed)` (générateur pseudo-aléatoire des tests du moteur)
     *   **Source du code original :** algorithme « Mulberry32 », https://gist.github.com/tommyettinger/46a874533244883189143505d203312c ; portage JavaScript de référence : https://github.com/bryc/code/blob/master/jshash/PRNGs.md

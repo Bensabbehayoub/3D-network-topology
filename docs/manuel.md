@@ -40,7 +40,7 @@ Le badge en haut à droite indique si le navigateur peut afficher la scène en V
 | 🟠 **WebXR détectée** | L'API existe mais aucun casque n'est branché | Activer un appareil dans Immersive Web Emulator, puis recharger |
 | 🔴 **WebXR non détectée** | Navigateur sans WebXR, ou page hors HTTPS | Utiliser le mode classique, ou Chrome en HTTPS |
 
-Un clic sur le badge affiche le détail : contexte HTTPS, WebXR Device API, sessions VR et AR, WebGL 2, WebGPU.
+Un clic sur le badge affiche le détail : contexte HTTPS, WebXR Device API, sessions VR et AR, WebGPU, `XRGPUBinding` et le rendu utilisé (toujours WebGPU). Sans WebGPU, la zone 3D affiche « WebGPU requis » : utilisez Chrome ou Edge récents.
 
 **Tester la VR sans casque**
 1. Installer l'extension Chrome **Immersive Web Emulator**.

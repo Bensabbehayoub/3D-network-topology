@@ -4,7 +4,7 @@
 // de plus. Les objets sont ajoutés à la racine de la scène (repère = espace de référence WebXR,
 // en mètres), et non au groupe « monde » qui porte la topologie réduite à l'échelle d'une maquette.
 
-import * as THREE from '../../vendor/three/build/three.module.js';
+import * as THREE from '../../vendor/three/build/three.webgpu.js';
 import { createControllers } from './controllers.js';
 import { createVrDevicePanel, createVrStepPanel } from './infoPanels.js';
 import { panelPoses } from './panelLayout.js';

@@ -308,7 +308,7 @@ async function vrApp(t) {
   const render = createMockRenderer();
   render.loadTopology(sim.getScenario()); // pc1 en (−4, 0, 0) … pc2 en (4, 0, 0)
   const xr = fakeXR();
-  render.renderer = { xr: { getReferenceSpace: () => xr.referenceSpace } };
+  render.getReferenceSpace = () => xr.referenceSpace;
   const app = { sim, render };
   app.ui = await initUi(app, { root: undefined });
   t.mock.method(render, 'highlightDevice');
@@ -317,7 +317,7 @@ async function vrApp(t) {
 
 test('manette : le rayon suit la pose du XRFrame, s\'arrête sur l\'équipement visé et l\'éclaire', async (t) => {
   const { app, render, xr } = await vrApp(t);
-  const { Group } = await import('../../vendor/three/build/three.module.js');
+  const { Group } = await import('../../vendor/three/build/three.webgpu.js');
   const parent = new Group();
   const controllers = createControllers({ app, session: xr.session, parent, panels: [] });
   const [line, dot] = parent.children[0].children.length ? parent.children[0].children : [];
@@ -348,7 +348,7 @@ test('manette : le rayon suit la pose du XRFrame, s\'arrête sur l\'équipement 
 
 test('manette : la gâchette sélectionne l\'équipement visé (app.ui.select) ou presse un bouton du panneau', async (t) => {
   const { app, sim, xr } = await vrApp(t);
-  const { Group } = await import('../../vendor/three/build/three.module.js');
+  const { Group } = await import('../../vendor/three/build/three.webgpu.js');
   const parent = new Group();
   const pressed = [];
   // Panneau factice de 1 m × 1 m, à 1 m devant une manette placée en x = 20.

@@ -284,9 +284,14 @@ Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle x
 | `pickDevice(origin, direction)` → id ou `null` | lancer de rayon en coordonnées monde |
 | `pickDeviceHit(origin, direction, { tolerance })` → `{ id, point, distance }` ou `null` | idem, avec le point visé. `tolerance` (unités de la topologie) accepte un équipement ou une étiquette proche du rayon : visée à la manette |
 | `onFrame(listener)` → désabonnement | `listener({ time, delta, xrFrame, referenceSpace, presenting })` à chaque image de la boucle d'animation unique ; `xrFrame` et `referenceSpace` valent `null` hors session VR |
-| `startXR(session)`, `isPresenting()` | affichage dans une session WebXR ouverte par le pôle xr |
+| `startXR(session)` → promesse, `isPresenting()` | affichage en WebGPU dans une session WebXR ouverte par le pôle xr : `XRGPUBinding` du navigateur, ou pont de l'émulateur (`src/render/xrBridge.js`). La promesse est rejetée si le navigateur ne permet pas la VR en WebGPU |
+| `xrSessionFeatures()` | fonctionnalités de session à demander en plus : `['webgpu']` |
+| `getRenderer()`, `getReferenceSpace()` | le `WebGPURenderer` de la scène (le même toute la vie de la page) et l'espace de référence de la session (`null` hors VR) |
+| `getRenderingInfo()` → `{ classic, xr }` | rendu réellement utilisé : `classic` vaut `'WebGPU'` ; `xr` vaut `{ backend: 'WebGPU', path: 'natif' \| 'pont émulateur' }` pendant une session, sinon `null` |
 | `getVRAnchor()` → `{ x, y, z, width, depth }` ou `null` | centre et taille (m) de la maquette pendant une session VR ; les panneaux VR s'y accrochent |
-| `scene`, `world`, `camera`, `renderer` | objets Three.js : `scene` est dans l'espace de référence WebXR (mètres), `world` porte la topologie mise à l'échelle |
+| `scene`, `world`, `camera` | objets Three.js : `scene` est dans l'espace de référence WebXR (mètres), `world` porte la topologie mise à l'échelle |
+
+`initScene(container, options)` est **asynchrone** depuis la phase 2 (`WebGPURenderer` s'initialise avant le premier rendu) ; `init(app)` du pôle render l'attend. Sans WebGPU, `initScene` lève `WebGPUUnavailableError` : `init(app)` affiche « WebGPU requis » et renvoie `{ available: false, reason }` (pas de repli WebGL).
 
 Sur `#scene`, le rendu émet `topology:device-selected` (`detail: { id, device }`) à chaque clic ou toucher sur un équipement.
 

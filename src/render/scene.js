@@ -1,9 +1,11 @@
-import * as THREE from '../../vendor/three/build/three.module.js';
+import * as THREE from '../../vendor/three/build/three.webgpu.js';
 import { OrbitControls } from '../../vendor/three/examples/jsm/controls/OrbitControls.js';
 import { createDeviceFactory, createGenerationTracker } from './factory.js';
 import { createLinkLayer } from './links.js';
 import { createLabelLayer } from './labels.js';
 import { nearestOnRay, normalizePickRay } from './picking.js';
+import { BACKEND, createRenderer, extraSessionFeatures } from './renderers.js';
+import { prepareXRSession } from './xrBridge.js';
 import { normalizeTopology } from './topology.js';
 import { frameDelta, topologyBounds, vrPlacement } from './vrLayout.js';
 
@@ -34,21 +36,18 @@ export function pickDeviceFromObjects(raycaster,objects,origin,direction,boundar
  return pickHitFromObjects(raycaster,objects,origin,direction,boundary)?.id??null;
 }
 
-/** Initializes an independent renderer. GLBs upgrade immediate fallbacks asynchronously. */
-export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={}) {
+/**
+ * Crée la scène 3D dans `container` (asynchrone : WebGPURenderer s'initialise avant le premier rendu).
+ * Rendu 100 % WebGPU, en mode classique comme en VR (voir renderers.js et xrBridge.js).
+ * Lève WebGPUUnavailableError si le navigateur ne fournit pas WebGPU.
+ * GLBs upgrade immediate fallbacks asynchronously.
+ */
+export async function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={}) {
  if(!container || typeof container.appendChild!=='function')throw new TypeError('A DOM container is required');
+ const pixelRatio=Math.min(globalThis.devicePixelRatio||1,2);
+ const renderer=await createRenderer({pixelRatio});
  const scene = new THREE.Scene(); scene.background=new THREE.Color(background);
  const camera=new THREE.PerspectiveCamera(48,1,0.1,1000); camera.position.set(10,12,17);
- const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
- renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
- renderer.outputColorSpace=THREE.SRGBColorSpace;
- renderer.domElement.style.display='block';renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';
- renderer.domElement.style.touchAction='none';container.appendChild(renderer.domElement);
- // WebXR : la même scène sert au mode classique et à la VR (docs/decision-renderer.md).
- renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local-floor');
- const controls=new OrbitControls(camera,renderer.domElement);
- controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=3;controls.maxDistance=80;
- controls.maxPolarAngle=Math.PI*.49;
  scene.add(new THREE.HemisphereLight(0xdceaff,0x17233d,2.25));
  const key=new THREE.DirectionalLight(0xffffff,2);key.position.set(8,15,10);scene.add(key);
  // world regroupe sol et topologie : en VR on le réduit et on le place devant l'utilisateur.
@@ -57,20 +56,39 @@ export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={
  const content=new THREE.Group();content.name='Topology';world.add(content);
  const factory=createDeviceFactory(),generations=createGenerationTracker(),deviceMeshes=new Map(),highlightModes=new Map();
  let model={devices:[],links:[]},linkLayer=null,labelLayer=null,disposed=false,ready=Promise.resolve([]);
+ const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
+ let downPoint=null;
+
+ /** Rendu de la session VR en cours : { backend, path } (voie native ou pont émulateur) ; null hors session. */
+ let xrRendering=null;
+ const controls=new OrbitControls(camera,renderer.domElement);
+ controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=3;controls.maxDistance=80;
+ controls.maxPolarAngle=Math.PI*.49;
+
  // --- VR : la topologie devient une maquette posée devant l'utilisateur (voir vrLayout.js) ---
  let vrAnchor=null,eyeHeightKnown=false;
+ // Pendant la session, Three.js recopie la pose du casque dans la caméra : on garde la vue
+ // classique (position, orientation, cible des contrôles) pour la rendre à la sortie.
+ let savedView=null;
+ const saveView=()=>{savedView={position:camera.position.clone(),quaternion:camera.quaternion.clone(),scale:camera.scale.clone(),target:controls.target.clone()};};
+ const restoreView=()=>{
+  if(!savedView)return;
+  camera.position.copy(savedView.position);camera.quaternion.copy(savedView.quaternion);camera.scale.copy(savedView.scale);controls.target.copy(savedView.target);
+  camera.updateMatrixWorld(true);savedView=null;controls.update();
+ };
  const placeForVR=(eyeHeight)=>{
   const placement=vrPlacement(topologyBounds(model.devices),eyeHeight);
   world.scale.setScalar(placement.scale);world.position.set(placement.position.x,placement.position.y,placement.position.z);vrAnchor=placement.anchor;
  };
  const onXRStart=()=>{eyeHeightKnown=false;placeForVR();floor.visible=false;};
- const onXREnd=()=>{vrAnchor=null;world.scale.setScalar(1);world.position.set(0,0,0);floor.visible=true;resize();};
- renderer.xr.addEventListener('sessionstart',onXRStart);renderer.xr.addEventListener('sessionend',onXREnd);
- const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
- let downPoint=null;
+ const onXREnd=()=>{
+  vrAnchor=null;xrRendering=null;world.scale.setScalar(1);world.position.set(0,0,0);floor.visible=true;restoreView();lastFrameTime=null;resize();
+ };
+
  const resize=()=>{if(disposed||renderer.xr.isPresenting)return; // en VR, la taille du rendu est celle du casque
   const width=Math.max(container.clientWidth||640,1),height=Math.max(container.clientHeight||420,1);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height,false);};
- const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;observer?.observe(container);window.addEventListener('resize',resize);resize();
+ const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;observer?.observe(container);globalThis.addEventListener?.('resize',resize);
+
  const clearTopology=()=>{
   generations.next();linkLayer?.dispose();labelLayer?.dispose();linkLayer=null;labelLayer=null;
   for(const root of deviceMeshes.values()){factory.setHighlight(root,'normal');content.remove(root);}deviceMeshes.clear();highlightModes.clear();
@@ -81,6 +99,7 @@ export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={
   if(!next||disposed||!generations.isCurrent(token))return false;const previous=deviceMeshes.get(device.id);if(previous){factory.setHighlight(previous,'normal');content.remove(previous);}
   const mode=highlightModes.get(device.id);if(mode)factory.setHighlight(next,mode);deviceMeshes.set(device.id,next);content.add(next);refreshLayers();return true;
  };
+
  // --- Boucle d'animation unique ---
  // renderer.setAnimationLoop appelle `frame` à chaque image : par requestAnimationFrame de la
  // fenêtre en mode classique, par XRSession.requestAnimationFrame pendant une session immersive
@@ -106,13 +125,20 @@ export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={
   if(!presenting)controls.update();
   renderer.render(scene,camera);
  };
- renderer.setAnimationLoop(frame);
+
  const click=e=>{
   if(disposed||!downPoint||Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)>6)return;const rect=renderer.domElement.getBoundingClientRect();if(!rect.width||!rect.height)return;
   pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);raycaster.setFromCamera(pointer,camera);
   const hit=raycaster.intersectObjects([...deviceMeshes.values()],true).find(item=>!item.object.userData?.isHighlight);const id=hit&&resolveDeviceId(hit.object,content);if(id)onDeviceClick(id,model.devices.find(device=>device.id===id));
  };
- const down=e=>{downPoint={x:e.clientX,y:e.clientY};};renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',click);
+ const down=e=>{downPoint={x:e.clientX,y:e.clientY};};
+
+ const canvas=renderer.domElement;
+ canvas.addEventListener('pointerdown',down);canvas.addEventListener('pointerup',click);
+ renderer.xr.addEventListener('sessionstart',onXRStart);renderer.xr.addEventListener('sessionend',onXREnd);
+ container.appendChild(canvas);
+ renderer.setAnimationLoop(frame);
+ resize();
 
  return {
   loadTopology(data){
@@ -124,8 +150,8 @@ export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={
   },
   whenReady(){return ready;},
   pickDevice(origin,direction){if(disposed)throw new Error('Renderer disposed');return pickDeviceFromObjects(raycaster,[...deviceMeshes.values()],origin,direction,content);},
-  /** Comme pickDevice, avec le point d'impact et la distance (rayon des manettes VR). */
   /**
+   * Comme pickDevice, avec le point d'impact et la distance (rayon des manettes VR).
    * options.tolerance (en unités de la topologie) : si le rayon ne touche aucun équipement, on
    * accepte celui dont le centre ou l'étiquette est le plus près du rayon, dans cette limite.
    */
@@ -150,13 +176,34 @@ export function initScene(container,{onDeviceClick=()=>{},background=0x0b1323}={
   focusDevice(id){const root=deviceMeshes.get(id);if(!root)return false;controls.target.copy(root.position);controls.update();return true;},
   resetView(){camera.position.set(10,12,17);controls.target.set(0,0,0);controls.update();},
   resize,
-  /** Démarre l'affichage dans une session WebXR déjà ouverte (pôle xr). */
-  startXR(session){if(disposed)throw new Error('Renderer disposed');return renderer.xr.setSession(session);},
+  /** Fonctionnalités de session à demander en plus : « webgpu » (voie native de la VR en WebGPU). */
+  xrSessionFeatures(){return extraSessionFeatures();},
+  /**
+   * Démarre l'affichage dans une session WebXR déjà ouverte (pôle xr), toujours en WebGPU :
+   * XRGPUBinding du navigateur, ou pont de l'émulateur (xrBridge.js). Lève une erreur si le
+   * navigateur ne permet pas la VR en WebGPU.
+   */
+  async startXR(session){
+   if(disposed)throw new Error('Renderer disposed');
+   const path=prepareXRSession(session);
+   saveView();
+   xrRendering={backend:BACKEND,path};
+   try{await renderer.xr.setSession(session);}
+   catch(error){xrRendering=null;restoreView();throw error;}
+  },
   isPresenting(){return renderer.xr.isPresenting;},
-  renderer,
+  /** Le renderer WebGPU de la scène (le même pendant toute la vie de la page). */
+  getRenderer(){return renderer;},
+  /** Espace de référence de la session VR en cours, sinon null. */
+  getReferenceSpace(){return renderer.xr.isPresenting?renderer.xr.getReferenceSpace():null;},
+  /**
+   * Rendu effectivement utilisé, pour le statut affiché :
+   * { classic: 'WebGPU', xr: { backend: 'WebGPU', path: 'natif' | 'pont émulateur' } | null }.
+   */
+  getRenderingInfo(){return {classic:BACKEND,xr:xrRendering?{...xrRendering}:null};},
   scene,
   camera,
   world,
-  dispose(){if(disposed)return;disposed=true;generations.dispose();renderer.setAnimationLoop(null);frameListeners.clear();renderer.xr.removeEventListener('sessionstart',onXRStart);renderer.xr.removeEventListener('sessionend',onXREnd);observer?.disconnect();window.removeEventListener('resize',resize);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',click);controls.dispose();linkLayer?.dispose();labelLayer?.dispose();for(const root of deviceMeshes.values())factory.setHighlight(root,'normal');deviceMeshes.clear();content.clear();factory.dispose();floor.geometry.dispose();(Array.isArray(floor.material)?floor.material:[floor.material]).forEach(material=>material.dispose());renderer.dispose();renderer.domElement.remove();},
+  dispose(){if(disposed)return;disposed=true;generations.dispose();renderer.setAnimationLoop(null);canvas.removeEventListener('pointerdown',down);canvas.removeEventListener('pointerup',click);renderer.xr.removeEventListener('sessionstart',onXRStart);renderer.xr.removeEventListener('sessionend',onXREnd);frameListeners.clear();observer?.disconnect();globalThis.removeEventListener?.('resize',resize);controls.dispose();linkLayer?.dispose();labelLayer?.dispose();for(const root of deviceMeshes.values())factory.setHighlight(root,'normal');deviceMeshes.clear();content.clear();factory.dispose();floor.geometry.dispose();(Array.isArray(floor.material)?floor.material:[floor.material]).forEach(material=>material.dispose());renderer.dispose();renderer.domElement.remove();},
  };
 }

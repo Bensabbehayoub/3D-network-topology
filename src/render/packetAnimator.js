@@ -8,7 +8,7 @@
 //
 // Le calcul des positions (computeFrame) est séparé de l'affichage Three.js : il se teste sous Node.
 
-import * as THREE from '../../vendor/three/build/three.module.js';
+import * as THREE from '../../vendor/three/build/three.webgpu.js';
 import { isBroadcast, TOPICS } from '../../simulation.js';
 
 /** Hauteur du paquet : au-dessus des équipements, pour qu'ils ne le cachent pas. */

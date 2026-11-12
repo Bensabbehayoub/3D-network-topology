@@ -10,7 +10,7 @@
 // visé est encadré. Gâchette (évènement « select » de la session) : bouton du panneau exécuté,
 // ou équipement sélectionné par app.ui.select(id), qui met à jour la fiche en 2D comme en VR.
 
-import * as THREE from '../../vendor/three/build/three.module.js';
+import * as THREE from '../../vendor/three/build/three.webgpu.js';
 import { RAY_LENGTH, rayFromPose, resolveTarget } from './panelLayout.js';
 
 const IDLE_COLOR = 0x9fb0c0;
@@ -153,7 +153,8 @@ export function createControllers({ app, session, parent, panels }) {
   // L'évènement porte le XRFrame de l'instant et la source d'entrée : on refait le lancer de rayon
   // avec cette pose exacte plutôt que de réutiliser celle de la dernière image.
   const onSelect = (event) => {
-    const referenceSpace = render?.renderer?.xr?.getReferenceSpace?.() ?? null;
+    // Le renderer change à l'entrée en VR : on demande l'espace de référence au rendu, à chaque fois.
+    const referenceSpace = render?.getReferenceSpace?.() ?? null;
     const ray = rayOf(event.inputSource, event.frame, referenceSpace);
     const action = selectAction(ray ? targetOf(ray) : null);
     if (!action) return;

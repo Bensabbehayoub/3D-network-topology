@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import * as THREE from '../vendor/three/build/three.module.js';
+import * as THREE from '../vendor/three/build/three.webgpu.js';
 import { computeFrame, createPacketAnimator, mountPacketAnimator, packetPosition, PACKET_HEIGHT } from '../src/render/packetAnimator.js';
 import { createMockSimulation, DEMO_SCENARIO } from '../src/sim/mock.js';
 import { STATUS } from '../simulation.js';

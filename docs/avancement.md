@@ -40,7 +40,7 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 | N° | Phase | Statut |
 | --- | --- | --- |
 | 1 | PWA complète (icônes, précache, hors ligne, bouton Installer) | ✅ Terminé (12 nov), à commiter par Ramy |
-| 2 | Three.js r187, WebGPU, boucle d'animation WebXR unique | À faire (la boucle unique et `app.sim.tick` sont déjà faits en phase 3) |
+| 2 | Three.js r187, rendu 100 % WebGPU (mode classique et VR), boucle d'animation WebXR unique | ✅ Terminé (12 nov), à commiter par Ramy (un seul commit, version 100 % WebGPU) |
 | 3 | Session immersive complète (panneau VR, manettes, fiches en VR) | ✅ Terminé (12 nov), à commiter par Ramy |
 | 4 | Moteur réel, équipements et protocoles | À faire |
 | 5 | Caractéristiques des équipements, débit et bande passante | À faire |
@@ -66,6 +66,10 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 12 nov | Visée à la manette avec tolérance (`pickDeviceHit(…, { tolerance: 0.7 })`) : l'étiquette d'un équipement est aussi une cible. | Routeur et switch sont plats, donc difficiles à toucher exactement avec un rayon. |
 | 12 nov | Gâchette dans le vide : la sélection est gardée. | Éviter de perdre la fiche sur un tir manqué. |
 | 12 nov | Essais VR automatisés avec la bibliothèque IWER 2.8 (Meta) injectée dans Chrome piloté, depuis un dossier temporaire hors dépôt. | L'extension Immersive Web Emulator ne se charge pas dans un Chrome sans interface ; IWER est son moteur. |
+| 12 nov | **Rendu 100 % WebGPU** : `WebGPURenderer` seul, en mode classique et en VR ; `WebGLRenderer`, `three.module.js` et `?rendu=webgl` supprimés. Aucun contexte WebGL n'est créé. | Demande du professeur (cours : WebGPU, WebXR, Immersive Web Emulator). Remplace la bascule vers `WebGLRenderer` en VR, jamais commitée. |
+| 12 nov | VR en WebGPU : `XRGPUBinding` du navigateur s'il accorde la fonctionnalité `webgpu` ; sinon (Immersive Web Emulator) pont `src/render/xrBridge.js` (XRGPUBinding fourni par le pont, copie WebGPU dans un canevas WebGPU, couche-surface sans WebGL remise à l'émulateur). | L'émulateur ne connaît pas l'API WebXR/WebGPU ; le `XRGPUBinding` de Chrome (derrière un drapeau) refuse ses sessions. |
+| 12 nov | Sans WebGPU : message « WebGPU requis » à la place de la scène, aucun repli. | Choix du 100 % WebGPU ; le repli WebGL 2 de `WebGPURenderer` n'est jamais déclenché. |
+| 12 nov | La vue classique (caméra, cible) est sauvegardée à l'entrée en VR et rendue à la sortie. | Three.js recopie la pose du casque dans la caméra : la vue revenait collée au routeur. |
 | 12 nov | Le bouton « Installer » est visible tant que l'application n'est pas installée. Sans invite du navigateur, le clic explique comment installer. | « Message clair si l'installation est indisponible » sans encombrer l'en-tête. |
 
 ## Journal des phases
@@ -101,3 +105,77 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 - Non vérifié : un vrai casque, et l'extension Immersive Web Emulator elle-même (à faire par Ramy).
 - Limite connue : les explications viennent du faux moteur (trois étapes de démonstration) jusqu'à la phase 4.
 - README non mis à jour pour la VR : prévu en phase 9.
+
+### Phase 2 — essai obligatoire WebGPU + WebXR (12 novembre, avant tout code)
+
+Three.js 0.187.0, Chrome 157 piloté avec WebGPU réel (adaptateur Intel gen-12lp), émulateur IWER 2.8
+(profil Meta Quest 3), session `immersive-vr`. Page d'essai hors dépôt (dossier temporaire).
+
+| Voie | Mode classique | Session VR | Image en VR | Console |
+| --- | --- | --- | --- | --- |
+| `WebGPURenderer`, backend WebGPU, sans fonctionnalité `webgpu` | WebGPU, image correcte | ouverte, `setSession` refusé : « WebGPU XR sessions require the "webgpu" session feature » | — | erreur à la sortie |
+| `WebGPURenderer`, backend WebGPU, `requiredFeatures: ['webgpu']` | WebGPU | refusée : « One or more required features are not supported by the device » | — | — |
+| `WebGPURenderer({ forceWebGL: true })` | WebGL 2 | ouverte, boucle appelée | **vide** | « Invalid value used as weak map key » à chaque image |
+| WebGPU classique → `WebGPURenderer({ forceWebGL })` en VR → retour WebGPU | WebGPU | ouverte | **vide** | même erreur |
+| `WebGLRenderer` r187 seul | WebGL 2 | ouverte | correcte | vide |
+| WebGPU classique → `WebGLRenderer` r187 en VR → retour WebGPU | WebGPU, puis WebGPU au retour | ouverte | correcte | vide |
+
+- `XRGPUBinding` est absent de Chrome 157, avec ou sans émulateur : la VR en WebGPU est impossible sur ce poste.
+- Cause de l'image vide : la couche XR d'IWER (et donc de l'extension Immersive Web Emulator) a un
+  `framebuffer` nul ; le backend WebGL de `WebGPURenderer` r187 l'utilise comme clé de `WeakMap`
+  (`WebGLState.drawBuffers`). `WebGLRenderer` gère ce cas. Sur un vrai casque le `framebuffer` n'est
+  pas nul : non vérifiable ici.
+- Les builds `three.webgpu.js` et `three.module.js` partagent `three.core.js` (`Mesh` identique) :
+  une même scène peut être rendue par l'un puis par l'autre.
+- À embarquer en plus : `build/three.webgpu.js`, `build/three.tsl.js` (importé par le précédent),
+  `examples/jsm/utils/SkeletonUtils.js` (importé par `GLTFLoader` r187).
+
+### Phase 2 — Three.js r187, WebGPU et boucle WebXR (12 novembre)
+
+- Tests : 251 tests, 240 réussis, 11 « à faire », 0 échec.
+- Vendor : `vendor/three/` passé à 0.187.0 (`three.webgpu.js`, `three.tsl.js`, `SkeletonUtils.js`,
+  `LICENSE` en plus), `install.mjs` (dossier source en argument), `README.md`.
+- Rendu : `src/render/renderers.js` (+ `renderers.test.mjs`), `scene.js` (création asynchrone,
+  bascule de renderer, `getRenderer`, `getReferenceSpace`, `getRenderingInfo`, `xrSessionFeatures`,
+  `whenSettled`, sauvegarde de la vue), `index.js`, `mock.js`, `browser-smoke.mjs`.
+- XR : `session.js` (option `webgpu` conditionnelle, statut du rendu réel), `session.test.js`,
+  `controllers.js` (`getReferenceSpace()`), `vr.test.js`.
+- Docs : `decision-renderer.md` (réécrit), `README.md`, `architecture.md`, `docs/README.md`,
+  `ATTRIBUTION.md`, `contrats.md` (§7).
+- Boucle d'animation unique et horloge pilotée par le rendu : faites en phase 3, inchangées.
+- Vérifié dans Chrome 157 piloté (WebGPU réel, GPU Intel) : voir `decision-renderer.md`,
+  section « Vérifié dans l'application ».
+- Non vérifié : vrai casque ; VR en WebGPU (pas de navigateur avec `XRGPUBinding`) ; navigateur
+  réellement dépourvu de WebGPU (simulé par `?rendu=webgl`, même backend).
+
+### Phase 2 (suite) — rendu 100 % WebGPU, demande du professeur (12 novembre)
+
+Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais été commitée).
+
+- Constats préalables : `XRGPUBinding` **existe** dans Chrome 157, désactivé par défaut
+  (`chrome://flags` → « Experimental Web Platform features »), mais refuse les sessions de
+  l'émulateur (« parameter 1 is not of type 'XRSession' »). IWER 2.8 ne connaît pas la
+  fonctionnalité `webgpu` et n'avance ses images que si la session a une couche `XRWebGLLayer` ;
+  il ne lit sur son contexte que la taille du canevas et des appels d'effacement.
+- Solution : `src/render/xrBridge.js` (+ `xrBridge.test.mjs`) fournit `XRGPUBinding` aux sessions de
+  l'émulateur : chaque œil est rendu par `WebGPURenderer` dans une tranche de texture WebGPU, copiée
+  (commandes WebGPU) dans un canevas WebGPU que l'émulateur affiche, via une couche dont le
+  « contexte » est une simple surface. Sessions du navigateur avec `webgpu` accordé : son
+  `XRGPUBinding`, pont inactif.
+- Fichiers : `renderers.js` (WebGPU seul, `assertWebGPU`, `WebGPUUnavailableError`),
+  `renderers.test.mjs` (dont le test « zéro WebGL » sur tout `src/`), `scene.js` (plus de bascule,
+  `whenSettled` supprimé, `getRenderingInfo` → `{ classic, xr: { backend, path } }`), `index.js`
+  (message « WebGPU requis »), `mock.js`, `browser-smoke.mjs`, `styles.css` ; tous les imports
+  `three.module.js` → `three.webgpu.js` (src, tests, modules complémentaires) ; `install.mjs` ne
+  copie plus `three.module.js` ; `session.js` (plus de test WebGL 2, ligne XRGPUBinding, statut).
+- Tests : 257 tests, 246 réussis, 11 « à faire », 0 échec.
+- Vérifié dans Chrome 157 piloté (WebGPU réel, GPU Intel) avec IWER 2.8, profil Meta Quest 3, compteur
+  de `getContext('webgl…')` injecté avant la page : **0 contexte WebGL** du chargement à la fin ;
+  mode classique (topologie, GLB, sélection, paquets) ; session VR en mono puis en stéréo, et passage de l'un
+  à l'autre pendant la session (images aux bonnes proportions), panneaux, manettes, commandes, sélection, horloge ; deux entrées et sorties ;
+  page sans `navigator.gpu` → message « WebGPU requis », aucun canevas, bouton VR désactivé ;
+  console vide.
+- Non vérifié : l'extension Immersive Web Emulator elle-même (à faire par Ramy, sa version peut
+  différer d'IWER 2.8) ; un vrai casque (voie native `XRGPUBinding`).
+- Fragilité connue : le pont dépend du fonctionnement interne de Three.js r187 et d'IWER 2.8.
+- Passage mono ↔ stéréo de l'émulateur pendant une session : vérifié, l'image suit sans sortir de la VR.

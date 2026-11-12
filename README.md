@@ -78,7 +78,7 @@ Le détail des **79 tâches** (membre, fichiers, points, statut) est dans [`docs
 
 | Besoin | Choix | Pourquoi |
 | --- | --- | --- |
-| Rendu 3D | **Three.js r180**, `WebGLRenderer` (WebGL 2), copié dans `vendor/three/` | Une seule voie de rendu pour PC, mobile et VR. `WebGPURenderer` n'ouvre pas de session VR dans l'émulateur : essai et justification dans [`docs/decision-renderer.md`](docs/decision-renderer.md). WebGPU reste détecté et affiché. |
+| Rendu 3D | **Three.js r187** copié dans `vendor/three/` : **rendu 100 % WebGPU** (`WebGPURenderer`), en mode classique comme en VR ; aucun contexte WebGL | Le cours porte sur WebGPU, WebXR et Immersive Web Emulator. En VR, Three.js rend chaque œil en WebGPU par `XRGPUBinding` ; l'émulateur ne fournissant pas cette API, le pont `src/render/xrBridge.js` la fournit. Sans WebGPU, la page affiche « WebGPU requis ». Essais et justification : [`docs/decision-renderer.md`](docs/decision-renderer.md). |
 | Réalité virtuelle | **WebXR Device API** (`immersive-vr`), testée avec **Immersive Web Emulator** | Aucun casque disponible ; même code pour un vrai casque. |
 | Simulation | Moteur **à évènements discrets**, en JavaScript pur, sans navigateur | Déterministe, indépendant des images (pause, pas à pas et vitesse cohérents), testable sous Node. |
 | Application | **PWA** : `manifest.json` + Service Worker | Accès par URL, installation facultative, hors ligne après le premier chargement. |
@@ -128,7 +128,7 @@ src/ui/                     contrôles, sélection, inspecteur, explications, in
 src/xr/                     détection WebXR, session VR, panneau et manettes VR
 scenarios/                  un fichier JSON par scénario (topologie + étapes expliquées)
 tests/                      tests automatiques (node --test)
-vendor/three/               Three.js r180 copié localement (hors ligne)
+vendor/three/               Three.js r187 copié localement (hors ligne), build WebGPU seulement
 docs/                       documentation (voir docs/README.md)
 .github/                    CI, déploiement Pages, CODEOWNERS
 ```
@@ -140,7 +140,7 @@ docs/                       documentation (voir docs/README.md)
 | Site en HTTPS sur GitHub Pages, déployé à chaque fusion dans `main` | Moteur réel et animation des paquets (S2) |
 | Scène Three.js : rotation et zoom à la souris et au doigt, sélection d'un équipement | Modèles 3D GLB, câbles et étiquettes (S2) |
 | La scène affiche la topologie du scénario chargé par le moteur | Ping ARP + ICMP de bout en bout (S3, MVP) |
-| **Détection WebXR** : statut « WebXR détectée / non détectée » et détail (VR, AR, WebGL 2, WebGPU, HTTPS) | Panneau de commandes en 3D dans la VR (S4) |
+| **Détection WebXR** : statut « WebXR détectée / non détectée » et détail (VR, AR, WebGPU, XRGPUBinding, rendu utilisé, HTTPS) | Panneau de commandes en 3D dans la VR (S4) |
 | **Entrée et sortie de session `immersive-vr`** dans l'émulateur, scène affichée devant l'utilisateur | Sélection à la manette (S5) |
 | Contrats communs (scénario, évènements, protocole, commandes) et faux moteur | Six protocoles (S4), HTTP et routage (S5) |
 | Interface : en-tête, commandes, inspecteur, explications ; PC et mobile | Hors ligne complet (S6) |

@@ -1,7 +1,7 @@
 // Pôle xr : un panneau VR = un canvas 2D appliqué en texture sur un rectangle 3D.
 // Aucune bibliothèque de texte 3D : le canvas du navigateur dessine le texte, Three.js l'affiche.
 
-import * as THREE from '../../vendor/three/build/three.module.js';
+import * as THREE from '../../vendor/three/build/three.webgpu.js';
 
 /** Couleurs des panneaux, reprises de styles.css pour garder la même identité qu'en 2D. */
 export const PALETTE = Object.freeze({

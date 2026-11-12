@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import * as THREE from '../../vendor/three/build/three.module.js';
+import * as THREE from '../../vendor/three/build/three.webgpu.js';
 import {createDeviceFactory} from './factory.js';
 import {createMockRenderer} from './mock.js';
 import {pickDeviceFromObjects} from './scene.js';

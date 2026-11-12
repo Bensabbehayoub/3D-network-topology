@@ -19,6 +19,11 @@ export function createMockRenderer({onDeviceClick=()=>{}}={}){
   onFrame(listener){guard();if(typeof listener!=='function')throw new TypeError('onFrame: function expected');frameListeners.add(listener);return()=>{frameListeners.delete(listener);};},
   emitFrame(info={}){guard();const frame={time:0,delta:0,xrFrame:null,referenceSpace:null,presenting:false,...info};for(const listener of [...frameListeners])listener(frame);return frameListeners.size;},
   getVRAnchor(){guard();return null;},
+  /** Mêmes fonctions que la scène réelle ; aucun renderer dans le faux rendu. */
+  getRenderer(){guard();return null;},
+  getReferenceSpace(){guard();return null;},
+  getRenderingInfo(){guard();return {classic:null,xr:null};},
+  xrSessionFeatures(){guard();return [];},
   highlightDevice(id,mode='selected'){guard();if(!['selected','active','error','normal'].includes(mode))throw new TypeError('Invalid mode');return data.devices.some(d=>d.id===id);},
   getDevice(id){guard();return data.devices.find(d=>d.id===id)||null;},
   listDevices(){guard();return data.devices.map(d=>({...d,position:{...d.position}}));},
