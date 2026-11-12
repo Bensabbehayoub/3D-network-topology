@@ -109,7 +109,23 @@ Claude a été utilisé comme assistant de développement pour le pôle simulati
 
 ### Ayoub Ben Sabbeh
 
-*   À compléter par Ayoub : déclarer chaque usage d'un assistant IA (composant, usage, vérification) ou indiquer « Aucun usage ».
+Claude (Anthropic, via Claude Code dans VS Code) a été utilisé comme assistant de développement pour le pôle plateforme et XR. Ayoub a choisi les tâches à partir du plan de réalisation, a fait générer le code, les tests et les explications, puis les a relus, essayés dans le navigateur, et intégrés par branche et pull request (une tâche par branche). Part estimée de l'IA dans le code de ces entrées : environ 90 %.
+
+*   **Composant ou Shader concerné :** Fichier des propriétaires `.github/CODEOWNERS` (S1, tâche 13) : identifiants GitHub réels de l'équipe et propriétaires des documents de `docs/conception/` et `docs/simulation/`
+    *   **Prompt ou usage principal :** remplacement des identifiants provisoires par les comptes GitHub de l'équipe, et attribution de chaque fichier à son auteur selon le plan.
+    *   **Axe de vérification appliqué par l'étudiant :** identifiants GitHub fournis par chaque membre ; relecture du fichier ; fusion par pull request (PR #4).
+
+*   **Composant ou Shader concerné :** Animation des paquets le long des câbles (S2, tâche 26) : `src/render/packetAnimator.js`, `tests/packetAnimator.test.js`, et les deux lignes qui la branchent dans `src/render/index.js`
+    *   **Prompt ou usage principal :** génération du code qui place chaque paquet en vol entre ses deux équipements à partir de son avancement donné par le moteur (`app.sim.getPacketsInFlight()`), à chaque tic de l'horloge simulée et non à chaque image (point de vigilance n°5 du plan) ; génération des tests avec une horloge manuelle.
+    *   **Axe de vérification appliqué par l'étudiant :** 11 tests automatiques (position au milieu du câble à 200 ms pour une latence de 400 ms, vitesse ×2, pause, pas à pas, réinitialisation, fin de la démonstration, désabonnement) ; suite complète `node --test` sans échec ; essai dans Chrome en local : le paquet traverse PC 1 → Switch 1 → Routeur → Switch 2 → PC 2 et obéit aux cinq commandes ; hauteur et taille du paquet corrigées après l'essai, car les équipements le cachaient (PR #10).
+
+*   **Composant ou Shader concerné :** Script de la liste de précache (S2, tâche 27) : `tools/build-precache.js`, `tools/build-precache.test.js`, étape ajoutée dans `.github/workflows/ci.yml`, `precache-manifest.js` ajouté à `.gitignore`
+    *   **Prompt ou usage principal :** génération d'un script Node qui parcourt les fichiers du site, écrit `precache-manifest.js` (liste des fichiers et version calculée par empreinte SHA-256) et s'exécute dans la CI avant le déploiement.
+    *   **Axe de vérification appliqué par l'étudiant :** 6 tests automatiques (fichiers de test exclus, ordre stable, version qui change quand un fichier change) ; exécution manuelle du script et contrôle de la liste produite (55 fichiers) ; correction de la détection de la ligne de commande sous Windows après un essai qui n'affichait rien.
+
+*   **Composant ou Shader concerné :** ce paragraphe de `ATTRIBUTION.md`
+    *   **Prompt ou usage principal :** rédaction de l'entrée à partir des pull requests réellement fusionnées.
+    *   **Axe de vérification appliqué par l'étudiant :** contrôle de chaque fichier et numéro de PR cité dans le dépôt.
 
 ### Mohamed Aziz Saoudi
 
