@@ -1,6 +1,137 @@
 {
+  "schema": 1,
+  "id": "udp",
+  "title": "UDP : envoyer sans connexion",
   "protocol": "udp",
-  "devices": [],
-  "links": [],
-  "steps": []
+  "description": "UDP transporte des datagrammes d'un port à un autre, sans connexion ni accusé de réception : rapide et simple, mais l'émetteur ne sait pas si ses messages arrivent. PC 1 envoie des mesures au service de journalisation (syslog, port UDP 514) d'un serveur, puis un datagramme vers un port où rien n'écoute.",
+  "params": {
+    "source": "pc1",
+    "target": "srv1",
+    "port": 514,
+    "count": 2,
+    "interval": 2000,
+    "closedPort": 5000
+  },
+  "devices": [
+    {
+      "id": "pc1",
+      "type": "host",
+      "label": "PC 1",
+      "position": [
+        -4,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:10",
+          "ip": "192.168.1.10/24"
+        }
+      ],
+      "gateway": "192.168.1.1"
+    },
+    {
+      "id": "sw1",
+      "type": "switch",
+      "label": "Switch",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        }
+      ]
+    },
+    {
+      "id": "srv1",
+      "type": "server",
+      "label": "Serveur de journaux",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:50",
+          "ip": "192.168.1.50/24"
+        }
+      ],
+      "gateway": "192.168.1.1",
+      "services": [
+        {
+          "name": "syslog",
+          "transport": "udp",
+          "port": 514
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": "l1",
+      "a": "pc1:eth0",
+      "b": "sw1:p1"
+    },
+    {
+      "id": "l2",
+      "a": "sw1:p2",
+      "b": "srv1:eth0"
+    }
+  ],
+  "steps": [
+    {
+      "id": "udp-start",
+      "title": "Envoi de mesures",
+      "text": "PC 1 envoie deux mesures au serveur de journaux 192.168.1.50, port UDP 514 (syslog). Aucune connexion n'est ouverte avant : chaque datagramme part seul."
+    },
+    {
+      "id": "udp-send-1",
+      "title": "Premier datagramme",
+      "text": "Le datagramme porte un port source choisi par PC 1 (49152, un port « éphémère ») et le port destination 514. L'en-tête UDP ne contient que ces deux ports, une longueur et une somme de contrôle."
+    },
+    {
+      "id": "arp-request",
+      "title": "ARP d'abord",
+      "text": "Le serveur est dans le même réseau, mais PC 1 ne connaît pas sa MAC : le datagramme attend la réponse ARP."
+    },
+    {
+      "id": "udp-send-2",
+      "title": "Deuxième datagramme",
+      "text": "PC 1 envoie la mesure suivante sans attendre de nouvelles du premier datagramme : UDP n'attend jamais de confirmation."
+    },
+    {
+      "id": "udp-delivered-1",
+      "title": "Livré au service",
+      "text": "Le serveur reçoit le datagramme sur le port 514 : le service de journalisation l'enregistre. Il ne répond rien : UDP ne prévoit aucun accusé de réception. Si le datagramme s'était perdu, personne ne l'aurait su."
+    },
+    {
+      "id": "udp-send-closed",
+      "title": "Vers un port fermé",
+      "text": "PC 1 envoie maintenant un datagramme au port 5000 du serveur, où aucun service n'écoute."
+    },
+    {
+      "id": "udp-port-closed",
+      "title": "Port fermé",
+      "text": "Le serveur ne peut remettre le datagramme à aucun programme : il le détruit et renvoie un message ICMP « destination inaccessible, port inaccessible » (type 3, code 3)."
+    },
+    {
+      "id": "udp-icmp-received",
+      "title": "PC 1 est prévenu",
+      "text": "PC 1 reçoit l'erreur ICMP : c'est le seul retour possible pour UDP. Un programme qui a besoin de garanties (ordre, renvoi des pertes) utilise TCP, ou les gère lui-même."
+    },
+    {
+      "id": "udp-summary",
+      "title": "Bilan",
+      "text": "2 mesures livrées sans aucune réponse, 1 datagramme refusé avec une erreur ICMP. UDP convient aux échanges courts et aux données en temps réel (DNS, DHCP, voix, jeux)."
+    }
+  ]
 }

@@ -33,6 +33,7 @@ export const DEFAULT_LATENCY = 400;
 const ID = /^[A-Za-z][A-Za-z0-9_-]*$/;
 const PROTOCOL = /^[a-z][a-z0-9-]*$/;
 const MAC = /^[0-9a-f]{2}(:[0-9a-f]{2}){5}$/i;
+const HOSTNAME = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]$/i;
 const IPV4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
 
 /** Types dont chaque interface doit avoir une adresse MAC. */
@@ -44,6 +45,11 @@ export function isMac(value) {
 
 export function isIpv4(value) {
   return typeof value === 'string' && IPV4.test(value);
+}
+
+/** Nom de domaine complet : 'www.ecole.test'. */
+export function isHostname(value) {
+  return typeof value === 'string' && HOSTNAME.test(value);
 }
 
 /** '192.168.1.10/24' → { address: '192.168.1.10', prefix: 24 } ; null si invalide. */
@@ -112,6 +118,37 @@ export function validateScenario(scenario) {
           if (!route || !parseCidr(route.network)) error(`${name}.routes[${k}].network : réseau au format 192.168.3.0/24 attendu`);
           if (!route || !isIpv4(route.via)) error(`${name}.routes[${k}].via : adresse IPv4 du routeur suivant attendue`);
         });
+      }
+      if (device.dns !== undefined && !isIpv4(device.dns)) error(`${name}.dns : adresse IPv4 du serveur DNS attendue`);
+      if (device.services !== undefined) {
+        if (!Array.isArray(device.services)) error(`${name}.services : tableau attendu`);
+        else device.services.forEach((service, k) => {
+          const at = `${name}.services[${k}]`;
+          if (!service || !['udp', 'tcp'].includes(service.transport)) error(`${at}.transport : "udp" ou "tcp" attendu`);
+          if (!service || !Number.isInteger(service.port) || service.port < 1 || service.port > 65535) error(`${at}.port : entier de 1 à 65535 attendu`);
+          if (service?.name !== undefined && typeof service.name !== 'string') error(`${at}.name : texte attendu`);
+        });
+      }
+      if (device.records !== undefined) {
+        if (!Array.isArray(device.records)) error(`${name}.records : tableau attendu`);
+        else device.records.forEach((record, k) => {
+          const at = `${name}.records[${k}]`;
+          if (!record || typeof record.name !== 'string' || !HOSTNAME.test(record.name)) error(`${at}.name : nom de domaine attendu (ex. www.ecole.test)`);
+          if (!record || record.type !== 'A') error(`${at}.type : "A" attendu`);
+          if (!record || !isIpv4(record.value)) error(`${at}.value : adresse IPv4 attendue`);
+          if (record?.ttl !== undefined && !(Number.isInteger(record.ttl) && record.ttl >= 0)) error(`${at}.ttl : entier ≥ 0 attendu (secondes)`);
+        });
+      }
+      if (device.dhcp !== undefined) {
+        const dhcp = device.dhcp;
+        const at = `${name}.dhcp`;
+        if (!dhcp || typeof dhcp !== 'object') error(`${at} : objet attendu`);
+        else {
+          for (const key of ['start', 'end']) if (!isIpv4(dhcp[key])) error(`${at}.${key} : adresse IPv4 attendue`);
+          if (!Number.isInteger(dhcp.prefix) || dhcp.prefix < 1 || dhcp.prefix > 30) error(`${at}.prefix : longueur de préfixe de 1 à 30 attendue`);
+          for (const key of ['gateway', 'dns']) if (dhcp[key] !== undefined && !isIpv4(dhcp[key])) error(`${at}.${key} : adresse IPv4 attendue`);
+          if (dhcp.lease !== undefined && !(Number.isInteger(dhcp.lease) && dhcp.lease > 0)) error(`${at}.lease : durée en secondes attendue`);
+        }
       }
 
       const names = new Set();

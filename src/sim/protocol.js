@@ -106,6 +106,9 @@ export function describeHeaders(packet) {
     );
   }
   if (packet.transport) {
+    if (packet.transport.protocol) {
+      fields.push({ layer: 'Transport', field: 'Protocole', value: String(packet.transport.protocol).toUpperCase() });
+    }
     fields.push(
       { layer: 'Transport', field: 'Port source', value: String(packet.transport.src) },
       { layer: 'Transport', field: 'Port destination', value: String(packet.transport.dst) },

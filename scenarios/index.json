@@ -3,6 +3,9 @@
     "arp",
     "ping",
     "routage",
-    "ttl"
+    "ttl",
+    "udp",
+    "dns",
+    "dhcp"
   ]
 }

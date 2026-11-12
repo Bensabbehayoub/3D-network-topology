@@ -42,7 +42,7 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 | 1 | PWA complète (icônes, précache, hors ligne, bouton Installer) | ✅ Terminé (12 nov), à commiter par Ramy |
 | 2 | Three.js r187, rendu 100 % WebGPU (mode classique et VR), boucle d'animation WebXR unique | ✅ Terminé et commité (`ac653fc`) ; testé par Ramy avec l'extension Immersive Web Emulator 2.0 |
 | 3 | Session immersive complète (panneau VR, manettes, fiches en VR) | ✅ Terminé (12 nov), à commiter par Ramy |
-| 4 | Moteur réel, équipements et protocoles | ⏳ En cours, en quatre sous-étapes (un commit chacune) : **4a ✅** (12 nov, à commiter) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; 4b UDP, DNS, DHCP ; 4c TCP, HTTP ; 4d inspecteur de paquets, journal, explications en 2D |
+| 4 | Moteur réel, équipements et protocoles | ⏳ En cours, en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (12 nov, à commiter) UDP, DNS, DHCP ; 4c TCP, HTTP ; 4d inspecteur de paquets, journal, explications en 2D |
 | 5 | Caractéristiques des équipements, débit et bande passante | À faire |
 | 6 | Diagnostic et recommandations | À faire |
 | 7 | Éditeur de topologie et choix du protocole | À faire |
@@ -75,6 +75,10 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 12 nov | Explications choisies par le scénario : la pile annonce des identifiants d'étapes standard (du plus précis au plus général), seules celles présentes dans `steps` sont affichées, une fois par exécution. | Ajouter ou retirer une explication sans toucher au code. |
 | 12 nov | `scenarios/index.json` liste les scénarios terminés ; les ébauches restent hors liste. Repli sur le faux moteur si aucun scénario n'est lisible. | Pas de listage de dossier possible sur un site statique. |
 | 12 nov | Durées ralenties : 400 ms par lien, ping toutes les 7 s, délais de 10 à 12 s. | Paquets visibles à vitesse 1 ; la vitesse ×4 accélère. |
+| 12 nov | Ports déclarés par scénario (`services`) ; ports clients ouverts à l'envoi ; UDP vers un port fermé → ICMP « port inaccessible ». | Montrer le rôle des ports et la seule « réponse » possible d'UDP. |
+| 12 nov | Configuration obtenue pendant l'exécution (DHCP) gardée par la pile (`runtimeDevice`), jamais écrite dans le scénario. | Le scénario est gelé et rejoué à l'identique à chaque réinitialisation. |
+| 12 nov | Messages DHCP du serveur diffusés (drapeau de diffusion), serveur DHCP dans le même réseau (pas de relais). | Plus simple et visible ; le relais DHCP n'est pas au programme de cette phase. |
+| 12 nov | Délai d'attente DNS de 10 s (au lieu de 5 s réels). | Durées ralenties (400 ms par lien) : avec ARP des deux côtés, la première réponse met 6,4 s. |
 | 12 nov | Le bouton « Installer » est visible tant que l'application n'est pas installée. Sans invite du navigateur, le clic explique comment installer. | « Message clair si l'installation est indisponible » sans encombrer l'en-tête. |
 
 ## Journal des phases
@@ -206,3 +210,21 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 - Reste pour 4d : les explications et le contenu des paquets ne sont pas encore affichés en 2D
   (panneaux « Inspecteur » et « Explications » encore au gabarit S1 ; en VR, les explications
   s'affichent déjà).
+
+### Phase 4b — UDP, DNS, DHCP (12 novembre)
+
+- Tests : 305 tests, 303 réussis, 2 « à faire » (TCP, HTTP), 0 échec.
+- Pile : `stack.js` (ports, `sendUdp`, diffusion `255.255.255.255`, `runtimeDevice`,
+  `configureDevice`, erreur ICMP « port inaccessible »), `devices/host.js` (ports fermés, diffusion),
+  `devices/router.js` (diffusion jamais transmise), `protocol.js` (`describeHeaders` affiche le
+  protocole de transport), `scenario.js` (validation de `dns`, `services`, `records`, `dhcp`,
+  `isHostname`).
+- Protocoles : `protocols/udp.js`, `dns.js` (`resolveName`, `handleDns`, cache), `dhcp.js` (DORA,
+  plage, baux, vérification par ping).
+- Scénarios : `udp.json`, `dns.json`, `dhcp.json` (réécrits) ; `index.json` (7 scénarios).
+- Tests : `tests/udp.test.js`, `dns.test.js`, `dhcp.test.js` (les « à faire » remplacés),
+  `scenario.test.js` et `mock.test.js` complétés.
+- Docs : `contrats.md` (§1 nouveaux champs et `transport.protocol`, §3 pile et étapes standard).
+- Vérifié dans Chrome 157 piloté : 7 scénarios dans la liste ; DHCP joué jusqu'au bout (14,9 s
+  simulées), DNS et UDP en lecture ; console vide.
+- Pour 4d : couleurs des paquets par protocole (aujourd'hui bleu ou jaune pour la diffusion).

@@ -40,6 +40,24 @@ test('routes statiques : réseau CIDR et routeur suivant vérifiés', () => {
   assert.match(validateScenario(scenario).errors[0], /routes : tableau attendu/);
 });
 
+test('services, DNS, enregistrements et DHCP : formats vérifiés (phase 4b)', () => {
+  const scenario = copy(DEMO_SCENARIO);
+  const pc = scenario.devices.find((d) => d.id === 'pc2');
+  pc.dns = '192.168.2.53';
+  pc.services = [{ name: 'http', transport: 'tcp', port: 80 }];
+  pc.records = [{ name: 'www.ecole.test', type: 'A', value: '192.168.2.80', ttl: 60 }];
+  pc.dhcp = { start: '192.168.2.100', end: '192.168.2.110', prefix: 24, gateway: '192.168.2.1', lease: 3600 };
+  assert.deepEqual(validateScenario(scenario).errors, []);
+  pc.dns = 'serveur';
+  pc.services = [{ transport: 'icmp', port: 70000 }];
+  pc.records = [{ name: 'pas un nom', type: 'MX', value: 'x' }];
+  pc.dhcp = { start: '1.1.1', prefix: 33 };
+  const errors = validateScenario(scenario).errors;
+  for (const field of ['.dns', 'services[0].transport', 'services[0].port', 'records[0].name', 'records[0].type', 'records[0].value', 'dhcp.start', 'dhcp.end', 'dhcp.prefix']) {
+    assert.ok(errors.some((message) => message.includes(field)), field);
+  }
+});
+
 test('le scénario de démonstration du mock respecte le format', () => {
   assert.deepEqual(validateScenario(DEMO_SCENARIO).errors, []);
 });

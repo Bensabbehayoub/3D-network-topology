@@ -17,6 +17,7 @@
 import {
   addressedInterfaces, BROADCAST_MAC, interfaceNamed, lookupRoute, UNKNOWN_MAC,
 } from './net.js';
+import { linkAt } from './scenario.js';
 
 /** Délai d'attente d'une réponse ARP (ms simulées) avant d'abandonner les paquets en attente. */
 export const ARP_TIMEOUT = 3000;
@@ -55,8 +56,67 @@ export function explainOnce(ctx, candidates) {
 /** État réseau d'un équipement pour l'exécution en cours (vidé à chaque réinitialisation). */
 export function netMemory(ctx, deviceId) {
   const memory = ctx.memory(deviceId);
-  memory.net ??= { arp: new Map(), waiting: new Map(), macTable: new Map() };
+  memory.net ??= { arp: new Map(), waiting: new Map(), macTable: new Map(), openPorts: new Set(), nextPort: EPHEMERAL_PORT, config: null, view: null };
   return memory.net;
+}
+
+/** Premier port éphémère (côté client), comme la plupart des systèmes. */
+export const EPHEMERAL_PORT = 49152;
+/** Diffusion limitée : tous les équipements du réseau local, jamais transmise par un routeur. */
+export const LIMITED_BROADCAST = '255.255.255.255';
+
+/**
+ * Équipement tel qu'il est pendant l'exécution : celui du scénario, avec la configuration reçue
+ * en cours de route (adresse obtenue par DHCP…). Le scénario lui-même n'est jamais modifié.
+ */
+export function runtimeDevice(ctx, device) {
+  const net = netMemory(ctx, device.id);
+  if (!net.config) return device;
+  net.view ??= Object.freeze({
+    ...device,
+    interfaces: device.interfaces.map((itf) => (net.config.interfaces[itf.name] ? { ...itf, ip: net.config.interfaces[itf.name] } : itf)),
+    gateway: net.config.gateway ?? device.gateway,
+    dns: net.config.dns ?? device.dns,
+  });
+  return net.view;
+}
+
+/**
+ * Applique une configuration reçue pendant l'exécution (DHCP) : adresse d'une interface, passerelle, DNS.
+ * @param {{ interface: string, ip: string, gateway?: string, dns?: string }} config ip au format CIDR
+ */
+export function configureDevice(ctx, deviceId, { interface: name, ip, gateway, dns }) {
+  const net = netMemory(ctx, deviceId);
+  const previous = net.config ?? { interfaces: {} };
+  net.config = {
+    interfaces: { ...previous.interfaces, [name]: ip },
+    gateway: gateway ?? previous.gateway,
+    dns: dns ?? previous.dns,
+  };
+  net.view = null;
+}
+
+/**
+ * Port ouvert sur l'équipement ? Services du scénario (champ "services") ou port ouvert par
+ * l'équipement lui-même pour une requête (port client).
+ * @param {'udp' | 'tcp'} transport
+ */
+export function isPortOpen(ctx, device, transport, port) {
+  if ((device.services ?? []).some((service) => service.transport === transport && service.port === port)) return true;
+  return netMemory(ctx, device.id).openPorts.has(`${transport}:${port}`);
+}
+
+/** Ouvre un port client : celui demandé, ou le prochain port éphémère libre. */
+export function openPort(ctx, deviceId, transport, port = null) {
+  const net = netMemory(ctx, deviceId);
+  let chosen = port;
+  if (chosen === null) {
+    while (net.openPorts.has(`${transport}:${net.nextPort}`)) net.nextPort += 1;
+    chosen = net.nextPort;
+    net.nextPort += 1;
+  }
+  net.openPorts.add(`${transport}:${chosen}`);
+  return chosen;
 }
 
 /** Cache ARP d'un équipement : Map adresse IP → adresse MAC. */
@@ -93,7 +153,8 @@ function arpPacket(ctx, operation, { ethSrc, ethDst, senderMac, senderIp, target
  * Cache ARP d'abord ; sinon requête ARP en diffusion, et attente de la réponse.
  * @param {{ onResolved(mac: string): void, onFailed?(): void }} handlers
  */
-export function resolveMac(ctx, device, interfaceName, ip, { onResolved, onFailed = () => {} }) {
+export function resolveMac(ctx, scenarioDevice, interfaceName, ip, { onResolved, onFailed = () => {} }) {
+  const device = runtimeDevice(ctx, scenarioDevice);
   const memory = netMemory(ctx, device.id);
   if (memory.arp.has(ip)) {
     onResolved(memory.arp.get(ip));
@@ -138,9 +199,8 @@ function transmit(ctx, device, interfaceName, mac, packet, step) {
  * @param {{ step?: string | null }} [options] étape à laquelle rattacher le message
  * @returns {object | null} le paquet complet (sans en-tête Ethernet), ou null sans route
  */
-export function sendIp(ctx, deviceId, packet, { step = null } = {}) {
-  const device = ctx.device(deviceId);
-  const route = lookupRoute(device, packet.ip.dst);
+export function sendIp(ctx, deviceId, packet, { step = null, interface: interfaceName } = {}) {
+  const device = runtimeDevice(ctx, ctx.device(deviceId));
   const full = {
     id: packet.id ?? ctx.nextPacketId(),
     protocol: packet.protocol,
@@ -150,6 +210,14 @@ export function sendIp(ctx, deviceId, packet, { step = null } = {}) {
     transport: packet.transport ?? null,
     data: packet.data ?? {},
   };
+  if (packet.ip.dst === LIMITED_BROADCAST) {
+    // Diffusion limitée : ni route ni ARP, trame de diffusion sur le réseau local (DHCP).
+    const exit = interfaceName ?? device.interfaces.find((itf) => linkAt(ctx.scenario, device.id, itf.name))?.name;
+    full.ip.src ??= addressOn(device, exit)?.ip ?? '0.0.0.0';
+    ctx.send(device.id, { ...full, eth: { src: interfaceNamed(device, exit)?.mac ?? UNKNOWN_MAC, dst: BROADCAST_MAC } }, { interface: exit, step });
+    return full;
+  }
+  const route = lookupRoute(device, packet.ip.dst);
   if (!route) {
     full.ip.src ??= addressedInterfaces(device)[0]?.ip ?? '0.0.0.0';
     const noRoute = explainOnce(ctx, [`no-route-${device.id}`, 'no-route']);
@@ -170,10 +238,35 @@ export function sendIp(ctx, deviceId, packet, { step = null } = {}) {
 }
 
 /**
+ * Émet un datagramme UDP : ouvre le port source (éphémère si absent) pour recevoir la réponse,
+ * puis envoie le paquet IP. `protocol` est le protocole applicatif (dns, dhcp…) ou 'udp'.
+ * @param {{ protocol: string, type: string, dst: string, dstPort: number, srcPort?: number,
+ *   src?: string, ttl?: number, data?: object }} datagram
+ * @returns {{ packet: object | null, srcPort: number }}
+ */
+export function sendUdp(ctx, deviceId, { protocol, type, dst, dstPort, srcPort = null, src, ttl, data = {} }, options = {}) {
+  const port = openPort(ctx, deviceId, 'udp', srcPort);
+  const packet = sendIp(ctx, deviceId, {
+    protocol,
+    type,
+    ip: { src, dst, ttl },
+    transport: { protocol: 'udp', src: port, dst: dstPort },
+    data,
+  }, options);
+  return { packet, srcPort: port };
+}
+
+/** Le paquet est-il un datagramme UDP ou un segment TCP ? */
+export function transportOf(packet) {
+  return packet.transport?.protocol ?? null;
+}
+
+/**
  * Traite une trame ARP reçue (hôte, serveur ou routeur). Renvoie toujours true : ARP ne
  * remonte jamais jusqu'au protocole du scénario.
  */
-export function handleArp(ctx, device, packet, meta) {
+export function handleArp(ctx, scenarioDevice, packet, meta) {
+  const device = runtimeDevice(ctx, scenarioDevice);
   const data = packet.data ?? {};
   const own = addressOn(device, meta.interface);
   const memory = netMemory(ctx, device.id);
@@ -227,16 +320,22 @@ const ICMP_ERRORS = new Set(['time-exceeded', 'unreachable']);
 
 /**
  * Renvoie une erreur ICMP à l'émetteur d'un paquet, depuis l'interface où il est arrivé.
+ * Jamais pour une erreur ICMP ni pour un paquet diffusé ou venant de 0.0.0.0.
  * @param {'time-exceeded' | 'unreachable'} type
+ * @param {string | null} [step]
+ * @param {'network' | 'port'} [code] pour « destination inaccessible » : réseau (routeur) ou port (hôte)
  */
-export function sendIcmpError(ctx, device, packet, meta, type, step = null) {
+export function sendIcmpError(ctx, device, packet, meta, type, step = null, code = 'network') {
   if (!packet.ip || (packet.protocol === 'icmp' && ICMP_ERRORS.has(packet.type))) return;
-  const own = addressOn(device, meta.interface);
+  if (packet.ip.dst === LIMITED_BROADCAST || packet.ip.src === '0.0.0.0') return;
+  const own = addressOn(runtimeDevice(ctx, device), meta.interface);
+  const original = { id: packet.id, protocol: packet.protocol, type: packet.type, src: packet.ip.src, dst: packet.ip.dst };
+  if (packet.transport) original.dstPort = packet.transport.dst;
   sendIp(ctx, device.id, {
     protocol: 'icmp',
     type,
     ip: { src: own?.ip, dst: packet.ip.src },
-    data: { original: { id: packet.id, protocol: packet.protocol, type: packet.type, src: packet.ip.src, dst: packet.ip.dst } },
+    data: type === 'unreachable' ? { code, original } : { original },
   }, { step });
 }
 
