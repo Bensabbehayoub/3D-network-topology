@@ -1,6 +1,278 @@
 {
+  "schema": 1,
+  "id": "http",
+  "title": "HTTP : charger une page web",
   "protocol": "http",
-  "devices": [],
-  "links": [],
-  "steps": []
+  "description": "Ce que fait un navigateur pour afficher http://www.ecole.test/ : traduire le nom par DNS, ouvrir une connexion TCP vers le port 80, envoyer une requête GET, recevoir la page en plusieurs segments. Une seconde requête réutilise la même connexion et obtient une erreur 404.",
+  "params": {
+    "client": "pc1",
+    "urls": [
+      "http://www.ecole.test/",
+      "http://www.ecole.test/absent"
+    ]
+  },
+  "devices": [
+    {
+      "id": "pc1",
+      "type": "host",
+      "label": "PC 1",
+      "position": [
+        -6,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:10",
+          "ip": "192.168.1.10/24"
+        }
+      ],
+      "gateway": "192.168.1.1",
+      "dns": "192.168.2.53"
+    },
+    {
+      "id": "sw1",
+      "type": "switch",
+      "label": "Switch 1",
+      "position": [
+        -3,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        }
+      ]
+    },
+    {
+      "id": "r1",
+      "type": "router",
+      "label": "Routeur",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "g0",
+          "mac": "02:00:00:00:00:a0",
+          "ip": "192.168.1.1/24"
+        },
+        {
+          "name": "g1",
+          "mac": "02:00:00:00:00:a1",
+          "ip": "192.168.2.1/24"
+        }
+      ]
+    },
+    {
+      "id": "sw2",
+      "type": "switch",
+      "label": "Switch 2",
+      "position": [
+        3,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        },
+        {
+          "name": "p3"
+        }
+      ]
+    },
+    {
+      "id": "dns1",
+      "type": "server",
+      "label": "Serveur DNS",
+      "position": [
+        6,
+        0,
+        -4
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:02:53",
+          "ip": "192.168.2.53/24"
+        }
+      ],
+      "gateway": "192.168.2.1",
+      "services": [
+        {
+          "name": "dns",
+          "transport": "udp",
+          "port": 53
+        }
+      ],
+      "records": [
+        {
+          "name": "www.ecole.test",
+          "type": "A",
+          "value": "192.168.2.80",
+          "ttl": 300
+        },
+        {
+          "name": "intranet.ecole.test",
+          "type": "A",
+          "value": "192.168.2.80",
+          "ttl": 300
+        }
+      ]
+    },
+    {
+      "id": "web1",
+      "type": "server",
+      "label": "Serveur web",
+      "position": [
+        7,
+        0,
+        3
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:02:80",
+          "ip": "192.168.2.80/24"
+        }
+      ],
+      "gateway": "192.168.2.1",
+      "services": [
+        {
+          "name": "http",
+          "transport": "tcp",
+          "port": 80
+        }
+      ],
+      "pages": [
+        {
+          "path": "/",
+          "status": 200,
+          "type": "text/html",
+          "size": 2400,
+          "title": "Accueil du site de l'école"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": "l1",
+      "a": "pc1:eth0",
+      "b": "sw1:p1"
+    },
+    {
+      "id": "l2",
+      "a": "sw1:p2",
+      "b": "r1:g0"
+    },
+    {
+      "id": "l3",
+      "a": "r1:g1",
+      "b": "sw2:p1"
+    },
+    {
+      "id": "l4",
+      "a": "sw2:p2",
+      "b": "dns1:eth0"
+    },
+    {
+      "id": "l5",
+      "a": "sw2:p3",
+      "b": "web1:eth0"
+    }
+  ],
+  "steps": [
+    {
+      "id": "http-start",
+      "title": "Une adresse dans le navigateur",
+      "text": "L'utilisateur de PC 1 tape http://www.ecole.test/. Le navigateur lit l'adresse : protocole HTTP, nom du site www.ecole.test, port 80 par défaut, chemin « / »."
+    },
+    {
+      "id": "http-dns",
+      "title": "D'abord DNS",
+      "text": "Pour se connecter, il faut l'adresse IP du site : PC 1 interroge son serveur DNS (192.168.2.53), à travers le routeur."
+    },
+    {
+      "id": "dns-answer",
+      "title": "Réponse DNS",
+      "text": "Le serveur DNS répond : www.ecole.test = 192.168.2.80."
+    },
+    {
+      "id": "http-dns-done",
+      "title": "Adresse connue",
+      "text": "Le navigateur connaît maintenant l'adresse du serveur web. Il ouvre une connexion TCP vers 192.168.2.80, port 80."
+    },
+    {
+      "id": "tcp-syn",
+      "title": "SYN",
+      "text": "Poignée de main TCP, premier temps : PC 1 envoie SYN depuis un port éphémère vers le port 80."
+    },
+    {
+      "id": "tcp-syn-ack",
+      "title": "SYN-ACK",
+      "text": "Le serveur web accepte la connexion : SYN-ACK."
+    },
+    {
+      "id": "tcp-established",
+      "title": "Connexion établie",
+      "text": "PC 1 acquitte : la connexion est ouverte. Il a fallu un aller-retour complet avant d'envoyer la moindre donnée HTTP."
+    },
+    {
+      "id": "http-request-1",
+      "title": "Requête GET",
+      "text": "Le navigateur envoie sa requête : « GET / HTTP/1.1 », avec l'en-tête « Host: www.ecole.test » (un même serveur peut héberger plusieurs sites). Elle tient dans un seul segment."
+    },
+    {
+      "id": "tcp-ack",
+      "title": "Requête acquittée",
+      "text": "Le serveur web acquitte le segment de la requête (ACK). Dans l'autre sens, PC 1 acquittera de même chaque segment de la réponse : TCP fonctionne dans les deux sens sur la même connexion."
+    },
+    {
+      "id": "http-response-200",
+      "title": "Réponse 200 OK",
+      "text": "Le serveur web trouve la page « / » : il répond « HTTP/1.1 200 OK », type text/html, 2400 octets de contenu. Avec ses en-têtes, la réponse fait 2650 octets : trois segments TCP."
+    },
+    {
+      "id": "http-received-1",
+      "title": "Page reçue",
+      "text": "Les trois segments sont arrivés : le navigateur reconstitue la réponse et affiche « Accueil du site de l'école »."
+    },
+    {
+      "id": "http-request-2",
+      "title": "Deuxième requête, même connexion",
+      "text": "Le navigateur demande /absent. En HTTP/1.1 la connexion reste ouverte (connexion persistante) : pas de nouvelle poignée de main, la requête part tout de suite."
+    },
+    {
+      "id": "http-response-404",
+      "title": "404 Not Found",
+      "text": "Le serveur n'a pas de page /absent : il répond « HTTP/1.1 404 Not Found » avec une courte page d'erreur. Le code d'état dit au navigateur ce qui s'est passé."
+    },
+    {
+      "id": "http-not-found-2",
+      "title": "Erreur affichée",
+      "text": "Le navigateur affiche la page d'erreur 404. La connexion TCP, elle, a parfaitement fonctionné : l'erreur vient de l'application."
+    },
+    {
+      "id": "http-close",
+      "title": "Fermeture",
+      "text": "Plus rien à demander : le navigateur ferme la connexion TCP (FIN, FIN-ACK, ACK)."
+    },
+    {
+      "id": "http-summary",
+      "title": "Bilan",
+      "text": "Charger une page a demandé : une résolution DNS (UDP), une poignée de main TCP, une requête et une réponse HTTP, puis une fermeture. Chaque couche s'appuie sur celle du dessous : HTTP sur TCP, TCP sur IP, IP sur Ethernet."
+    }
+  ]
 }

@@ -42,7 +42,7 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 | 1 | PWA complète (icônes, précache, hors ligne, bouton Installer) | ✅ Terminé (12 nov), à commiter par Ramy |
 | 2 | Three.js r187, rendu 100 % WebGPU (mode classique et VR), boucle d'animation WebXR unique | ✅ Terminé et commité (`ac653fc`) ; testé par Ramy avec l'extension Immersive Web Emulator 2.0 |
 | 3 | Session immersive complète (panneau VR, manettes, fiches en VR) | ✅ Terminé (12 nov), à commiter par Ramy |
-| 4 | Moteur réel, équipements et protocoles | ⏳ En cours, en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (12 nov, à commiter) UDP, DNS, DHCP ; 4c TCP, HTTP ; 4d inspecteur de paquets, journal, explications en 2D |
+| 4 | Moteur réel, équipements et protocoles | ⏳ En cours, en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (commité, `1151dfd`) UDP, DNS, DHCP ; **4c ✅** (12 nov, à commiter) TCP, HTTP ; 4d inspecteur de paquets, journal, explications en 2D |
 | 5 | Caractéristiques des équipements, débit et bande passante | À faire |
 | 6 | Diagnostic et recommandations | À faire |
 | 7 | Éditeur de topologie et choix du protocole | À faire |
@@ -79,6 +79,9 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 12 nov | Configuration obtenue pendant l'exécution (DHCP) gardée par la pile (`runtimeDevice`), jamais écrite dans le scénario. | Le scénario est gelé et rejoué à l'identique à chaque réinitialisation. |
 | 12 nov | Messages DHCP du serveur diffusés (drapeau de diffusion), serveur DHCP dans le même réseau (pas de relais). | Plus simple et visible ; le relais DHCP n'est pas au programme de cette phase. |
 | 12 nov | Délai d'attente DNS de 10 s (au lieu de 5 s réels). | Durées ralenties (400 ms par lien) : avec ARP des deux côtés, la première réponse met 6,4 s. |
+| 12 nov | TCP simplifié mais fidèle : poignée de main, séquences et ACK cumulatifs, segments mis de côté dans le désordre, ACK dupliqués, une seule temporisation (RTO) qui renvoie le plus ancien segment, FIN, RST. Numéros initiaux fixes, pas de congestion ni de TIME_WAIT (dit dans les explications). | Montrer la fiabilité de TCP sans noyer l'élève. |
+| 12 nov | Perte simulée par paramètre de scénario (`loseSegment`), publiée comme une perte sur l'émetteur. | Pas de modèle de perte sur les liens à ce stade ; la phase 5 (débit, liens) pourra en ajouter un. |
+| 12 nov | HTTP/1.1 avec connexion persistante : deux requêtes sur une connexion (200 puis 404). Pas de HTTPS. | Montrer DNS + TCP + HTTP et l'intérêt de garder la connexion ouverte. |
 | 12 nov | Le bouton « Installer » est visible tant que l'application n'est pas installée. Sans invite du navigateur, le clic explique comment installer. | « Message clair si l'installation est indisponible » sans encombrer l'en-tête. |
 
 ## Journal des phases
@@ -228,3 +231,17 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 - Vérifié dans Chrome 157 piloté : 7 scénarios dans la liste ; DHCP joué jusqu'au bout (14,9 s
   simulées), DNS et UDP en lecture ; console vide.
 - Pour 4d : couleurs des paquets par protocole (aujourd'hui bleu ou jaune pour la diffusion).
+
+### Phase 4c — TCP et HTTP (12 novembre)
+
+- Tests : 314 tests, 314 réussis, 0 « à faire », 0 échec : chaque protocole a ses tests.
+- Protocoles : `protocols/tcp.js` (connexion réutilisable : `connect`, `handleTcp`, `conn.send`,
+  `conn.close`, `tcpFields`), `protocols/http.js` (`parseUrl`, `respond`, DNS + TCP + GET).
+- Pile : `devices/host.js` répond RST à un SYN vers un port TCP fermé ; `scenario.js` valide `pages`.
+- Scénarios : `tcp.json` (perte et retransmission, RST), `http.json` (même réseau que DNS, page « / »
+  et 404) ; `index.json` (9 scénarios).
+- Tests : `tests/tcp.test.js`, `tests/http.test.js` (les « à faire » remplacés), `host.test.js`,
+  `scenario.test.js`, `mock.test.js` complétés.
+- Docs : `contrats.md` (champ `pages`, API TCP, étapes standard TCP et HTTP).
+- Vérifié dans Chrome 157 piloté : 9 scénarios ; TCP (14,6 s) et HTTP (22,7 s) joués jusqu'au bout ;
+  console vide.

@@ -1,6 +1,194 @@
 {
+  "schema": 1,
+  "id": "tcp",
+  "title": "TCP : une connexion fiable",
   "protocol": "tcp",
-  "devices": [],
-  "links": [],
-  "steps": []
+  "description": "TCP garantit que les données arrivent toutes, dans l'ordre. PC 1 ouvre une connexion vers le service de sauvegarde d'un serveur (port TCP 9000, service fictif), envoie un fichier de 3000 octets en trois segments, dont un se perd en route, puis ferme la connexion. Pour finir, il tente une connexion vers un port fermé.",
+  "params": {
+    "client": "pc1",
+    "server": "srv1",
+    "port": 9000,
+    "size": 3000,
+    "fileName": "rapport.txt",
+    "loseSegment": 2,
+    "rto": 4000,
+    "closedPort": 9001
+  },
+  "devices": [
+    {
+      "id": "pc1",
+      "type": "host",
+      "label": "PC 1",
+      "position": [
+        -4,
+        0,
+        0
+      ],
+      "gateway": "192.168.1.1",
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:10",
+          "ip": "192.168.1.10/24"
+        }
+      ]
+    },
+    {
+      "id": "sw1",
+      "type": "switch",
+      "label": "Switch",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        }
+      ]
+    },
+    {
+      "id": "srv1",
+      "type": "server",
+      "label": "Serveur de sauvegarde",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "gateway": "192.168.1.1",
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:60",
+          "ip": "192.168.1.60/24"
+        }
+      ],
+      "services": [
+        {
+          "name": "sauvegarde",
+          "transport": "tcp",
+          "port": 9000
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": "l1",
+      "a": "pc1:eth0",
+      "b": "sw1:p1"
+    },
+    {
+      "id": "l2",
+      "a": "sw1:p2",
+      "b": "srv1:eth0"
+    }
+  ],
+  "steps": [
+    {
+      "id": "tcp-start",
+      "title": "Une connexion avant tout",
+      "text": "PC 1 veut envoyer rapport.txt (3000 octets) au service de sauvegarde, port TCP 9000. Contrairement à UDP, TCP ouvre d'abord une connexion : les deux côtés se mettent d'accord sur leurs numéros de séquence."
+    },
+    {
+      "id": "tcp-syn",
+      "title": "SYN",
+      "text": "PC 1 envoie un segment SYN avec son numéro de séquence initial : 1000 (tiré au hasard en réalité). Il vient du port éphémère 49152 et vise le port 9000. (La requête ARP qui précède sert à trouver la MAC du serveur.)"
+    },
+    {
+      "id": "tcp-syn-ack",
+      "title": "SYN-ACK",
+      "text": "Le serveur accepte : son segment porte SYN (son propre numéro initial, 5000) et ACK 1001, c'est-à-dire « j'ai reçu jusqu'à 1000, j'attends l'octet 1001 »."
+    },
+    {
+      "id": "tcp-established",
+      "title": "ACK : connexion établie",
+      "text": "PC 1 acquitte le SYN du serveur (ACK 5001). C'est la poignée de main en trois temps : SYN, SYN-ACK, ACK. La connexion est établie dans les deux sens."
+    },
+    {
+      "id": "tcp-data-1",
+      "title": "Premier segment",
+      "text": "Le fichier est découpé en segments d'au plus 1000 octets (MSS). Le premier porte les octets 1001 à 2000 : numéro de séquence 1001, longueur 1000."
+    },
+    {
+      "id": "tcp-lost-2",
+      "title": "Un segment se perd",
+      "text": "Le deuxième segment (séquence 2001) est perdu sur le câble (perte simulée). PC 1 ne le sait pas encore : il continue d'envoyer, sans attendre, dans la limite de la fenêtre."
+    },
+    {
+      "id": "tcp-data-3",
+      "title": "Troisième segment",
+      "text": "Le troisième segment (séquence 3001) part. Il porte l'indicateur PSH : c'est la fin des données à remettre au service."
+    },
+    {
+      "id": "tcp-ack",
+      "title": "Acquittement cumulatif",
+      "text": "Le serveur a reçu les octets 1001 à 2000 en ordre : il répond ACK 2001, « j'attends l'octet 2001 ». Un acquittement couvre tout ce qui précède."
+    },
+    {
+      "id": "tcp-out-of-order",
+      "title": "Arrivé dans le désordre",
+      "text": "Le segment 3001 arrive alors que le serveur attend 2001. Il le garde de côté et répète ACK 2001 : il signale ainsi un trou dans les données."
+    },
+    {
+      "id": "tcp-dup-ack",
+      "title": "ACK dupliqué",
+      "text": "PC 1 reçoit pour la deuxième fois ACK 2001 : un indice de perte. (Après trois ACK dupliqués, TCP renvoie aussitôt le segment manquant : retransmission rapide.)"
+    },
+    {
+      "id": "tcp-retransmit",
+      "title": "Retransmission",
+      "text": "Le délai de retransmission (RTO) expire sans acquittement de l'octet 2001 : PC 1 renvoie seulement le plus ancien segment non acquitté, la séquence 2001."
+    },
+    {
+      "id": "tcp-delivered",
+      "title": "Fichier complet",
+      "text": "Le serveur reçoit enfin les octets 2001 à 3000. Avec le segment gardé de côté, les 3000 octets sont complets et dans l'ordre : il les remet au service de sauvegarde."
+    },
+    {
+      "id": "tcp-cumulative-ack",
+      "title": "Un seul ACK pour deux segments",
+      "text": "Le serveur répond ACK 4001 : cet acquittement couvre d'un coup le segment retransmis et celui reçu en avance. PC 1 n'a rien d'autre à renvoyer."
+    },
+    {
+      "id": "tcp-fin",
+      "title": "FIN",
+      "text": "Tout est acquitté : PC 1 ferme la connexion par un segment FIN (« je n'ai plus rien à envoyer »)."
+    },
+    {
+      "id": "tcp-fin-ack",
+      "title": "FIN du serveur",
+      "text": "Le serveur acquitte le FIN et ferme aussi son côté (FIN + ACK dans le même segment)."
+    },
+    {
+      "id": "tcp-last-ack",
+      "title": "Dernier ACK",
+      "text": "PC 1 acquitte le FIN du serveur : la connexion est fermée des deux côtés. (En réalité PC 1 attend encore un peu, état TIME_WAIT, au cas où ce dernier ACK se perdrait.)"
+    },
+    {
+      "id": "tcp-connect-closed",
+      "title": "Vers un port fermé",
+      "text": "PC 1 tente maintenant une connexion vers le port 9001 du serveur, où rien n'écoute."
+    },
+    {
+      "id": "tcp-port-closed",
+      "title": "Port fermé",
+      "text": "Aucun service sur le port 9001 : le serveur refuse le SYN."
+    },
+    {
+      "id": "tcp-refused",
+      "title": "RST : connexion refusée",
+      "text": "Le serveur répond par un segment RST. PC 1 abandonne aussitôt : le programme affiche « connexion refusée »."
+    },
+    {
+      "id": "tcp-summary",
+      "title": "Bilan",
+      "text": "3000 octets livrés complets et dans l'ordre malgré une perte, grâce aux numéros de séquence, aux acquittements et à la retransmission. Le prix : une connexion à ouvrir et à fermer, et un aller-retour d'attente avant d'envoyer les données."
+    }
+  ]
 }

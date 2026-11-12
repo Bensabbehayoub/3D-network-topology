@@ -139,6 +139,15 @@ export function validateScenario(scenario) {
           if (record?.ttl !== undefined && !(Number.isInteger(record.ttl) && record.ttl >= 0)) error(`${at}.ttl : entier ≥ 0 attendu (secondes)`);
         });
       }
+      if (device.pages !== undefined) {
+        if (!Array.isArray(device.pages)) error(`${name}.pages : tableau attendu`);
+        else device.pages.forEach((page, k) => {
+          const at = `${name}.pages[${k}]`;
+          if (!page || typeof page.path !== 'string' || !page.path.startsWith('/')) error(`${at}.path : chemin commençant par / attendu`);
+          if (!page || !Number.isInteger(page.size) || page.size < 0) error(`${at}.size : taille en octets attendue`);
+          if (page?.status !== undefined && !Number.isInteger(page.status)) error(`${at}.status : code HTTP attendu`);
+        });
+      }
       if (device.dhcp !== undefined) {
         const dhcp = device.dhcp;
         const at = `${name}.dhcp`;

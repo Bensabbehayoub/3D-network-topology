@@ -58,6 +58,16 @@ test('services, DNS, enregistrements et DHCP : formats vérifiés (phase 4b)', (
   }
 });
 
+test("pages d'un serveur web : chemin, taille, code (phase 4c)", () => {
+  const scenario = copy(DEMO_SCENARIO);
+  const server = scenario.devices.find((d) => d.id === 'pc2');
+  server.pages = [{ path: '/', size: 2400, status: 200, type: 'text/html' }];
+  assert.deepEqual(validateScenario(scenario).errors, []);
+  server.pages = [{ path: 'index.html', size: -1, status: 'ok' }];
+  const errors = validateScenario(scenario).errors;
+  for (const field of ['pages[0].path', 'pages[0].size', 'pages[0].status']) assert.ok(errors.some((m) => m.includes(field)), field);
+});
+
 test('le scénario de démonstration du mock respecte le format', () => {
   assert.deepEqual(validateScenario(DEMO_SCENARIO).errors, []);
 });

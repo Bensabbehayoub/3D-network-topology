@@ -62,6 +62,7 @@ Un fichier `scenarios/<protocole>.json` par scénario. Il contient **sa** topolo
 - `dns` (facultatif, hôtes) : adresse du serveur DNS, ex. `"192.168.2.53"`.
 - `records` (facultatif, serveur DNS) : enregistrements `[{ "name": "www.ecole.test", "type": "A", "value": "192.168.2.80", "ttl": 300 }]`. Noms fictifs en `.test` (domaine réservé aux essais).
 - `dhcp` (facultatif, serveur DHCP) : `{ "start": "192.168.1.100", "end": "192.168.1.110", "prefix": 24, "gateway": "192.168.1.1", "dns": "…", "lease": 86400 }`. Un client DHCP a une interface **sans** `ip`.
+- `pages` (facultatif, serveur web) : `[{ "path": "/", "status": 200, "type": "text/html", "size": 2400, "title": "Accueil" }]`. Un chemin absent donne une réponse 404 (phase 4c).
 - D'autres champs propres à un protocole sont permis : le validateur les ignore, le protocole les lit.
 
 ### Lien
@@ -83,7 +84,7 @@ Le protocole affiche une étape avec `ctx.explain('arp-request')` et y rattache 
 
 ### Liste des scénarios proposés
 
-`scenarios/index.json` liste, dans l'ordre d'affichage, les identifiants des scénarios terminés : `{ "scenarios": ["arp", "ping", "routage", "ttl", "udp", "dns", "dhcp"] }`. Chaque id correspond au fichier `scenarios/<id>.json`, dont le champ `id` doit être identique. Un fichier absent de la liste est une ébauche : il n'est pas proposé dans l'application. Un scénario invalide est écarté au chargement, avec son erreur dans la console, sans bloquer les autres.
+`scenarios/index.json` liste, dans l'ordre d'affichage, les identifiants des scénarios terminés : `{ "scenarios": ["arp", "ping", "routage", "ttl", "udp", "dns", "dhcp", "tcp", "http"] }`. Chaque id correspond au fichier `scenarios/<id>.json`, dont le champ `id` doit être identique. Un fichier absent de la liste est une ébauche : il n'est pas proposé dans l'application. Un scénario invalide est écarté au chargement, avec son erreur dans la console, sans bloquer les autres.
 
 ### Vérifier son scénario
 
@@ -215,14 +216,15 @@ Aucun registre à modifier : le moteur charge le fichier d'après le champ `prot
 - `describe(packet)` renvoie un tableau `{ layer, field, value }` de chaînes. L'inspecteur l'affiche sans connaître le protocole, avec `app.sim.describe(packet)`, qui choisit le bon protocole d'après `packet.protocol`.
 - Comportements d'équipements (phase 4, `src/sim/devices/`) : `switch.js`, `host.js` (aussi pour `server`) et `router.js` sont appelés **avant** le protocole à chaque réception. S'ils renvoient `true`, le paquet est traité et le protocole n'est pas appelé. Ils traitent tout ce qui ne dépend pas du scénario :
   - **switch** : table MAC apprise, inondation (diffusion ou MAC inconnue), transmission par le seul bon port, filtrage ; renvoie toujours `true` ;
-  - **hôte / serveur** : ignore les trames pour une autre MAC ; ARP ; rejette un paquet IP pour une autre adresse (sauf la diffusion `255.255.255.255`) ; rejette UDP/TCP vers un port fermé (ICMP « port inaccessible » en UDP, rien pour une diffusion) ; répond aux pings ; laisse le reste au protocole ;
+  - **hôte / serveur** : ignore les trames pour une autre MAC ; ARP ; rejette un paquet IP pour une autre adresse (sauf la diffusion `255.255.255.255`) ; rejette UDP/TCP vers un port fermé (ICMP « port inaccessible » en UDP, segment RST en TCP, rien pour une diffusion) ; répond aux pings ; laisse le reste au protocole ;
   - **routeur** : ARP pour l'adresse de l'interface interrogée ; répond aux pings qui lui sont adressés ; ne fait jamais suivre une diffusion `255.255.255.255` ; fait suivre les autres paquets (TTL − 1, route la plus précise, ARP du saut suivant) ; à TTL 0 ou sans route, perte et erreur ICMP (`time-exceeded`, `unreachable`) renvoyée à l'émetteur.
 - **Pile commune** (`src/sim/stack.js`, `src/sim/net.js`) à utiliser par les protocoles :
   - `sendIp(ctx, deviceId, { protocol, type, ip: { dst, src?, ttl? }, transport?, data? }, { step?, interface? })` route le paquet, fait l'ARP si besoin, puis l'émet ; vers `255.255.255.255` (diffusion limitée), ni route ni ARP : trame de diffusion sur le réseau local ;
   - `sendUdp(ctx, deviceId, { protocol, type, dst, dstPort, srcPort?, src?, data? }, options)` ouvre le port source (éphémère à partir de 49152 si absent) puis envoie ; `protocol` est le protocole applicatif (`dns`, `dhcp`…) ;
   - `runtimeDevice(ctx, device)` : l'équipement avec la configuration obtenue pendant l'exécution ; `configureDevice(ctx, id, { interface, ip, gateway?, dns? })` l'applique (DHCP). Le scénario n'est jamais modifié ;
   - `isPortOpen`, `openPort`, `resolveMac`, `explainOnce(ctx, [ids])`, `lookupRoute(device, ip)`, `routingTable(device)`, `primaryIp(device)` ;
-  - DNS pour les autres protocoles : `resolveName(ctx, deviceId, name, { onResolved(ip, { cached }), onFailed(reason) })` et `handleDns(ctx, device, packet)` dans `protocols/dns.js`.
+  - DNS pour les autres protocoles : `resolveName(ctx, deviceId, name, { onResolved(ip, { cached }), onFailed(reason) })` et `handleDns(ctx, device, packet)` dans `protocols/dns.js` ;
+  - TCP pour les autres protocoles (`protocols/tcp.js`) : `connect(ctx, clientId, { dstIp, dstPort, protocol?, onEstablished(conn), onMessage(conn, msg), onClosed(conn), onFailed(reason) })` ; `handleTcp(ctx, device, packet, listener)` à appeler depuis `onReceive`, avec `listener = { protocol?, onAccept?, onMessage?, onClosed? }` pour un serveur ; `conn.send({ size, … }, { protocol, type, step? })` découpe le message en segments de 1000 octets (MSS) ; `conn.close()` ferme une fois tout acquitté. Segments : `transport = { protocol: 'tcp', src, dst, flags, seq, ack, window }`, `data = { length, part, parts, message }`. Simplifications : numéros initiaux fixes (1000 client, 5000 serveur), une seule temporisation de retransmission par connexion (RTO, `params.rto`), pas de contrôle de congestion ni de TIME_WAIT. Perte simulée : `params.loseSegment` (numéro du segment de données de `params.loseFrom`, client par défaut).
 
 ### Étapes standard
 
@@ -242,6 +244,8 @@ La pile et les équipements annoncent chaque action par une liste d'identifiants
 | `udp-port-closed[-<eq>]`, `tcp-port-closed[-<eq>]` | port fermé sur le destinataire (pile) |
 | `udp-start`, `udp-send[-<n>]`, `udp-send-closed`, `udp-delivered[-<n>]`, `udp-icmp-received`, `udp-summary` | scénario UDP |
 | `dns-start`, `dns-query[-<n>]`, `dns-answer[-<eq>]`, `dns-answer-nxdomain[-<eq>]`, `dns-response[-<n>]`, `dns-cache-hit[-<n>]`, `dns-nxdomain[-<n>]`, `dns-timeout[-<n>]`, `dns-no-server`, `dns-summary` | DNS |
+| `tcp-start`, `tcp-syn[-<eq>]`, `tcp-syn-ack[-<eq>]`, `tcp-established[-<eq>]`, `tcp-accepted[-<eq>]`, `tcp-data[-<n>]` ou `tcp-data-<client\|server>-<n>`, `tcp-lost[-<n>]`, `tcp-ack[-<eq>]`, `tcp-out-of-order[-<eq>]`, `tcp-dup-ack[-<eq>]`, `tcp-retransmit[-<n>]`, `tcp-cumulative-ack[-<eq>]`, `tcp-delivered[-<eq>]`, `tcp-fin[-<eq>]`, `tcp-fin-ack[-<eq>]`, `tcp-last-ack[-<eq>]`, `tcp-closed[-<eq>]`, `tcp-rst[-<eq>]`, `tcp-connect-closed`, `tcp-refused`, `tcp-failed`, `tcp-summary` | TCP (`<n>` : numéro du segment de données) |
+| `http-start`, `http-dns`, `http-dns-done`, `http-dns-failed`, `http-connect`, `http-request[-<n>]`, `http-response[-<code>]`, `http-received[-<n>]`, `http-not-found[-<n>]`, `http-close`, `http-failed`, `http-summary` | HTTP (`<n>` : rang de l'URL) |
 | `dhcp-start`, `dhcp-discover[-<eq>]`, `dhcp-offer[-<eq>]`, `dhcp-request[-<eq>]`, `dhcp-ack[-<eq>]`, `dhcp-configured[-<eq>]`, `dhcp-verify[-<eq>]`, `dhcp-verified[-<eq>]`, `dhcp-pool-empty`, `dhcp-summary` | DHCP |
 - Chaque protocole a un test de sa séquence de messages (définition de « terminé »). Le test `tests/protocol.test.js` vérifie automatiquement que chaque fichier respecte l'interface.
 

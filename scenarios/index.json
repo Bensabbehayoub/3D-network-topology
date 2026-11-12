@@ -6,6 +6,8 @@
     "ttl",
     "udp",
     "dns",
-    "dhcp"
+    "dhcp",
+    "tcp",
+    "http"
   ]
 }

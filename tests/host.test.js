@@ -64,3 +64,15 @@ test('ping reçu : réponse d\'écho par la pile ; réponse d\'écho reçue : la
   const reply = frame({ type: 'echo-reply', eth: { src: PC1, dst: PC2 }, ip: { src: '192.168.1.10', dst: '192.168.1.20', ttl: 64 } });
   assert.equal(host.onReceive(pc2, reply, ctx, { interface: 'eth0' }), false);
 });
+
+test('TCP vers un port fermé : perte et RST (jamais en réponse à un RST)', () => {
+  const { ctx, sent, dropped } = fakeCtx(LAN);
+  arpCache(ctx, 'pc2').set('192.168.1.10', PC1);
+  const syn = frame({ protocol: 'tcp', type: 'syn', eth: { src: PC1, dst: PC2 }, ip: { src: '192.168.1.10', dst: '192.168.1.20', ttl: 64 },
+    transport: { protocol: 'tcp', src: 49152, dst: 22, flags: ['SYN'], seq: 1000, ack: 0 }, data: { length: 0 } });
+  assert.equal(host.onReceive(pc2, syn, ctx, { interface: 'eth0' }), true);
+  assert.deepEqual(dropped.map((d) => d.reason), ['port TCP 22 fermé']);
+  assert.deepEqual(sent[0].packet.transport, { protocol: 'tcp', src: 22, dst: 49152, flags: ['RST', 'ACK'], seq: 0, ack: 1001, window: 0 });
+  host.onReceive(pc2, { ...syn, transport: { ...syn.transport, flags: ['RST'] } }, ctx, { interface: 'eth0' });
+  assert.equal(sent.length, 1);
+});
