@@ -46,6 +46,10 @@ export async function init(app = {}) {
     show(FALLBACK_TOPOLOGY);
   }
 
+  // Boucle d'animation unique : chaque image du rendu fait avancer l'horloge de la simulation,
+  // en mode classique comme en session VR (où le requestAnimationFrame de la fenêtre est suspendu).
+  if (typeof sim?.tick === 'function') handle.onFrame(({ delta }) => sim.tick(delta));
+
   const { mountPacketAnimator } = await import('./packetAnimator.js');
   mountPacketAnimator({ sim: app.sim, render: handle });
 

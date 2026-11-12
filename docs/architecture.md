@@ -114,8 +114,10 @@ sequenceDiagram
 
 - `src/xr/session.js` détecte la WebXR Device API (`navigator.xr`), teste `isSessionSupported('immersive-vr')` et `'immersive-ar'`, et détecte aussi WebGL 2 et WebGPU. Le résultat s'affiche dans `#xr-slot` : **« WebXR détectée »** (point vert si la VR est disponible, orange sinon) ou **« WebXR non détectée »** (point rouge, mode 2D), avec le détail au clic.
 - Le bouton **Entrer en VR** ouvre une session `immersive-vr` (`local-floor` facultatif) et la confie au rendu par `app.render.startXR(session)`.
-- `src/render/scene.js` active `renderer.xr`, utilise `renderer.setAnimationLoop` (la seule boucle qui continue en VR) et, pendant la session, réduit la topologie et la place devant l'utilisateur, à hauteur de table.
-- Les panneaux HTML disparaissent en VR : un panneau de commandes en 3D (`vrPanel.js`) arrive en S4, et la sélection à la manette (`controllers.js`) en S5.
+- `src/render/scene.js` active `renderer.xr` et pilote tout par une **boucle d'animation unique**, `renderer.setAnimationLoop((time, xrFrame) => …)` : rendu, horloge de la simulation (`app.sim.tick(delta)`) et abonnés `onFrame`. C'est la seule boucle qui continue en VR, où le `requestAnimationFrame` de la fenêtre est suspendu.
+- Pendant la session, la topologie devient une maquette d'environ 1,5 m posée devant l'utilisateur (`src/render/vrLayout.js`). Sa hauteur vient de la pose du casque, lue dans le `XRFrame` (`getViewerPose(espace de référence)`).
+- Les panneaux HTML disparaissent en VR. `src/xr/vrRig.js` crée à l'entrée, et détruit à la sortie, trois panneaux 3D dessinés sur des canvas : commandes (`vrPanel.js`, mêmes règles que la barre HTML), fiche de l'équipement sélectionné et explication de l'étape (`infoPanels.js`).
+- `src/xr/controllers.js` lit à chaque image la pose de visée de chaque manette (`xrFrame.getPose(inputSource.targetRaySpace, espace de référence)`), trace le rayon jusqu'à sa cible, et sur l'évènement `select` (gâchette) presse le bouton visé ou sélectionne l'équipement visé (`app.render.pickDeviceHit`, puis `app.ui.select(id)`).
 
 ## 7. Tests
 

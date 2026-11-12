@@ -374,3 +374,46 @@ test('changer de vitesse pendant la lecture ne change pas la séquence', async (
   while (sim.getState().status === STATUS.PLAYING) scheduler.frame(16);
   assert.deepEqual(record.network, FULL_RUN);
 });
+
+// --- Horloge externe : tick() appelé par la boucle de rendu (seule boucle active en VR) ---
+
+test('tick() fait avancer la lecture comme une image, et donne la même séquence que le pas à pas', async () => {
+  const { sim, scheduler, record } = await setup();
+  assert.equal(sim.tick(50), true);
+  assert.equal(sim.getState().time, 0, 'sans effet hors lecture');
+
+  sim.play();
+  sim.tick(50);
+  assert.equal(sim.getState().time, 50);
+  sim.setSpeed(2);
+  sim.tick(40); // 80 ms simulées
+  assert.equal(sim.getState().time, 130);
+  sim.tick(60);
+  assert.equal(sim.getState().status, 'finished');
+  assert.deepEqual(record.network, FULL_RUN);
+  assert.equal(scheduler.running, false);
+});
+
+test('tick() : durée invalide refusée, long gel borné à MAX_FRAME_DELTA', async () => {
+  const { sim } = await setup();
+  sim.play();
+  for (const bad of [Number.NaN, -5, Infinity, undefined, '16']) assert.equal(sim.tick(bad), false);
+  assert.equal(sim.getState().time, 0);
+  sim.tick(5000); // onglet resté en arrière-plan : on ne rattrape pas 5 s d'un coup
+  assert.equal(sim.getState().time, 100);
+});
+
+test('tant que tick() est appelé, l\'horloge interne est ignorée : jamais deux avances pour une image', async () => {
+  const { sim, scheduler } = await setup();
+  sim.play();
+  sim.tick(20);
+  scheduler.frame(20); // image de la fenêtre arrivée juste après celle du rendu
+  assert.equal(sim.getState().time, 20);
+});
+
+test('sans tick() externe, l\'horloge interne garde le relais', async () => {
+  const { sim, scheduler } = await setup();
+  sim.play();
+  scheduler.frame(30);
+  assert.equal(sim.getState().time, 30);
+});

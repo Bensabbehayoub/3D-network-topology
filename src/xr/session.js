@@ -97,8 +97,10 @@ export function capabilityRows(caps) {
  * @param {HTMLElement} container élément #xr-slot
  * @param {object} app objet partagé (app.render.startXR est utilisé pour afficher la scène en VR)
  * @param {object} [env] globalThis par défaut
+ * @param {{ onSessionStart?: (session: object) => void, onSessionEnd?: () => void }} [hooks]
+ *   appelés quand la scène est affichée dans le casque, puis à la fin de la session (interface VR)
  */
-export async function mount(container, app, env = globalThis) {
+export async function mount(container, app, env = globalThis, hooks = {}) {
   const doc = container.ownerDocument;
   let caps = await detectCapabilities(env);
   let session = null;
@@ -165,13 +167,23 @@ export async function mount(container, app, env = globalThis) {
       session = await env.navigator.xr.requestSession('immersive-vr', SESSION_OPTIONS);
       session.addEventListener('end', () => {
         session = null;
+        // Sortie par le bouton, par le casque ou par l'émulateur : on démonte l'interface VR.
+        try {
+          hooks.onSessionEnd?.();
+        } catch (error) {
+          console.error('Interface VR non démontée :', error);
+        }
         render();
       });
       render();
       await app.render.startXR(session);
+      if (session) hooks.onSessionStart?.(session);
     } catch (error) {
       console.error('Session VR non ouverte :', error);
+      // Session ouverte mais affichage impossible : on la referme pour revenir proprement en 2D.
+      const opened = session;
       session = null;
+      opened?.end?.().catch?.(() => {});
       render();
     }
   }

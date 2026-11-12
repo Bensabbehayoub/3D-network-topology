@@ -10,6 +10,7 @@ Ce document décrit ce que le moteur attend des autres et ce qu'il leur fournit 
 4. [API de commandes et états](#4-api-de-commandes-et-états) : Ramy (`controls.js`), Ayoub (`vrPanel.js`)
 5. [Faux moteur](#5-faux-moteur-mock) : tout le monde, dès maintenant
 6. [API du pôle ui](#6-api-du-pôle-ui-appui) : Ayoub (sélection en VR)
+7. [API du pôle render](#7-api-du-pôle-render-apprender-utilisée-par-les-autres-pôles) : ui et xr
 
 Tout s'importe depuis la façade `simulation.js` à la racine :
 
@@ -222,6 +223,7 @@ sim.describe(packet);        // lignes de l'inspecteur
 sim.getHistory();            // évènements réseau depuis la dernière réinitialisation (S2)
 sim.getPacketsInFlight();    // [{ event, progress }] : paquets sur les liens maintenant (S2)
 sim.on(TOPICS.STATE, (state) => { /* rafraîchir les boutons */ });
+sim.tick(deltaMs);           // avance la lecture d'une image, depuis la boucle de rendu (voir ci-dessous)
 ```
 
 Une commande non permise renvoie `false` sans exception : un clic au mauvais moment ne casse rien.
@@ -238,6 +240,7 @@ Une commande non permise renvoie `false` sans exception : un clic au mauvais mom
 
 - **Pas à pas** saute au prochain instant où il se passe quelque chose et joue tout ce qui s'y passe (par exemple une réception et le renvoi qui suit). Il mène à `paused`, ou à `finished` s'il ne reste rien.
 - **Lecture** : à chaque image, l'horloge simulée avance de *durée réelle de l'image × vitesse*. Le moteur ne dépend pas du nombre d'images par seconde.
+- **Source du temps réel** : la boucle de rendu (`renderer.setAnimationLoop`) appelle `sim.tick(deltaMs)` à chaque image, en mode classique comme en session VR. C'est nécessaire en VR, où le `requestAnimationFrame` de la fenêtre est suspendu. Une durée supérieure à `MAX_FRAME_DELTA` (100 ms) est bornée. Si personne n'appelle `tick()` pendant `EXTERNAL_TICK_TIMEOUT` (250 ms) — rendu en panne, tests sous Node — l'horloge interne du moteur prend le relais : le temps n'avance jamais deux fois pour la même image.
 - **Réinitialiser** vide tout et rejoue le scénario depuis t = 0 : même séquence, à l'identique.
 - Si un protocole lève une erreur, la lecture passe en `paused` et `getState().error` contient le message ; l'application continue de fonctionner.
 
@@ -270,6 +273,22 @@ Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle x
 | `onChange(listener)` → désabonnement | `listener(id, précédent)` à chaque changement de sélection |
 | `modules` | API de chaque module monté : `scenarioPicker`, `controls`, `inspector`, `explanations`, `install` |
 | `modules.install` | `getView()` → `{ showButton, buttonTitle, offline, message }`, `install()` → `'accepted' \| 'dismissed' \| 'failed' \| 'unavailable'` |
+
+## 7. API du pôle render (`app.render`) utilisée par les autres pôles
+
+| Membre | Rôle |
+| --- | --- |
+| `loadTopology(scénario)` | construit la scène à partir d'un scénario |
+| `getDevice(id)`, `listDevices()` | équipements affichés (forme simplifiée : `id`, `type`, `label`, `ip`, `mac`, `position`) |
+| `highlightDevice(id, mode)` | `'selected'`, `'active'`, `'error'` ou `'normal'` |
+| `pickDevice(origin, direction)` → id ou `null` | lancer de rayon en coordonnées monde |
+| `pickDeviceHit(origin, direction, { tolerance })` → `{ id, point, distance }` ou `null` | idem, avec le point visé. `tolerance` (unités de la topologie) accepte un équipement ou une étiquette proche du rayon : visée à la manette |
+| `onFrame(listener)` → désabonnement | `listener({ time, delta, xrFrame, referenceSpace, presenting })` à chaque image de la boucle d'animation unique ; `xrFrame` et `referenceSpace` valent `null` hors session VR |
+| `startXR(session)`, `isPresenting()` | affichage dans une session WebXR ouverte par le pôle xr |
+| `getVRAnchor()` → `{ x, y, z, width, depth }` ou `null` | centre et taille (m) de la maquette pendant une session VR ; les panneaux VR s'y accrochent |
+| `scene`, `world`, `camera`, `renderer` | objets Three.js : `scene` est dans l'espace de référence WebXR (mètres), `world` porte la topologie mise à l'échelle |
+
+Sur `#scene`, le rendu émet `topology:device-selected` (`detail: { id, device }`) à chaque clic ou toucher sur un équipement.
 
 ## Tests
 

@@ -7,7 +7,7 @@
 
 export { TOPICS, EVENT_TYPES, BROADCAST_MAC, createBus, createEvent, isBroadcast } from './src/sim/events.js';
 export { STATUS, COMMANDS, isAllowed, nextStatus, allowedCommands } from './src/sim/state.js';
-export { createSimulation, MIN_SPEED, MAX_SPEED } from './src/sim/commands.js';
+export { createSimulation, MIN_SPEED, MAX_SPEED, MAX_FRAME_DELTA, EXTERNAL_TICK_TIMEOUT } from './src/sim/commands.js';
 export { createMockSimulation, DEMO_SCENARIO, DEMO_PROTOCOL } from './src/sim/mock.js';
 export { createEngine } from './src/sim/engine.js';
 export { checkProtocol, loadProtocol, describeHeaders } from './src/sim/protocol.js';
