@@ -43,8 +43,8 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 | 2 | Three.js r187, rendu 100 % WebGPU (mode classique et VR), boucle d'animation WebXR unique | ✅ Terminé et commité (`ac653fc`) ; testé par Ramy avec l'extension Immersive Web Emulator 2.0 |
 | 3 | Session immersive complète (panneau VR, manettes, fiches en VR) | ✅ Terminé (12 nov), à commiter par Ramy |
 | 4 | Moteur réel, équipements et protocoles | ✅ Terminé en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (commité, `1151dfd`) UDP, DNS, DHCP ; **4c ✅** (commité, `eaa4efc`) TCP, HTTP ; **4d ✅** (commité, `cafa1d3`) inspecteur de paquets, journal, explications en 2D, couleurs par protocole |
-| 5 | Caractéristiques des équipements, débit et bande passante | ✅ Terminé (12 nov), à commiter par Ramy |
-| 6 | Diagnostic et recommandations | À faire |
+| 5 | Caractéristiques des équipements, débit et bande passante | ✅ Terminé et commité (`81637a4`) |
+| 6 | Diagnostic et recommandations | ✅ Terminé (13 nov), à commiter par Ramy ; recommandations aussi en VR (demande de Ramy) |
 | 7 | Éditeur de topologie et choix du protocole | À faire |
 | 8 | CI/CD et TLS | À faire |
 | 9 | Documentation et finition | À faire |
@@ -91,6 +91,12 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 12 nov | Perte simulée sur le câble (option `lost` de `ctx.send`) : la trame part puis disparaît à mi-chemin. | Avec la file d'attente, l'ancienne perte « avant le départ » apparaissait avant le segment précédent. |
 | 12 nov | Catalogue générique (`src/sim/catalog.js`) : 8 modèles fictifs aux valeurs réalistes (capacité de commutation = somme des ports × 2, débit de transfert en paquets de 64 octets). | Règle « pas de produits réels ». |
 | 12 nov | Bande passante globale d'un équipement = somme des vitesses des ports reliés × 2 (duplex) ; débit global = émis + reçu. | Définition simple, cohérente avec la capacité de commutation des fiches constructeur. |
+| 13 nov | Gravités : critique (le réseau ne fonctionne pas comme prévu), avertissement (dégradé ou risqué), conseil (bonne pratique, ex. point de défaillance unique). La pastille de l'onglet ne compte pas les conseils. | Ne pas noyer les vrais problèmes sous les conseils. |
+| 13 nov | « Passerelle introuvable » critique seulement s'il existe d'autres réseaux ; sinon conseil. Passerelles inutiles retirées des scénarios à un seul réseau (arp, udp, tcp, debit). | Sans routeur ni autre réseau, la passerelle ne sert à rien : ce n'était pas une vraie panne. |
+| 13 nov | Point de défaillance unique : équipements d'infrastructure dont la panne coupe des hôtes ; un lien n'est signalé que si aucun de ses deux bouts ne l'est déjà. | Éviter les doublons. |
+| 13 nov | Goulot structurel : lien d'un switch vers un serveur, un routeur ou un switch plus lent que le plus rapide de ses autres liens. Goulot mesuré : utilisation > 80 %. | Règle du cahier des charges ; un lien d'accès de poste n'est jamais un goulot pour les autres. |
+| 13 nov | Boucle de commutation détectée (diagnostic critique) mais pas simulée : à traiter en phase 7, quand l'éditeur pourra en créer une (bloquer la lecture ou limiter la tempête). | Aucun scénario fourni n'a de boucle ; une tempête de diffusion ferait tourner le moteur sans fin. |
+| 13 nov | Recommandations aussi en VR : panneau au-dessus de la maquette, gâchette sur un problème = même action qu'un clic en 2D (contrôleur partagé). | Demande de Ramy. |
 | 12 nov | Le bouton « Installer » est visible tant que l'application n'est pas installée. Sans invite du navigateur, le clic explique comment installer. | « Message clair si l'installation est indisponible » sans encombrer l'en-tête. |
 
 ## Journal des phases
@@ -300,3 +306,24 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 - Vérifié dans Chrome 157 piloté (scénario Débit) : lien vers le serveur en rouge à 98 %, liens des PC
   en vert ; fiche du switch avec la vitesse négociée à 100 Mb/s (câble Cat 5), débits émis et reçus
   par port, débit global ; en VR, fiche à jour avec le port p4 en tête ; console vide.
+
+### Phase 6 — diagnostic et recommandations (13 novembre)
+
+- Tests : 359 tests, 359 réussis, 0 échec.
+- Moteur : `src/sim/diagnostics.js` (14 règles, `diagnose`, `traceRoute`, `segments`,
+  `countBySeverity`), `index.js` (`app.sim.diagnose()`, aussi pour le faux moteur), `simulation.js`.
+- Scénarios : nouveau `diagnostic.json` (passerelle hors sous-réseau, IP en double, vitesses
+  différentes, câble Cat 5 sur un lien Gigabit, route de retour manquante) ; passerelles inutiles
+  retirées de `arp`, `udp`, `tcp`, `debit` ; `index.json` (11 scénarios).
+- Interface : `index.html` (onglets « Explications | Recommandations », point de montage
+  `#recommendations`, pastille), `src/ui/tabs.js`, `src/ui/recommendations.js` (+ test : vue,
+  choix, mise à jour pendant la lecture, onglets au clavier), `index.js`, `styles.css`.
+- Rendu : `links.js` (`highlight`), `scene.js` (`highlightLink`), `mock.js`.
+- VR : `src/xr/recoPanel.js` (contrôleur partagé avec la 2D, survol et gâchette), `panelLayout.js`
+  (`RECO_PANEL`, `recoRowAt`, position au-dessus de la maquette), `vrRig.js` ; test dans `vr.test.js`.
+- Tests : `tests/diagnostics.test.js` (une faute injectée par règle, scénarios corrects sans alerte,
+  saturation mesurée pendant le scénario Débit).
+- Vérifié dans Chrome 157 piloté : scénario Diagnostic, pastille « 6 », liste triée, clic sur un
+  problème de lien (lien en jaune) et de routeur (fiche du Routeur 2) ; onglets au clavier ;
+  scénario Débit : « Lien saturé » critique apparu pendant la lecture ; en VR, gâchette sur
+  « Route manquante » → Routeur 2 sélectionné et détail affiché ; console vide.

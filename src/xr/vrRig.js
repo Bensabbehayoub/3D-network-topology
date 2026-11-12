@@ -8,6 +8,7 @@ import * as THREE from '../../vendor/three/build/three.webgpu.js';
 import { createControllers } from './controllers.js';
 import { createVrDevicePanel, createVrStepPanel } from './infoPanels.js';
 import { panelPoses } from './panelLayout.js';
+import { createVrRecoPanel } from './recoPanel.js';
 import { createVrControlPanel } from './vrPanel.js';
 
 /** Le rendu fournit-il ce qu'il faut pour l'interface VR ? */
@@ -36,6 +37,7 @@ export function createVrRig(app, session, { documentRef = globalThis.document } 
     controls: createVrControlPanel(app, { documentRef }),
     device: createVrDevicePanel(app, { documentRef }),
     step: createVrStepPanel(app, { documentRef }),
+    recommendations: createVrRecoPanel(app, { documentRef }),
   };
   for (const panel of Object.values(panels)) group.add(panel.mesh);
   const controllers = createControllers({ app, session, parent: group, panels: Object.values(panels) });

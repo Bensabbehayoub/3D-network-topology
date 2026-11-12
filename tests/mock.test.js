@@ -29,7 +29,7 @@ test('init : vrai moteur chargé avec le premier scénario de scenarios/index.js
   for (const method of ['load', 'play', 'pause', 'step', 'setSpeed', 'reset', 'getState', 'describe', 'on', 'isAllowed', 'tick', 'listScenarios', 'loadScenario']) {
     assert.equal(typeof sim[method], 'function', method);
   }
-  assert.deepEqual(sim.listScenarios().map((s) => s.id), ['arp', 'ping', 'routage', 'ttl', 'udp', 'dns', 'dhcp', 'tcp', 'http', 'debit']);
+  assert.deepEqual(sim.listScenarios().map((s) => s.id), ['arp', 'ping', 'routage', 'ttl', 'udp', 'dns', 'dhcp', 'tcp', 'http', 'debit', 'diagnostic']);
   assert.ok(sim.listScenarios().every((s) => s.title && s.protocol && typeof s.description === 'string'));
   const scenarios = [];
   sim.on(TOPICS.SCENARIO, ({ scenario }) => scenarios.push(scenario.id));

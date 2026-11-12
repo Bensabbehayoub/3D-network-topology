@@ -17,6 +17,9 @@ export function createLinkLayer(links,devices,{color=0x70b7df}={}){
  const group=new THREE.Group();group.name='Network links';const material=new THREE.LineBasicMaterial({color,transparent:true,opacity:.86});
  // Phase 5 : un matériau par niveau de charge (vert, orange, rouge), partagé par tous les liens.
  const loadMaterials=Object.fromEntries(['low','medium','high'].map(level=>[level,new THREE.LineBasicMaterial({color:colorNumber(LOAD_COLORS[level]),transparent:true,opacity:.95})]));
+ // Phase 6 : lien mis en évidence depuis les recommandations (jaune vif, couleur de focus de l'interface).
+ const highlightMaterial=new THREE.LineBasicMaterial({color:0xffd166});let highlighted=null,loads={};
+ const paint=()=>{for(const [id,line] of objects){const level=loadLevel(loads[id]);line.material=id===highlighted?highlightMaterial:level==='idle'?material:loadMaterials[level];line.userData.load=level;line.userData.highlighted=id===highlighted;}};
  const objects=new Map(),skipped=[];
  for(const link of links){
   const endpoints=resolveLinkEndpoints(link,devices);if(!endpoints){skipped.push(link.id);continue;}
@@ -30,6 +33,8 @@ export function createLinkLayer(links,devices,{color=0x70b7df}={}){
  };
  refresh();let disposed=false;
  /** Couleur de chaque lien selon son utilisation : { idLien: 0..1 } ; un lien absent revient au repos. */
- const setLoads=(loads={})=>{for(const [id,line] of objects){const level=loadLevel(loads[id]);line.material=level==='idle'?material:loadMaterials[level];line.userData.load=level;}};
- return {group,objects,skipped,refresh,setLoads,dispose(){if(disposed)return;disposed=true;for(const line of objects.values())line.geometry.dispose();material.dispose();Object.values(loadMaterials).forEach(m=>m.dispose());group.clear();objects.clear();}};
+ const setLoads=(next={})=>{loads=next??{};paint();};
+ /** Met un lien en évidence (null : aucun) ; renvoie false si le lien n'existe pas. */
+ const highlight=(id)=>{highlighted=objects.has(id)?id:null;paint();return id===null||highlighted!==null;};
+ return {group,objects,skipped,refresh,setLoads,highlight,dispose(){if(disposed)return;disposed=true;for(const line of objects.values())line.geometry.dispose();material.dispose();highlightMaterial.dispose();Object.values(loadMaterials).forEach(m=>m.dispose());group.clear();objects.clear();}};
 }

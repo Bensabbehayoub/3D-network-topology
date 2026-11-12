@@ -11,7 +11,9 @@ import { mount as mountControls } from './controls.js';
 import { mount as mountExplanations } from './explanations.js';
 import { mount as mountInspector } from './inspector.js';
 import { mount as mountInstall } from './install.js';
+import { mount as mountRecommendations } from './recommendations.js';
 import { mount as mountScenarioPicker } from './scenarioPicker.js';
+import { attachTabs } from './tabs.js';
 import { createPacketSelection, PACKET_SELECTED_EVENT } from './packets.js';
 import { attachSelection, createSelection, deviceExists, renderHighlighter } from './selection.js';
 
@@ -26,6 +28,7 @@ export const MOUNT_POINTS = Object.freeze({
   scenarioPicker: 'scenario-picker',
   inspector: 'inspector',
   explanations: 'explanations',
+  recommendations: 'recommendations',
   xr: 'xr-slot',
   install: 'install-slot',
 });
@@ -37,6 +40,7 @@ const MODULES = [
   { name: 'controls', id: MOUNT_POINTS.controls, mount: mountControls },
   { name: 'inspector', id: MOUNT_POINTS.inspector, mount: mountInspector },
   { name: 'explanations', id: MOUNT_POINTS.explanations, mount: mountExplanations },
+  { name: 'recommendations', id: MOUNT_POINTS.recommendations, mount: mountRecommendations },
   { name: 'install', id: MOUNT_POINTS.install, mount: mountInstall },
 ];
 
@@ -66,6 +70,7 @@ export async function init(app = {}, { root = globalThis.document } = {}) {
   // Paquet sélectionné (journal ou clic dans la scène), détaillé par l'inspecteur (phase 4d).
   const packets = createPacketSelection(shared);
   const api = {
+    tabs: null,
     mountPoints: MOUNT_POINTS,
     modules,
     packets,
@@ -89,6 +94,9 @@ export async function init(app = {}, { root = globalThis.document } = {}) {
   root.getElementById(MOUNT_POINTS.scene)?.addEventListener?.(PACKET_SELECTED_EVENT, (event) => {
     packets.select(event?.detail?.eventId);
   });
+  // Onglets « Explications | Recommandations » (phase 6) et pastille du nombre de problèmes.
+  api.tabs = attachTabs(root);
+  const badge = root.getElementById('recommendations-badge');
 
   for (const { name, id, mount } of MODULES) {
     const container = root.getElementById(id);
@@ -98,7 +106,7 @@ export async function init(app = {}, { root = globalThis.document } = {}) {
     }
     try {
       // Troisième paramètre : services partagés entre modules (sélections d'équipement et de paquet).
-      modules[name] = mount(container, shared, { selection, packets }) ?? {};
+      modules[name] = mount(container, shared, { selection, packets, badge }) ?? {};
     } catch (error) {
       // Un module en panne ne doit pas empêcher les autres de s'afficher.
       console.error(`Module ui "${name}" non monté :`, error);

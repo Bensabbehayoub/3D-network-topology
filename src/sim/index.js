@@ -16,6 +16,7 @@ import { createScenarioLibrary, summarize } from './library.js';
 import { createMockSimulation, DEMO_SCENARIO } from './mock.js';
 import { TOPICS } from './events.js';
 import { createTrafficMeter, SLOWDOWN, transmissionModel } from './traffic.js';
+import { diagnose } from './diagnostics.js';
 
 /**
  * @param {object} [app] objet partagé rempli par main.js
@@ -32,6 +33,7 @@ export async function init(app = {}, { library = createScenarioLibrary(), option
     return Object.freeze({
       ...mock,
       listScenarios: () => [summarize(DEMO_SCENARIO)],
+      diagnose: () => diagnose(mock.getScenario()),
       loadScenario: async (id) => (id === DEMO_SCENARIO.id ? mock.load(DEMO_SCENARIO) : false),
     });
   }
@@ -67,5 +69,10 @@ export async function init(app = {}, { library = createScenarioLibrary(), option
     getTraffic: () => meter.snapshot(sim.getScenario(), sim.getState().time),
     /** Facteur de ralenti : 1 ms de simulation = 1/SLOWDOWN ms de réseau. */
     timeScale: SLOWDOWN,
+    /**
+     * Diagnostic de la topologie chargée (phase 6) : configuration et trafic mesuré à l'instant
+     * courant. Liste triée par gravité (voir src/sim/diagnostics.js).
+     */
+    diagnose: () => diagnose(sim.getScenario(), { traffic: meter.snapshot(sim.getScenario(), sim.getState().time) }),
   });
 }

@@ -39,6 +39,31 @@ export const DEVICE_PANEL = Object.freeze({ width: 0.62, height: 0.62, pxWidth: 
 export const STEP_PANEL = Object.freeze({ width: 0.62, height: 0.44, pxWidth: 900, pxHeight: 640 });
 
 /**
+ * Recommandations (phase 6) : liste de problèmes (une ligne chacun, ROWS au plus), puis le détail
+ * du problème choisi (cause et correction) en bas du panneau.
+ */
+export const RECO_PANEL = Object.freeze({
+  width: 0.95, height: 0.76, pxWidth: 1130, pxHeight: 900,
+  list: Object.freeze({ x: 24, y: 112, w: 1082, rowHeight: 84 }),
+  rows: 5,
+  detail: Object.freeze({ y: 560 }),
+});
+
+/**
+ * Ligne de la liste sous le point (u, v) du panneau des recommandations, ou null.
+ * @returns {number | null} rang de la ligne (0 = première)
+ */
+export function recoRowAt(u, v, count, layout = RECO_PANEL) {
+  if (!Number.isFinite(u) || !Number.isFinite(v)) return null;
+  const px = u * layout.pxWidth;
+  const py = (1 - v) * layout.pxHeight;
+  const { x, y, w, rowHeight } = layout.list;
+  if (px < x || px > x + w || py < y) return null;
+  const index = Math.floor((py - y) / rowHeight);
+  return index < Math.min(count, layout.rows) ? index : null;
+}
+
+/**
  * Bouton situé sous un point du panneau.
  * @param {typeof CONTROL_PANEL} layout
  * @param {number} u abscisse sur le panneau, de 0 (gauche) à 1 (droite)
@@ -212,5 +237,7 @@ export function panelPoses(anchor) {
     // Fiche à gauche et explications à droite, tournées vers l'utilisateur.
     device: { position: { x: anchor.x - side, y: anchor.y + 0.4, z: anchor.z + 0.12 }, yaw: 0.55, pitch: 0 },
     step: { position: { x: anchor.x + side, y: anchor.y + 0.4, z: anchor.z + 0.12 }, yaw: -0.55, pitch: 0 },
+    // Recommandations (phase 6) : au-dessus et en arrière de la maquette, face à l'utilisateur.
+    recommendations: { position: { x: anchor.x, y: anchor.y + 0.66, z: anchor.z - anchor.depth / 2 - 0.08 }, yaw: 0, pitch: 0 },
   };
 }

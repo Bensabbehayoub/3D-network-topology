@@ -9,6 +9,7 @@
     "dhcp",
     "tcp",
     "http",
-    "debit"
+    "debit",
+    "diagnostic"
   ]
 }

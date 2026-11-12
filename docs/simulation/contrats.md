@@ -96,7 +96,7 @@ Le protocole affiche une étape avec `ctx.explain('arp-request')` et y rattache 
 
 ### Liste des scénarios proposés
 
-`scenarios/index.json` liste, dans l'ordre d'affichage, les identifiants des scénarios terminés : `{ "scenarios": ["arp", "ping", "routage", "ttl", "udp", "dns", "dhcp", "tcp", "http"] }`. Chaque id correspond au fichier `scenarios/<id>.json`, dont le champ `id` doit être identique. Un fichier absent de la liste est une ébauche : il n'est pas proposé dans l'application. Un scénario invalide est écarté au chargement, avec son erreur dans la console, sans bloquer les autres.
+`scenarios/index.json` liste, dans l'ordre d'affichage, les identifiants des scénarios terminés : `{ "scenarios": ["arp", "ping", "routage", "ttl", "udp", "dns", "dhcp", "tcp", "http", "debit", "diagnostic"] }`. Chaque id correspond au fichier `scenarios/<id>.json`, dont le champ `id` doit être identique. Un fichier absent de la liste est une ébauche : il n'est pas proposé dans l'application. Un scénario invalide est écarté au chargement, avec son erreur dans la console, sans bloquer les autres.
 
 ### Vérifier son scénario
 
@@ -312,6 +312,7 @@ Une commande non permise renvoie `false` sans exception : un clic au mauvais mom
 | `loadScenario(id, params?)` → promesse de booléen | charge le scénario (comme `load`) ; `false` si l'id est inconnu |
 | `getTraffic()` (phase 5) | `{ time, links, ports, devices }` : par lien `{ bandwidth, cable, ab, ba, utilization }` (sens a→b et b→a), par port `"équipement:interface"` `{ speed, negotiated, linked, link, peer, tx, rx, utilization }`, par équipement `{ current, average, bandwidth, utilization }`. Chaque mesure `{ current, average, bytes, utilization }` : débit instantané (fenêtre de 1 ms de réseau) et moyen en Mb/s, utilisation de 0 à 1 |
 | `timeScale` | 1000 : 1 ms de simulation = 1 µs de réseau |
+| `diagnose()` (phase 6) | diagnostic du scénario chargé, avec le trafic mesuré à l'instant courant : liste triée par gravité de `{ id, rule, severity: 'critique' \| 'avertissement' \| 'conseil', target: { kind: 'device' \| 'link', id, label }, problem, cause, recommendation }`. Règles et seuils : `src/sim/diagnostics.js` (`RULES`, `SATURATION` = 80 %) |
 
 ## 5. Faux moteur (mock)
 
@@ -344,6 +345,8 @@ Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle x
 | `modules.install` | `getView()` → `{ showButton, buttonTitle, offline, message }`, `install()` → `'accepted' \| 'dismissed' \| 'failed' \| 'unavailable'` |
 | `packets` (phase 4d) | paquet sélectionné, désigné par l'id de son évènement d'envoi : `select(eventId)` → booléen (id présent dans `app.sim.getHistory()`), `clear()`, `get()`, `onChange(listener)`. Effacé à chaque réinitialisation et changement de scénario ; met le paquet en avant dans la scène (`app.render.highlightPacket`) |
 | `modules.explanations` | `getView()` → `{ heading, title, text, time, hint }` (étape en cours), `getLog()` → lignes du journal `{ eventId, kind, time, label, route, protocol, broadcast, reason }` |
+| `modules.recommendations` (phase 6) | `getView()` → `{ available, counts, items, message, badge }`, `refresh()`, `choose(id)` : montre le problème dans la scène (équipement sélectionné et cadré, ou lien mis en évidence) |
+| `tabs` (phase 6) | onglets « Explications \| Recommandations » : `select('explanations' \| 'recommendations')`, `selected()`, `onChange(listener)` |
 | `modules.inspector` | `getView()` (équipement sélectionné, avec `sheet` : fiche de `src/ui/datasheet.js`, mise à jour en direct), `getPacketView()` → `{ eventId, title, meta, layers }` ou `null` (paquet sélectionné) |
 
 ## 7. API du pôle render (`app.render`) utilisée par les autres pôles
@@ -363,6 +366,7 @@ Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle x
 | `getVRAnchor()` → `{ x, y, z, width, depth }` ou `null` | centre et taille (m) de la maquette pendant une session VR ; les panneaux VR s'y accrochent |
 | `packetStyle(protocol, broadcast?)` → `{ color, radius }` | couleur (`'#rrggbb'`) et taille d'un paquet, une couleur par protocole (`src/render/packetStyles.js`) ; le journal de l'interface utilise les mêmes |
 | `highlightPacket(eventId)` | met en avant (plus gros) le paquet en vol de cet évènement d'envoi ; `null` : aucun |
+| `highlightLink(id)` (phase 6) | met un lien en évidence (jaune), au-dessus de sa couleur de charge ; `null` : aucun. Renvoie `false` si le lien est inconnu |
 | `setLinkLoads({ idLien: utilisation })` (phase 5) | couleur des liens selon leur charge : bleu au repos, vert < 50 %, orange 50 à 80 %, rouge ≥ 80 %. Appelé par le pôle render lui-même 4 fois par seconde d'après `app.sim.getTraffic()` |
 | `scene`, `world`, `camera` | objets Three.js : `scene` est dans l'espace de référence WebXR (mètres), `world` porte la topologie mise à l'échelle |
 

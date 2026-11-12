@@ -387,3 +387,28 @@ test('canMountRig : l\'interface VR exige la scène, la boucle et l\'ancrage du 
   assert.equal(canMountRig({ render: createMockRenderer() }), false, 'le faux rendu n\'a pas de scène Three.js');
   assert.equal(canMountRig({ render: { scene: {}, onFrame() {}, getVRAnchor() {} } }), true);
 });
+
+test('recommandations VR : contenu du panneau, lignes visées, détail du problème choisi', async () => {
+  const { recoSheet, RECO_HINT } = await import('./recoPanel.js');
+  const { recoRowAt, RECO_PANEL } = await import('./panelLayout.js');
+  const items = Array.from({ length: 7 }, (_, i) => ({
+    id: `f${i}`, severity: i === 0 ? 'critique' : 'conseil', severityLabel: i === 0 ? 'Critique' : 'Conseil',
+    target: { kind: i === 1 ? 'link' : 'device', id: `x${i}`, label: `Cible ${i}` },
+    problem: `Problème ${i}`, cause: `Cause ${i}`, recommendation: `Correction ${i}`, selected: i === 1,
+  }));
+  const sheet = recoSheet({ available: true, counts: { critique: 1, avertissement: 0, conseil: 6 }, items, message: null });
+  assert.equal(sheet.heading, 'RECOMMANDATIONS · 1 critique · 0 avertissement · 6 conseils');
+  assert.equal(sheet.rows.length, RECO_PANEL.rows);
+  assert.equal(sheet.more, 2);
+  assert.equal(sheet.rows[1].where, 'Lien Cible 1');
+  assert.deepEqual(sheet.detail, { title: 'Problème 1', cause: 'Cause 1', fix: 'Correction 1' });
+  assert.equal(recoSheet({ available: true, counts: { critique: 0, avertissement: 0, conseil: 1 }, items: [{ ...items[2], selected: false }], message: null }).hint, RECO_HINT);
+  // Lignes : la première commence sous le titre ; hors de la liste → null.
+  const { y, rowHeight } = RECO_PANEL.list;
+  const v = (py) => 1 - py / RECO_PANEL.pxHeight;
+  assert.equal(recoRowAt(0.5, v(y + 10), 5), 0);
+  assert.equal(recoRowAt(0.5, v(y + rowHeight * 2 + 10), 5), 2);
+  assert.equal(recoRowAt(0.5, v(y + rowHeight * 2 + 10), 2), null, 'ligne vide');
+  assert.equal(recoRowAt(0.5, v(40), 5), null, 'titre');
+  assert.equal(recoRowAt(null, 0.5, 5), null);
+});

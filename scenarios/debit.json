@@ -38,7 +38,6 @@
         0,
         -3
       ],
-      "gateway": "192.168.1.1",
       "interfaces": [
         {
           "name": "eth0",
@@ -57,7 +56,6 @@
         0,
         0
       ],
-      "gateway": "192.168.1.1",
       "interfaces": [
         {
           "name": "eth0",
@@ -76,7 +74,6 @@
         0,
         3
       ],
-      "gateway": "192.168.1.1",
       "interfaces": [
         {
           "name": "eth0",
@@ -120,7 +117,6 @@
         0,
         0
       ],
-      "gateway": "192.168.1.1",
       "interfaces": [
         {
           "name": "eth0",
