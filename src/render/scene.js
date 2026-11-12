@@ -42,7 +42,7 @@ export function pickDeviceFromObjects(raycaster,objects,origin,direction,boundar
  * Lève WebGPUUnavailableError si le navigateur ne fournit pas WebGPU.
  * GLBs upgrade immediate fallbacks asynchronously.
  */
-export async function initScene(container,{onDeviceClick=()=>{},onPacketClick=()=>{},background=0x0b1323}={}) {
+export async function initScene(container,{onDeviceClick=()=>{},onPacketClick=()=>{},onDeviceMove=()=>{},onGroundClick=()=>{},background=0x0b1323}={}) {
  if(!container || typeof container.appendChild!=='function')throw new TypeError('A DOM container is required');
  const pixelRatio=Math.min(globalThis.devicePixelRatio||1,2);
  const renderer=await createRenderer({pixelRatio});
@@ -126,18 +126,45 @@ export async function initScene(container,{onDeviceClick=()=>{},onPacketClick=()
   renderer.render(scene,camera);
  };
 
+ // --- Mode « Construire » (phase 7) : glisser un équipement sur le sol, toucher le sol pour placer ---
+ let editMode=false,drag=null;const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0),groundHit=new THREE.Vector3();
+ const aim=(e)=>{const rect=renderer.domElement.getBoundingClientRect();if(!rect.width||!rect.height)return false;pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);raycaster.setFromCamera(pointer,camera);return true;};
+ /** Point du sol sous le pointeur (coordonnées de la topologie, arrondies à 0,5), ou null. */
+ const groundAt=(e)=>{if(!aim(e)||!raycaster.ray.intersectPlane(groundPlane,groundHit))return null;const snap=v=>Math.round(v*2)/2;return {x:snap(groundHit.x),z:snap(groundHit.z)};};
+ const deviceAt=(e)=>{if(!aim(e))return null;const hit=raycaster.intersectObjects([...deviceMeshes.values()],true).find(item=>!item.object.userData?.isHighlight);return hit?resolveDeviceId(hit.object,content):null;};
+ const startDrag=e=>{
+  if(!editMode||disposed||renderer.xr.isPresenting)return;const id=deviceAt(e);if(!id)return;
+  const root=deviceMeshes.get(id);drag={id,root,pointerId:e.pointerId,from:root.position.clone(),moved:false};
+  controls.enabled=false; // la caméra ne tourne pas pendant qu'on déplace un équipement
+  renderer.domElement.setPointerCapture?.(e.pointerId);
+ };
+ const moveDrag=e=>{
+  if(!drag||e.pointerId!==drag.pointerId)return;
+  if(!drag.moved&&downPoint&&Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)<=6)return;
+  const at=groundAt(e);if(!at)return;drag.moved=true;drag.root.position.set(at.x,drag.root.position.y,at.z);refreshLayers();
+ };
+ const endDrag=(e,cancelled=false)=>{
+  if(!drag)return false;const current=drag;drag=null;controls.enabled=true;renderer.domElement.releasePointerCapture?.(current.pointerId);
+  if(!current.moved)return false;
+  if(cancelled){current.root.position.copy(current.from);refreshLayers();return true;}
+  onDeviceMove(current.id,{x:current.root.position.x,y:current.root.position.y,z:current.root.position.z});return true;
+ };
+
  const click=e=>{
-  if(disposed||!downPoint||Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)>6)return;const rect=renderer.domElement.getBoundingClientRect();if(!rect.width||!rect.height)return;
-  pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);raycaster.setFromCamera(pointer,camera);
+  if(endDrag(e))return;
+  if(disposed||!downPoint||Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)>6)return;if(!aim(e))return;
   // Un paquet en vol devant un équipement est prioritaire (groupe « packets » de packetAnimator.js).
   const packets=world.getObjectByName('packets');const packetHit=packets?raycaster.intersectObjects(packets.children,false)[0]:null;
   if(Number.isInteger(packetHit?.object.userData?.eventId)){onPacketClick(packetHit.object.userData.eventId,packetHit.object.userData);return;}
   const hit=raycaster.intersectObjects([...deviceMeshes.values()],true).find(item=>!item.object.userData?.isHighlight);const id=hit&&resolveDeviceId(hit.object,content);if(id)onDeviceClick(id,model.devices.find(device=>device.id===id));
+  else if(editMode){const at=groundAt(e);if(at)onGroundClick({x:at.x,y:0,z:at.z});}
  };
- const down=e=>{downPoint={x:e.clientX,y:e.clientY};};
+ // En capture : appelé avant OrbitControls, qui ne démarre donc pas de rotation pendant un glisser.
+ const down=e=>{downPoint={x:e.clientX,y:e.clientY};startDrag(e);};
+ const cancel=e=>{endDrag(e,true);};
 
  const canvas=renderer.domElement;
- canvas.addEventListener('pointerdown',down);canvas.addEventListener('pointerup',click);
+ canvas.addEventListener('pointerdown',down,{capture:true});canvas.addEventListener('pointerup',click);canvas.addEventListener('pointermove',moveDrag);canvas.addEventListener('pointercancel',cancel);
  renderer.xr.addEventListener('sessionstart',onXRStart);renderer.xr.addEventListener('sessionend',onXREnd);
  container.appendChild(canvas);
  renderer.setAnimationLoop(frame);
@@ -152,6 +179,12 @@ export async function initScene(container,{onDeviceClick=()=>{},onPacketClick=()
    const pending=next.devices.map(device=>factory.loadModel(device).then(root=>replaceDevice(device,root,token)));ready=Promise.allSettled(pending);return {devices:next.devices.length,links:next.links.length};
   },
   whenReady(){return ready;},
+  /**
+   * Mode « Construire » (phase 7) : un équipement se déplace en le glissant (onDeviceMove à la fin),
+   * un clic sur le sol vide appelle onGroundClick avec le point visé.
+   */
+  setEditMode(on){editMode=Boolean(on);if(!editMode&&drag)endDrag(null,true);return editMode;},
+  isEditMode(){return editMode;},
   /** Couleur des liens selon leur charge (phase 5) : { idLien: utilisation 0..1 }. */
   setLinkLoads(loads){if(disposed)return false;linkLayer?.setLoads(loads);return Boolean(linkLayer);},
   /** Met un lien en évidence (phase 6, recommandations) ; null : aucun. Renvoie false si le lien est inconnu. */
@@ -211,6 +244,6 @@ export async function initScene(container,{onDeviceClick=()=>{},onPacketClick=()
   scene,
   camera,
   world,
-  dispose(){if(disposed)return;disposed=true;generations.dispose();renderer.setAnimationLoop(null);canvas.removeEventListener('pointerdown',down);canvas.removeEventListener('pointerup',click);renderer.xr.removeEventListener('sessionstart',onXRStart);renderer.xr.removeEventListener('sessionend',onXREnd);frameListeners.clear();observer?.disconnect();globalThis.removeEventListener?.('resize',resize);controls.dispose();linkLayer?.dispose();labelLayer?.dispose();for(const root of deviceMeshes.values())factory.setHighlight(root,'normal');deviceMeshes.clear();content.clear();factory.dispose();floor.geometry.dispose();(Array.isArray(floor.material)?floor.material:[floor.material]).forEach(material=>material.dispose());renderer.dispose();renderer.domElement.remove();},
+  dispose(){if(disposed)return;disposed=true;generations.dispose();renderer.setAnimationLoop(null);canvas.removeEventListener('pointerdown',down,{capture:true});canvas.removeEventListener('pointerup',click);canvas.removeEventListener('pointermove',moveDrag);canvas.removeEventListener('pointercancel',cancel);renderer.xr.removeEventListener('sessionstart',onXRStart);renderer.xr.removeEventListener('sessionend',onXREnd);frameListeners.clear();observer?.disconnect();globalThis.removeEventListener?.('resize',resize);controls.dispose();linkLayer?.dispose();labelLayer?.dispose();for(const root of deviceMeshes.values())factory.setHighlight(root,'normal');deviceMeshes.clear();content.clear();factory.dispose();floor.geometry.dispose();(Array.isArray(floor.material)?floor.material:[floor.material]).forEach(material=>material.dispose());renderer.dispose();renderer.domElement.remove();},
  };
 }

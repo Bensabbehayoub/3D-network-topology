@@ -494,6 +494,19 @@ body {
   cursor: not-allowed;
 }
 
+/* Action destructive (supprimer) : bordure rouge, texte lisible sur fond sombre. */
+.btn-danger {
+  border-color: var(--danger);
+  color: #ffb3b3;
+  margin-top: 8px;
+}
+
+/* Bouton discret dans une liste, toujours de 44 px de haut (cible tactile). */
+.btn-small {
+  padding: 0 10px;
+  font-size: 0.8rem;
+}
+
 .field {
   display: inline-flex;
   align-items: center;
@@ -732,6 +745,177 @@ input[type="range"] {
   color: var(--danger);
 }
 
+/* ---------- Mode « Construire » (phase 7) ---------- */
+
+.mode-switch {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mode-button {
+  min-height: var(--touch);
+  padding: 0 14px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.mode-button[aria-pressed="true"] {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+.mode-button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* En Explorer, pas d'éditeur ; en Construire, l'éditeur prend la place de l'inspecteur, et la
+   liste des scénarios comme la barre de lecture s'effacent (rien à jouer pendant la construction). */
+.panel-editor {
+  display: none;
+}
+
+body[data-mode="build"] .panel-editor {
+  display: flex;
+}
+
+body[data-mode="build"] .panel-inspector,
+body[data-mode="build"] #scenario-picker,
+body[data-mode="build"] #controls {
+  display: none;
+}
+
+body[data-mode="build"] .scene {
+  outline: 2px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: -6px;
+}
+
+.editor-section {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-section:first-child {
+  padding-top: 0;
+}
+
+.editor-heading {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.editor-field select,
+.editor-field input {
+  width: 100%;
+  min-height: var(--touch);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 8px;
+}
+
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.editor-message {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: #06d6a0;
+}
+
+.editor-message:empty {
+  display: none;
+}
+
+.editor-error {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+  border-left: 4px solid var(--danger);
+  border-radius: 4px;
+}
+
+.editor-selected-name {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.editor-rename {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.editor-rename .editor-field {
+  flex: 1 1 auto;
+}
+
+.editor-ports,
+.editor-links {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.editor-ports li {
+  padding: 3px 0;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.editor-port-free {
+  color: var(--text-muted);
+}
+
+.editor-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "label button" "meta button";
+  column-gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-link-label { grid-area: label; overflow-wrap: anywhere; }
+.editor-link-meta { grid-area: meta; font-size: 0.75rem; color: var(--text-muted); }
+.editor-link .btn { grid-area: button; }
+
 /* ---------- Onglets Explications | Recommandations (phase 6) ---------- */
 
 .panel-tablist {
@@ -776,6 +960,10 @@ input[type="range"] {
   letter-spacing: 0;
   color: #fff;
   background: var(--danger);
+}
+
+.tab-badge[hidden] {
+  display: none;
 }
 
 /* Sélecteurs d'id : #explanations a son propre « display: flex », qui l'emporterait sur [hidden]. */

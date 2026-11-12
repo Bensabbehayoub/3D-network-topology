@@ -44,8 +44,8 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 | 3 | Session immersive complète (panneau VR, manettes, fiches en VR) | ✅ Terminé (12 nov), à commiter par Ramy |
 | 4 | Moteur réel, équipements et protocoles | ✅ Terminé en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (commité, `1151dfd`) UDP, DNS, DHCP ; **4c ✅** (commité, `eaa4efc`) TCP, HTTP ; **4d ✅** (commité, `cafa1d3`) inspecteur de paquets, journal, explications en 2D, couleurs par protocole |
 | 5 | Caractéristiques des équipements, débit et bande passante | ✅ Terminé et commité (`81637a4`) |
-| 6 | Diagnostic et recommandations | ✅ Terminé (13 nov), à commiter par Ramy ; recommandations aussi en VR (demande de Ramy) |
-| 7 | Éditeur de topologie et choix du protocole | À faire |
+| 6 | Diagnostic et recommandations | ✅ Terminé et commité (`137faf9`) ; recommandations aussi en VR (demande de Ramy) |
+| 7 | Éditeur de topologie et choix du protocole | ⏳ En trois sous-étapes (un commit chacune) : **7a ✅** (13 nov, à commiter) mode Construire, ajout, déplacement, renommage, suppression, câbles ; 7b configuration (adresses, rôles) et choix du protocole ; 7c enregistrement, import/export, finitions |
 | 8 | CI/CD et TLS | À faire |
 | 9 | Documentation et finition | À faire |
 
@@ -97,6 +97,11 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 13 nov | Goulot structurel : lien d'un switch vers un serveur, un routeur ou un switch plus lent que le plus rapide de ses autres liens. Goulot mesuré : utilisation > 80 %. | Règle du cahier des charges ; un lien d'accès de poste n'est jamais un goulot pour les autres. |
 | 13 nov | Boucle de commutation détectée (diagnostic critique) mais pas simulée : à traiter en phase 7, quand l'éditeur pourra en créer une (bloquer la lecture ou limiter la tempête). | Aucun scénario fourni n'a de boucle ; une tempête de diffusion ferait tourner le moteur sans fin. |
 | 13 nov | Recommandations aussi en VR : panneau au-dessus de la maquette, gâchette sur un problème = même action qu'un clic en 2D (contrôleur partagé). | Demande de Ramy. |
+| 13 nov | Phase 7 en trois sous-étapes (7a, 7b, 7c) ; boucle de commutation : lecture bloquée (7b). Édition en 2D seulement (souris et toucher), la VR montre et joue le résultat. | Accord de Ramy. |
+| 13 nov | Le brouillon de l'éditeur est un scénario (protocole « aucun ») rechargé dans le moteur à chaque modification. | Scène, fiches, débits et diagnostic suivent la construction sans code de plus. |
+| 13 nov | Un scénario peut avoir zéro équipement. | L'éditeur part d'une topologie vide. |
+| 13 nov | Un équipement ajouté reçoit toutes les interfaces de son modèle ; MAC « administrées localement » 02:00:00:00:xx:yy. | Ports libres immédiatement disponibles pour les câbles ; pas d'adresse de constructeur réel. |
+| 13 nov | La sélection survit à un rechargement de la même topologie. | Sinon, chaque modification de l'éditeur perdait l'équipement sélectionné. |
 | 12 nov | Le bouton « Installer » est visible tant que l'application n'est pas installée. Sans invite du navigateur, le clic explique comment installer. | « Message clair si l'installation est indisponible » sans encombrer l'en-tête. |
 
 ## Journal des phases
@@ -327,3 +332,22 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
   problème de lien (lien en jaune) et de routeur (fiche du Routeur 2) ; onglets au clavier ;
   scénario Débit : « Lien saturé » critique apparu pendant la lecture ; en VR, gâchette sur
   « Route manquante » → Routeur 2 sélectionné et détail affiché ; console vide.
+
+### Phase 7a — mode Construire : équipements et câbles (13 novembre)
+
+- Tests : 373 tests, 373 réussis, 0 échec.
+- Moteur : `src/sim/builder.js` (opérations pures), `src/sim/protocols/aucun.js`, `scenario.js`
+  (topologie vide permise), `simulation.js` (exports).
+- Rendu : `scene.js` (mode édition : glisser un équipement, toucher du sol, `setEditMode`), `index.js`
+  (évènements `topology:device-moved` et `topology:ground-clicked`), `mock.js`.
+- Interface : `index.html` (`#mode-slot`, panneau `#editor`), `src/ui/modeSwitch.js` (bascule et
+  service de mode), `src/ui/editor.js` (éditeur), `index.js`, `selection.js` (sélection gardée),
+  `styles.css` (mode Construire, éditeur, boutons `btn-danger` et `btn-small`).
+- Tests : `tests/builder.test.js`, `src/ui/editor.test.js` ; `index.test.js` et `packetStyles.test.mjs`
+  adaptés.
+- Vérifié dans Chrome 157 piloté : passage en Construire (copie du scénario affiché), topologie vide,
+  ajout au centre, placement d'un switch par clic sur le sol, deux câbles, message d'erreur clair,
+  glisser du switch à la souris (câbles qui suivent, sélection gardée), diagnostic en direct,
+  390 px sans débordement, retour en Explorer sur le scénario précédent ; console vide.
+- Non vérifié automatiquement : le glisser au toucher (même code, évènements pointer) : à essayer
+  sur téléphone.

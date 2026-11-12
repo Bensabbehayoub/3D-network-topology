@@ -23,9 +23,12 @@
       #recommendations  diagnostic du réseau : problèmes, causes, corrections (ui, phase 6)
       #xr-slot          bouton « Entrer en VR » (pôle xr, Ayoub)
       #install-slot     bouton « Installer » et badge « Hors ligne » (ui)
+      #mode-slot        bascule « Explorer | Construire » (ui, phase 7)
+      #editor           éditeur de topologie du mode « Construire » (ui, phase 7)
   -->
   <header class="app-header">
     <h1 class="app-title">3D Network Topology</h1>
+    <div id="mode-slot" class="slot"></div>
     <div id="scenario-picker" class="slot slot-picker"></div>
     <div class="header-actions">
       <div id="install-slot" class="slot"></div>
@@ -39,9 +42,13 @@
   </main>
 
   <aside class="app-side" aria-label="Analyse pédagogique">
-    <section class="panel" aria-labelledby="inspector-title">
+    <section class="panel panel-inspector" aria-labelledby="inspector-title">
       <h2 id="inspector-title" class="panel-title">Inspecteur</h2>
       <div id="inspector" class="slot panel-body"></div>
+    </section>
+    <section class="panel panel-editor" aria-labelledby="editor-title">
+      <h2 id="editor-title" class="panel-title">Éditeur de topologie</h2>
+      <div id="editor" class="slot panel-body"></div>
     </section>
     <section class="panel panel-tabs" aria-label="Explications et recommandations">
       <div class="panel-tablist" role="tablist" aria-label="Contenu du panneau">

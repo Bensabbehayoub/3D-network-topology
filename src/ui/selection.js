@@ -129,7 +129,9 @@ export function renderHighlighter(app) {
  * Branche la sélection sur la page et sur le moteur.
  * - clic ou toucher sur un équipement : évènement DEVICE_SELECTED_EVENT sur #scene (pôle render) ;
  * - Échap : désélectionne (ignoré dans un champ de saisie) ;
- * - nouveau scénario (TOPICS.SCENARIO) : désélectionne, l'ancien équipement n'existe plus.
+ * - nouveau scénario (TOPICS.SCENARIO) : désélectionne, l'ancien équipement n'existe plus. Exception
+ *   (phase 7) : la même topologie rechargée par l'éditeur (même id) garde la sélection si
+ *   l'équipement existe encore ; la surbrillance est refaite sur la scène reconstruite.
  * Chaque branchement est facultatif : sans document, sans #scene ou sans moteur, rien ne casse.
  * @param {object} app objet partagé
  * @param {ReturnType<typeof createSelection>} selection
@@ -155,7 +157,18 @@ export function attachSelection(app, selection, { root, sceneId = 'scene' } = {}
   });
 
   if (typeof app?.sim?.on === 'function') {
-    const off = app.sim.on(TOPICS.SCENARIO, () => selection.clear());
+    let lastId = app.sim.getScenario?.()?.id ?? null;
+    const off = app.sim.on(TOPICS.SCENARIO, ({ scenario } = {}) => {
+      const sameTopology = scenario?.id !== undefined && scenario.id === lastId;
+      lastId = scenario?.id ?? null;
+      const id = selection.getSelection();
+      if (sameTopology && id !== null && scenario.devices?.some((device) => device.id === id)) {
+        selection.clear();
+        selection.select(id); // surbrillance refaite sur la scène reconstruite
+        return;
+      }
+      selection.clear();
+    });
     if (typeof off === 'function') cleanups.push(off);
   }
 

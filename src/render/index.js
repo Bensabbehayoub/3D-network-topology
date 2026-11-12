@@ -50,6 +50,13 @@ export async function init(app = {}) {
       },
       onPacketClick(eventId, info) {
         mount.dispatchEvent(new CustomEvent('topology:packet-selected', {detail:{eventId, packetId: info.packetId}}));
+      },
+      // Mode « Construire » (phase 7) : l'éditeur de l'interface écoute ces deux évènements.
+      onDeviceMove(id, position) {
+        mount.dispatchEvent(new CustomEvent('topology:device-moved', {detail:{id, position:[position.x, position.y, position.z]}}));
+      },
+      onGroundClick(position) {
+        mount.dispatchEvent(new CustomEvent('topology:ground-clicked', {detail:{position:[position.x, position.y, position.z]}}));
       }
     });
   } catch (error) {

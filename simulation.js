@@ -30,3 +30,6 @@ export {
 } from './src/sim/catalog.js';
 export { SLOWDOWN, createTrafficMeter, frameSize, linkBandwidth, transmissionModel, transmissionTime } from './src/sim/traffic.js';
 export { diagnose, countBySeverity, SEVERITIES, SEVERITY_LABELS, SATURATION } from './src/sim/diagnostics.js';
+export {
+  BuilderError, MAX_LABEL, TYPE_NAMING, addDevice, connect, disconnect, freePorts, fromScenario, moveDevice, newTopology, palette, removeDevice, renameDevice,
+} from './src/sim/builder.js';

@@ -98,8 +98,9 @@ export function validateScenario(scenario) {
   // Équipements et interfaces
   /** @type {Map<string, Set<string>>} interfaces par équipement */
   const interfaces = new Map();
-  if (!Array.isArray(scenario.devices) || scenario.devices.length === 0) {
-    error('devices : au moins un équipement attendu');
+  // Une topologie vide est permise depuis la phase 7 : l'éditeur part de rien.
+  if (!Array.isArray(scenario.devices)) {
+    error("devices : tableau d'équipements attendu (vide pour une topologie à construire)");
   } else {
     scenario.devices.forEach((device, i) => {
       const where = `devices[${i}]`;

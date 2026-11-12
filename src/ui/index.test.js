@@ -14,7 +14,7 @@ function fakeRoot(ids) {
   return { elements, getElementById: (id) => elements.get(id) ?? null };
 }
 
-const UI_IDS = ['controls', 'scenario-picker', 'inspector', 'explanations', 'recommendations', 'install-slot'];
+const UI_IDS = ['controls', 'scenario-picker', 'inspector', 'explanations', 'recommendations', 'mode-slot', 'editor', 'install-slot'];
 
 test('init monte tous les modules quand app est vide (pôles sim et render absents)', async (t) => {
   t.mock.method(console, 'warn', () => {});
@@ -22,7 +22,7 @@ test('init monte tous les modules quand app est vide (pôles sim et render absen
 
   const ui = await init({}, { root });
 
-  assert.deepEqual(Object.keys(ui.modules).sort(), ['controls', 'explanations', 'inspector', 'install', 'recommendations', 'scenarioPicker']);
+  assert.deepEqual(Object.keys(ui.modules).sort(), ['controls', 'editor', 'explanations', 'inspector', 'install', 'mode', 'recommendations', 'scenarioPicker']);
   for (const id of UI_IDS) {
     assert.notEqual(root.elements.get(id).innerHTML.trim(), '', `#${id} est resté vide`);
   }
@@ -82,7 +82,7 @@ test('aucune ressource externe dans l\'interface : le hors ligne doit rester pos
   const files = ['index.html', 'styles.css', 'src/ui/index.js', 'src/ui/controls.js',
     'src/ui/inspector.js', 'src/ui/explanations.js', 'src/ui/scenarioPicker.js',
     'src/ui/selection.js', 'src/ui/keyboard.js', 'src/ui/install.js', 'src/ui/recommendations.js', 'src/ui/tabs.js',
-    'src/ui/packets.js', 'src/ui/datasheet.js'];
+    'src/ui/packets.js', 'src/ui/datasheet.js', 'src/ui/editor.js', 'src/ui/modeSwitch.js'];
   for (const path of files) {
     assert.doesNotMatch(await read(path), /(https?:)?\/\/[a-z0-9-]+\.[a-z]/i, path);
   }

@@ -34,7 +34,7 @@ Un fichier `scenarios/<protocole>.json` par scénario. Il contient **sa** topolo
   "protocol": "arp",                 // charge src/sim/protocols/arp.js (obligatoire)
   "description": "Rôle du protocole, 2-3 phrases.",     // facultatif
   "params": { "source": "pc1", "target": "pc2" },        // paramètres par défaut, libres, lus par le protocole
-  "devices": [ ... ],                // au moins un
+  "devices": [ ... ],                // peut être vide depuis la phase 7 (topologie en construction)
   "links": [ ... ],                  // peut être vide
   "steps": [ ... ]                   // au moins une étape expliquée
 }
@@ -312,6 +312,8 @@ Une commande non permise renvoie `false` sans exception : un clic au mauvais mom
 | `loadScenario(id, params?)` → promesse de booléen | charge le scénario (comme `load`) ; `false` si l'id est inconnu |
 | `getTraffic()` (phase 5) | `{ time, links, ports, devices }` : par lien `{ bandwidth, cable, ab, ba, utilization }` (sens a→b et b→a), par port `"équipement:interface"` `{ speed, negotiated, linked, link, peer, tx, rx, utilization }`, par équipement `{ current, average, bandwidth, utilization }`. Chaque mesure `{ current, average, bytes, utilization }` : débit instantané (fenêtre de 1 ms de réseau) et moyen en Mb/s, utilisation de 0 à 1 |
 | `timeScale` | 1000 : 1 ms de simulation = 1 µs de réseau |
+| Protocole `aucun` (phase 7) | `src/sim/protocols/aucun.js` : ne fait rien. Sert à charger une topologie en construction : scène, fiches et diagnostic fonctionnent, la lecture n'envoie rien |
+| Construction (phase 7, `src/sim/builder.js`, exporté par `simulation.js`) | fonctions pures qui renvoient un nouveau scénario valide ou lèvent `BuilderError` (message en français) : `newTopology()`, `fromScenario(s)`, `addDevice(s, { model, position })` → `{ scenario, id }`, `moveDevice`, `renameDevice` (30 caractères au plus, nom unique), `removeDevice` (retire aussi ses câbles), `freePorts(s, id)`, `connect(s, { a, b, cable })` → `{ scenario, id }`, `disconnect(s, linkId)`, `palette()`. Un équipement ajouté reçoit toutes les interfaces de son modèle (`eth0`…, `p1`…, `g0`…) et des adresses MAC uniques (sauf les ports de switch) |
 | `diagnose()` (phase 6) | diagnostic du scénario chargé, avec le trafic mesuré à l'instant courant : liste triée par gravité de `{ id, rule, severity: 'critique' \| 'avertissement' \| 'conseil', target: { kind: 'device' \| 'link', id, label }, problem, cause, recommendation }`. Règles et seuils : `src/sim/diagnostics.js` (`RULES`, `SATURATION` = 80 %) |
 
 ## 5. Faux moteur (mock)
@@ -346,6 +348,8 @@ Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle x
 | `packets` (phase 4d) | paquet sélectionné, désigné par l'id de son évènement d'envoi : `select(eventId)` → booléen (id présent dans `app.sim.getHistory()`), `clear()`, `get()`, `onChange(listener)`. Effacé à chaque réinitialisation et changement de scénario ; met le paquet en avant dans la scène (`app.render.highlightPacket`) |
 | `modules.explanations` | `getView()` → `{ heading, title, text, time, hint }` (étape en cours), `getLog()` → lignes du journal `{ eventId, kind, time, label, route, protocol, broadcast, reason }` |
 | `modules.recommendations` (phase 6) | `getView()` → `{ available, counts, items, message, badge }`, `refresh()`, `choose(id)` : montre le problème dans la scène (équipement sélectionné et cadré, ou lien mis en évidence) |
+| `mode` (phase 7) | « Explorer \| Construire » : `get()`, `set('explore' \| 'build')`, `onChange(listener)`. En Construire : `document.body.dataset.mode = 'build'` (l'éditeur remplace l'inspecteur, la liste des scénarios et la barre de lecture sont masquées), `app.render.setEditMode(true)`, onglet Recommandations ouvert |
+| `modules.editor` (phase 7) | éditeur de topologie : `enter()`, `leave()`, `arm(model)`, `place(position)`, `addAtCenter(model)`, `move`, `rename`, `remove`, `connect(a, b, cable)`, `disconnect`, `restart(fromCurrent)`, `getView()`, `getDraft()`. Chaque modification recharge le brouillon dans le moteur (`app.sim.load`) |
 | `tabs` (phase 6) | onglets « Explications \| Recommandations » : `select('explanations' \| 'recommendations')`, `selected()`, `onChange(listener)` |
 | `modules.inspector` | `getView()` (équipement sélectionné, avec `sheet` : fiche de `src/ui/datasheet.js`, mise à jour en direct), `getPacketView()` → `{ eventId, title, meta, layers }` ou `null` (paquet sélectionné) |
 
@@ -373,6 +377,10 @@ Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle x
 `initScene(container, options)` est **asynchrone** depuis la phase 2 (`WebGPURenderer` s'initialise avant le premier rendu) ; `init(app)` du pôle render l'attend. Sans WebGPU, `initScene` lève `WebGPUUnavailableError` : `init(app)` affiche « WebGPU requis » et renvoie `{ available: false, reason }` (pas de repli WebGL).
 
 Sur `#scene`, le rendu émet `topology:device-selected` (`detail: { id, device }`) à chaque clic ou toucher sur un équipement, et `topology:packet-selected` (`detail: { eventId, packetId }`) sur un paquet en vol (prioritaire sur l'équipement derrière lui).
+
+Mode « Construire » (phase 7) : `setEditMode(on)`, `isEditMode()`. En mode édition, glisser un équipement (souris ou toucher) le déplace sur le sol, positions arrondies à 0,5 ; la caméra ne tourne pas pendant le glisser. À la fin, le rendu émet `topology:device-moved` (`detail: { id, position: [x, y, z] }`). Un clic sur le sol vide émet `topology:ground-clicked` (`detail: { position }`). Un glisser annulé (pointercancel) remet l'équipement à sa place.
+
+Sélection (pôle ui) : un nouveau scénario désélectionne, sauf si c'est la même topologie rechargée (même id, cas de l'éditeur) et que l'équipement existe encore.
 
 ## Tests
 

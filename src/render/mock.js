@@ -28,6 +28,7 @@ export function createMockRenderer({onDeviceClick=()=>{}}={}){
   packetStyle(protocol,broadcast=false){return packetStyle(protocol,broadcast);},
   highlightPacket(){guard();return false;},
   setLinkLoads(){guard();return false;},
+  setEditMode(on){guard();return Boolean(on);},isEditMode(){return false;},
   highlightLink(id){guard();return id===null||data.links.some(l=>l.id===id);},
   highlightDevice(id,mode='selected'){guard();if(!['selected','active','error','normal'].includes(mode))throw new TypeError('Invalid mode');return data.devices.some(d=>d.id===id);},
   getDevice(id){guard();return data.devices.find(d=>d.id===id)||null;},
