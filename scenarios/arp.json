@@ -4,44 +4,113 @@
   "title": "ARP : trouver l'adresse MAC d'un voisin",
   "protocol": "arp",
   "description": "Pour envoyer une trame Ethernet, un PC doit connaître l'adresse MAC du destinataire. ARP (Address Resolution Protocol) la retrouve à partir de son adresse IP : une question diffusée à tout le réseau local, une réponse adressée au seul demandeur, puis une mémorisation dans le cache ARP.",
-  "params": { "source": "pc1", "target": "pc2" },
+  "params": {
+    "source": "pc1",
+    "target": "pc2"
+  },
   "devices": [
     {
       "id": "pc1",
       "type": "host",
       "label": "PC 1",
-      "position": [-3, 0, 1.5],
-      "interfaces": [{ "name": "eth0", "mac": "02:00:00:00:00:01", "ip": "192.168.1.10/24" }],
+      "model": "pc-1g",
+      "position": [
+        -3,
+        0,
+        1.5
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:00:01",
+          "ip": "192.168.1.10/24"
+        }
+      ],
       "gateway": "192.168.1.1"
     },
     {
       "id": "pc2",
       "type": "host",
       "label": "PC 2",
-      "position": [3, 0, 1.5],
-      "interfaces": [{ "name": "eth0", "mac": "02:00:00:00:00:02", "ip": "192.168.1.20/24" }],
+      "model": "pc-1g",
+      "position": [
+        3,
+        0,
+        1.5
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:00:02",
+          "ip": "192.168.1.20/24"
+        }
+      ],
       "gateway": "192.168.1.1"
     },
     {
       "id": "pc3",
       "type": "host",
       "label": "PC 3",
-      "position": [0, 0, -3],
-      "interfaces": [{ "name": "eth0", "mac": "02:00:00:00:00:03", "ip": "192.168.1.30/24" }],
+      "model": "pc-1g",
+      "position": [
+        0,
+        0,
+        -3
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:00:03",
+          "ip": "192.168.1.30/24"
+        }
+      ],
       "gateway": "192.168.1.1"
     },
     {
       "id": "sw1",
       "type": "switch",
       "label": "Switch",
-      "position": [0, 0, 0],
-      "interfaces": [{ "name": "p1" }, { "name": "p2" }, { "name": "p3" }]
+      "model": "sw-24g",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        },
+        {
+          "name": "p3"
+        }
+      ]
     }
   ],
   "links": [
-    { "id": "l1", "a": "pc1:eth0", "b": "sw1:p1" },
-    { "id": "l2", "a": "pc2:eth0", "b": "sw1:p2" },
-    { "id": "l3", "a": "pc3:eth0", "b": "sw1:p3" }
+    {
+      "id": "l1",
+      "a": "pc1:eth0",
+      "b": "sw1:p1",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l2",
+      "a": "pc2:eth0",
+      "b": "sw1:p2",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l3",
+      "a": "pc3:eth0",
+      "b": "sw1:p3",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    }
   ],
   "steps": [
     {

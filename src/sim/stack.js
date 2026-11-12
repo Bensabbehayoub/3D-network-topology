@@ -186,9 +186,9 @@ export function resolveMac(ctx, scenarioDevice, interfaceName, ip, { onResolved,
 }
 
 /** Ajoute l'en-tête Ethernet et émet le paquet par l'interface donnée. */
-function transmit(ctx, device, interfaceName, mac, packet, step) {
+function transmit(ctx, device, interfaceName, mac, packet, step, lost = null) {
   const source = interfaceNamed(device, interfaceName)?.mac ?? UNKNOWN_MAC;
-  ctx.send(device.id, { ...packet, eth: { src: source, dst: mac } }, { interface: interfaceName, step });
+  ctx.send(device.id, { ...packet, eth: { src: source, dst: mac } }, { interface: interfaceName, step, lost });
 }
 
 /**
@@ -199,7 +199,7 @@ function transmit(ctx, device, interfaceName, mac, packet, step) {
  * @param {{ step?: string | null }} [options] étape à laquelle rattacher le message
  * @returns {object | null} le paquet complet (sans en-tête Ethernet), ou null sans route
  */
-export function sendIp(ctx, deviceId, packet, { step = null, interface: interfaceName } = {}) {
+export function sendIp(ctx, deviceId, packet, { step = null, interface: interfaceName, lost = null } = {}) {
   const device = runtimeDevice(ctx, ctx.device(deviceId));
   const full = {
     id: packet.id ?? ctx.nextPacketId(),
@@ -231,7 +231,7 @@ export function sendIp(ctx, deviceId, packet, { step = null, interface: interfac
     : [`route-gateway-${device.id}`, 'route-gateway']);
   const linked = step ?? routeStep;
   resolveMac(ctx, device, route.interface, route.nextHop, {
-    onResolved: (mac) => transmit(ctx, device, route.interface, mac, full, linked),
+    onResolved: (mac) => transmit(ctx, device, route.interface, mac, full, linked, lost),
     onFailed: () => ctx.drop(deviceId, full, `adresse MAC de ${route.nextHop} introuvable (ARP sans réponse)`, { step: linked }),
   });
   return full;

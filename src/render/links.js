@@ -1,4 +1,5 @@
 import * as THREE from '../../vendor/three/build/three.webgpu.js';
+import { colorNumber, LOAD_COLORS, loadLevel } from './packetStyles.js';
 
 export function resolveLinkEndpoints(link,devices){
  const from=devices.get(link.from),to=devices.get(link.to);return from&&to?{from,to}:null;
@@ -14,6 +15,8 @@ function endpoint(root,toward){
 /** Builds a disposable cable layer whose endpoints can be refreshed after model upgrades. */
 export function createLinkLayer(links,devices,{color=0x70b7df}={}){
  const group=new THREE.Group();group.name='Network links';const material=new THREE.LineBasicMaterial({color,transparent:true,opacity:.86});
+ // Phase 5 : un matériau par niveau de charge (vert, orange, rouge), partagé par tous les liens.
+ const loadMaterials=Object.fromEntries(['low','medium','high'].map(level=>[level,new THREE.LineBasicMaterial({color:colorNumber(LOAD_COLORS[level]),transparent:true,opacity:.95})]));
  const objects=new Map(),skipped=[];
  for(const link of links){
   const endpoints=resolveLinkEndpoints(link,devices);if(!endpoints){skipped.push(link.id);continue;}
@@ -26,5 +29,7 @@ export function createLinkLayer(links,devices,{color=0x70b7df}={}){
   }
  };
  refresh();let disposed=false;
- return {group,objects,skipped,refresh,dispose(){if(disposed)return;disposed=true;for(const line of objects.values())line.geometry.dispose();material.dispose();group.clear();objects.clear();}};
+ /** Couleur de chaque lien selon son utilisation : { idLien: 0..1 } ; un lien absent revient au repos. */
+ const setLoads=(loads={})=>{for(const [id,line] of objects){const level=loadLevel(loads[id]);line.material=level==='idle'?material:loadMaterials[level];line.userData.load=level;}};
+ return {group,objects,skipped,refresh,setLoads,dispose(){if(disposed)return;disposed=true;for(const line of objects.values())line.geometry.dispose();material.dispose();Object.values(loadMaterials).forEach(m=>m.dispose());group.clear();objects.clear();}};
 }

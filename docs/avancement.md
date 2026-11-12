@@ -42,8 +42,8 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 | 1 | PWA complète (icônes, précache, hors ligne, bouton Installer) | ✅ Terminé (12 nov), à commiter par Ramy |
 | 2 | Three.js r187, rendu 100 % WebGPU (mode classique et VR), boucle d'animation WebXR unique | ✅ Terminé et commité (`ac653fc`) ; testé par Ramy avec l'extension Immersive Web Emulator 2.0 |
 | 3 | Session immersive complète (panneau VR, manettes, fiches en VR) | ✅ Terminé (12 nov), à commiter par Ramy |
-| 4 | Moteur réel, équipements et protocoles | ✅ Terminé en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (commité, `1151dfd`) UDP, DNS, DHCP ; **4c ✅** (commité, `eaa4efc`) TCP, HTTP ; **4d ✅** (12 nov, à commiter) inspecteur de paquets, journal, explications en 2D, couleurs par protocole |
-| 5 | Caractéristiques des équipements, débit et bande passante | À faire |
+| 4 | Moteur réel, équipements et protocoles | ✅ Terminé en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (commité, `1151dfd`) UDP, DNS, DHCP ; **4c ✅** (commité, `eaa4efc`) TCP, HTTP ; **4d ✅** (commité, `cafa1d3`) inspecteur de paquets, journal, explications en 2D, couleurs par protocole |
+| 5 | Caractéristiques des équipements, débit et bande passante | ✅ Terminé (12 nov), à commiter par Ramy |
 | 6 | Diagnostic et recommandations | À faire |
 | 7 | Éditeur de topologie et choix du protocole | À faire |
 | 8 | CI/CD et TLS | À faire |
@@ -85,6 +85,12 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 12 nov | Un paquet se désigne par l'id de son évènement d'envoi ; sélection depuis le journal ou par clic sur le paquet en vol (prioritaire sur l'équipement). | Un même paquet traverse plusieurs câbles : chaque passage a son trajet, son instant et son TTL. |
 | 12 nov | Couleurs par protocole définies par le pôle render et lues par l'interface (`app.render.packetStyle`). | Même couleur dans la scène et dans le journal, sans dépendance directe entre pôles. |
 | 12 nov | Journal limité aux envois et pertes (pas les réceptions), 400 lignes au plus. | Lisible ; la réception est l'arrivée de l'envoi. |
+| 12 nov | Échelle de temps : 1 s de simulation = 1 ms de réseau (SLOWDOWN = 1000). | Paquets visibles à l'écran et débits réalistes (une trame de 1500 octets à 1 Gb/s : 12 µs, soit 12 ms ici). |
+| 12 nov | Option B (choix de Ramy) : la bande passante règle le temps d'émission, et chaque port a une file d'attente. | Un lien lent est vraiment plus lent ; l'utilisation ne dépasse jamais 100 % ; base de la règle « goulot d'étranglement » de la phase 6. |
+| 12 nov | Fenêtre d'émission TCP (8000 octets) à la place d'un intervalle fixe entre segments. | Les émetteurs suivent le rythme du lien le plus lent, sans perte ni retransmission inutile. |
+| 12 nov | Perte simulée sur le câble (option `lost` de `ctx.send`) : la trame part puis disparaît à mi-chemin. | Avec la file d'attente, l'ancienne perte « avant le départ » apparaissait avant le segment précédent. |
+| 12 nov | Catalogue générique (`src/sim/catalog.js`) : 8 modèles fictifs aux valeurs réalistes (capacité de commutation = somme des ports × 2, débit de transfert en paquets de 64 octets). | Règle « pas de produits réels ». |
+| 12 nov | Bande passante globale d'un équipement = somme des vitesses des ports reliés × 2 (duplex) ; débit global = émis + reçu. | Définition simple, cohérente avec la capacité de commutation des fiches constructeur. |
 | 12 nov | Le bouton « Installer » est visible tant que l'application n'est pas installée. Sans invite du navigateur, le clic explique comment installer. | « Message clair si l'installation est indisponible » sans encombrer l'en-tête. |
 
 ## Journal des phases
@@ -269,3 +275,28 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 - Non vérifié automatiquement : le clic sur un paquet en vol dans la scène (à essayer à la main,
   en pause).
 - **Phase 4 terminée** : 7 protocoles, 9 scénarios, explications, journal et inspecteur.
+
+### Phase 5 — caractéristiques, débit et bande passante (12 novembre)
+
+- Tests : 340 tests, 340 réussis, 0 échec.
+- Moteur : `src/sim/catalog.js` (modèles et câbles), `src/sim/traffic.js` (taille des trames, temps
+  d'émission, bande passante effective, compteur de trafic), `commands.js` (file d'attente par port,
+  champs `bytes` et `transmitted`, perte sur le câble `lost`), `events.js`, `scenario.js` (validation
+  de `model`, `speed`, `bandwidth`, `cable`), `index.js` (`getTraffic()`, `timeScale`), `stack.js`
+  (`lost` transmis), `protocols/tcp.js` (fenêtre d'émission, transferts simultanés `transfers`),
+  `simulation.js` (exports du catalogue et du trafic).
+- Scénarios : modèles, bandes passantes et câbles dans les 9 scénarios ; nouveau `debit.json`
+  (3 PC vers un serveur derrière un câble Cat 5 à 100 Mb/s) ; `index.json` (10 scénarios).
+- Interface : `src/ui/datasheet.js` (+ test) fiche d'équipement ; `inspector.js` (modèle,
+  caractéristiques repliables, tableau des ports, débit global, mise à jour 4 fois par seconde) ;
+  `styles.css`.
+- Rendu : `links.js` (`setLoads`), `packetStyles.js` (`LOAD_COLORS`, `loadLevel`), `scene.js`
+  (`setLinkLoads`), `index.js` (couleurs de charge d'après `getTraffic`), `mock.js`.
+- VR : `xr/infoPanels.js` (modèle, ports les plus chargés d'abord, débit global, mise à jour 2 fois
+  par seconde).
+- Tests : `tests/catalog.test.js`, `tests/traffic.test.js` (taille, temps d'émission, file d'attente,
+  compteur, scénario débit), `src/ui/datasheet.test.js` ; tests d'ARP, ping et TCP recalculés avec le
+  temps d'émission.
+- Vérifié dans Chrome 157 piloté (scénario Débit) : lien vers le serveur en rouge à 98 %, liens des PC
+  en vert ; fiche du switch avec la vitesse négociée à 100 Mb/s (câble Cat 5), débits émis et reçus
+  par port, débit global ; en VR, fiche à jour avec le port p4 en tête ; console vide.

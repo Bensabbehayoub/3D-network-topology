@@ -14,6 +14,11 @@
 //   renderPacketInfo()  idem pour un paquet (vue calculée par packets.js → packetView)
 
 import { packetView } from './packets.js';
+import { datasheetView } from './datasheet.js';
+import { TOPICS } from '../../simulation.js';
+
+/** Intervalle minimal (ms réelles) entre deux mises à jour des débits de la fiche. */
+export const LIVE_REFRESH = 250;
 
 /** Message affiché tant qu'aucun paquet n'est sélectionné. */
 export const PACKET_HINT = 'Choisissez un message dans le journal, ou cliquez sur un paquet dans la scène (plus facile en pause), pour voir ses champs : MAC, IP, TTL, ports, données…';
@@ -99,7 +104,7 @@ export function describeSelection(app, id) {
   if (id === null || id === undefined) return null;
   const match = findDevice(app, id);
   if (!match) return { id: String(id), found: false };
-  return { id, found: true, source: match.source, info: deviceInfo(match.device) };
+  return { id, found: true, source: match.source, info: deviceInfo(match.device), sheet: datasheetView(app, id) };
 }
 
 /**
@@ -121,16 +126,30 @@ export function renderDeviceInfo(doc, view) {
     return root;
   }
 
-  const { info } = view;
+  const { info, sheet } = view;
   root.append(el('h3', 'device-title', info.title));
+  if (sheet?.model) root.append(el('p', 'device-model', `${sheet.model.name} · ${sheet.model.reference}`));
 
   const props = el('dl', 'device-props');
   for (const { label, value } of info.props) props.append(el('dt', '', label), el('dd', '', value));
   root.append(props);
 
+  if (sheet?.specs?.length) {
+    // Repliées par défaut : les ports et les débits en direct restent visibles sans défiler.
+    const details = el('details', 'device-specs');
+    details.append(el('summary', 'device-section', 'Caractéristiques du modèle'));
+    if (sheet.model.description) details.append(el('p', 'device-description', sheet.model.description));
+    const specs = el('dl', 'device-props');
+    for (const { label, value } of sheet.specs) specs.append(el('dt', '', label), el('dd', '', value));
+    details.append(specs);
+    root.append(details);
+  }
+
+  // Un switch n'a ni IP ni MAC sur ses ports : le tableau des adresses ne lui sert à rien.
+  const addressed = info.interfaces.some((itf) => itf.ip !== MISSING || itf.mac !== MISSING);
   if (info.interfaces.length === 0) {
     root.append(el('p', 'placeholder', 'Aucune interface décrite.'));
-  } else {
+  } else if (addressed || !sheet) {
     const table = el('table', 'device-interfaces');
     table.append(el('caption', 'sr-only', `Interfaces de ${info.title}`));
     const head = el('thead');
@@ -151,9 +170,85 @@ export function renderDeviceInfo(doc, view) {
     root.append(table);
   }
 
+  if (sheet) root.append(renderPorts(doc, sheet, info.title));
+
   if (view.source === 'render') {
     root.append(el('p', 'device-note', 'Infos partielles : scénario du moteur indisponible.'));
   }
+  return root;
+}
+
+/** Barre d'utilisation : décorative, le pourcentage est écrit à côté. */
+function meter(doc, ratio, level) {
+  const bar = doc.createElement('span');
+  bar.className = `load-bar load-${level}`;
+  bar.setAttribute('aria-hidden', 'true');
+  const fill = doc.createElement('span');
+  fill.className = 'load-fill';
+  fill.style?.setProperty?.('--load', `${Math.round(Math.min(1, ratio) * 100)}%`);
+  bar.append(fill);
+  return bar;
+}
+
+/** Tableau des ports et débit global (phase 5), mis à jour pendant la simulation. */
+export function renderPorts(doc, sheet, title) {
+  const el = (tag, className, content) => {
+    const node = doc.createElement(tag);
+    if (className) node.className = className;
+    if (content !== undefined) node.textContent = content;
+    return node;
+  };
+  const root = el('div', 'device-live');
+  root.append(el('h4', 'device-section', 'Ports'));
+  const table = el('table', 'device-ports');
+  table.append(el('caption', 'sr-only', `Ports de ${title} : vitesse, équipement relié, débit et charge`));
+  const headRow = el('tr');
+  for (const label of ['Port', 'Vitesse', 'Relié à', 'Débit', 'Charge']) {
+    const th = el('th', '', label);
+    th.setAttribute('scope', 'col');
+    headRow.append(th);
+  }
+  const head = el('thead');
+  head.append(headRow);
+  const body = el('tbody');
+  for (const port of sheet.ports) {
+    const row = el('tr', port.state === 'libre' ? 'port-free' : '');
+    const speed = el('td', '', port.speed);
+    if (port.negotiated) speed.append(el('span', 'port-negotiated', ` (${port.negotiated} négocié)`));
+    const peer = el('td', '', port.peer);
+    if (port.cable) peer.append(el('span', 'port-cable', port.cable));
+    const rate = el('td', 'port-rate');
+    for (const [arrow, label, value] of [['↑', 'émis', port.sent], ['↓', 'reçu', port.received]]) {
+      const line = el('span', 'mono');
+      const icon = el('span', '', `${arrow} `);
+      icon.setAttribute('aria-hidden', 'true');
+      line.append(icon, el('span', 'sr-only', `${label} `), el('span', '', value));
+      rate.append(line);
+    }
+    const load = el('td', 'port-load');
+    load.append(meter(doc, port.utilization, port.level), el('span', 'load-text', port.percent));
+    row.append(el('td', 'mono', port.name), speed, peer, rate, load);
+    body.append(row);
+  }
+  table.append(head, body);
+  root.append(table);
+  root.append(el('p', 'device-note', 'Débit : ↑ émis par le port, ↓ reçu. Charge : utilisation du lien.'));
+  if (sheet.freePorts > 0) root.append(el('p', 'device-note', `${sheet.freePorts} port${sheet.freePorts > 1 ? 's' : ''} libre${sheet.freePorts > 1 ? 's' : ''} au total sur l'équipement.`));
+
+  if (sheet.totals) {
+    root.append(el('h4', 'device-section', 'Débit global'));
+    const totals = el('dl', 'device-props');
+    const load = el('dd', 'port-load');
+    load.append(meter(doc, sheet.totals.utilization, sheet.totals.level), el('span', 'load-text', sheet.totals.percent));
+    totals.append(
+      el('dt', '', 'Débit actuel'), el('dd', 'mono', sheet.totals.current),
+      el('dt', '', 'Débit moyen'), el('dd', 'mono', sheet.totals.average),
+      el('dt', '', 'Bande passante globale'), el('dd', 'mono', `${sheet.totals.bandwidth} (ports reliés, duplex)`),
+      el('dt', '', 'Charge'), load,
+    );
+    root.append(totals);
+  }
+  if (sheet.note) root.append(el('p', 'device-note', sheet.note));
   return root;
 }
 
@@ -244,6 +339,22 @@ export function mount(container, app, { selection, packets } = {}) {
   const canListen = typeof selection?.onChange === 'function';
   const off = canListen ? selection.onChange((id) => show(id)) : null;
   show(canListen ? selection.getSelection?.() ?? null : null);
+
+  // Débits en direct : la fiche est recalculée pendant la lecture, au plus toutes les LIVE_REFRESH ms.
+  let lastRefresh = 0;
+  const live = () => {
+    const id = canListen ? selection.getSelection?.() ?? null : null;
+    if (id === null) return;
+    const now = globalThis.performance?.now?.() ?? Date.now();
+    if (now - lastRefresh < LIVE_REFRESH) return;
+    lastRefresh = now;
+    const scroll = container.scrollTop;
+    show(id);
+    container.scrollTop = scroll;
+  };
+  const offLive = typeof app?.sim?.on === 'function'
+    ? [app.sim.on(TOPICS.TICK, live), app.sim.on(TOPICS.RESET, () => { lastRefresh = 0; live(); })]
+    : [];
   const offPacket = typeof packets?.onChange === 'function' ? packets.onChange((eventId) => showPacket(eventId)) : null;
   showPacket(packets?.get?.() ?? null);
 
@@ -254,6 +365,7 @@ export function mount(container, app, { selection, packets } = {}) {
     destroy: () => {
       off?.();
       offPacket?.();
+      offLive.forEach((stop) => stop?.());
     },
   };
 }

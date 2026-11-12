@@ -4,6 +4,7 @@ import { test } from 'node:test';
 
 import { validateScenario } from '../simulation.js';
 import arp from '../src/sim/protocols/arp.js';
+import { transmissionTime } from '../src/sim/traffic.js';
 import { play, readScenario, variant } from './netRun.js';
 
 test('scenarios/arp.json : requête diffusée, inondation, réponse directe, cache', async () => {
@@ -19,7 +20,8 @@ test('scenarios/arp.json : requête diffusée, inondation, réponse directe, cac
   ]);
   assert.deepEqual(run.steps, ['arp-cache-miss', 'arp-request', 'arp-flood', 'arp-reply', 'arp-ignore', 'arp-cache-update']);
   assert.equal(run.drops.length, 0);
-  assert.equal(run.state.time, 1600);
+  // 4 trajets de 400 ms + 4 trames de 64 octets émises à 1 Gb/s (0,672 ms chacune, temps ralenti).
+  assert.equal(run.state.time, 1600 + 4 * transmissionTime(64, 1000));
 
   const request = run.events.find((e) => e.type === 'send' && e.packet.type === 'request').packet;
   assert.deepEqual(request.eth, { src: '02:00:00:00:00:01', dst: 'ff:ff:ff:ff:ff:ff' });

@@ -38,6 +38,17 @@ export function packetStyle(protocol, broadcast = false) {
   return { color, radius: broadcast ? BROADCAST_RADIUS : UNICAST_RADIUS };
 }
 
+/** Couleurs de charge d'un lien (phase 5) : au repos, < 50 %, 50 à 80 %, ≥ 80 %. */
+export const LOAD_COLORS = Object.freeze({ idle: '#70b7df', low: '#06d6a0', medium: '#f7b538', high: '#ef476f' });
+
+/** Niveau de charge d'un lien d'après son utilisation (0 à 1). */
+export function loadLevel(ratio) {
+  if (!(ratio >= 0.01)) return 'idle';
+  if (ratio >= 0.8) return 'high';
+  if (ratio >= 0.5) return 'medium';
+  return 'low';
+}
+
 /** '#ffd166' → 0xffd166 (pour Three.js). */
 export function colorNumber(hex) {
   return Number.parseInt(hex.slice(1), 16);

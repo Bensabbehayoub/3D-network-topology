@@ -16,6 +16,7 @@
       "id": "pc1",
       "type": "host",
       "label": "PC 1",
+      "model": "pc-1g",
       "position": [
         -8,
         0,
@@ -34,6 +35,7 @@
       "id": "sw1",
       "type": "switch",
       "label": "Switch 1",
+      "model": "sw-24g",
       "position": [
         -5,
         0,
@@ -52,6 +54,7 @@
       "id": "r1",
       "type": "router",
       "label": "Routeur 1",
+      "model": "rt-4g",
       "position": [
         -2,
         0,
@@ -80,6 +83,7 @@
       "id": "r2",
       "type": "router",
       "label": "Routeur 2",
+      "model": "rt-4g",
       "position": [
         2,
         0,
@@ -108,6 +112,7 @@
       "id": "sw2",
       "type": "switch",
       "label": "Switch 2",
+      "model": "sw-24g",
       "position": [
         5,
         0,
@@ -126,6 +131,7 @@
       "id": "srv1",
       "type": "server",
       "label": "Serveur",
+      "model": "srv-1g",
       "position": [
         8,
         0,
@@ -145,27 +151,37 @@
     {
       "id": "l1",
       "a": "pc1:eth0",
-      "b": "sw1:p1"
+      "b": "sw1:p1",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
     },
     {
       "id": "l2",
       "a": "sw1:p2",
-      "b": "r1:g0"
+      "b": "r1:g0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
     },
     {
       "id": "l3",
       "a": "r1:g1",
-      "b": "r2:g0"
+      "b": "r2:g0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
     },
     {
       "id": "l4",
       "a": "r2:g1",
-      "b": "sw2:p1"
+      "b": "sw2:p1",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
     },
     {
       "id": "l5",
       "a": "sw2:p2",
-      "b": "srv1:eth0"
+      "b": "srv1:eth0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
     }
   ],
   "steps": [

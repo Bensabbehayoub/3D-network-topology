@@ -4,6 +4,7 @@ import { test } from 'node:test';
 
 import { validateScenario } from '../simulation.js';
 import icmp from '../src/sim/protocols/icmp.js';
+import { frameSize, transmissionTime } from '../src/sim/traffic.js';
 import { play, readScenario, variant } from './netRun.js';
 
 const ofType = (run, type) => run.events.filter((e) => e.type === 'send' && e.packet.type === type);
@@ -29,10 +30,15 @@ test('scenarios/ping.json : ARP des deux côtés du routeur, puis deux échanges
   assert.ok(request.every((e) => e.packet.ip.src === '192.168.1.10' && e.packet.ip.dst === '192.168.2.20'));
   assert.equal(new Set(request.map((e) => e.packet.id)).size, 1, 'même paquet de bout en bout');
 
-  // Temps aller-retour : 4,8 s avec les ARP, 3,2 s ensuite (8 trajets de 400 ms).
+  // Temps aller-retour : 8 trajets de 400 ms + temps d'émission des trames (1 Gb/s, temps ralenti).
+  // Le premier compte aussi l'ARP du routeur vers PC 2 (4 trajets et 4 trames de plus).
   const replies = ofType(run, 'echo-reply').filter((e) => e.destination === 'pc1');
   const sent = ofType(run, 'echo-request').filter((e) => e.source === 'pc1');
-  assert.deepEqual(replies.map((e, i) => e.arrival - sent[i].time), [4800, 3200]);
+  const arp = transmissionTime(64, 1000);
+  const echo = transmissionTime(frameSize(sent[0].packet), 1000);
+  const rtt = replies.map((e, i) => e.arrival - sent[i].time);
+  assert.ok(Math.abs(rtt[0] - (4800 + 4 * arp + 8 * echo)) < 1e-6, String(rtt[0]));
+  assert.ok(Math.abs(rtt[1] - (3200 + 8 * echo)) < 1e-6, String(rtt[1]));
 });
 
 test('scenarios/ttl.json : TTL 1 → le premier routeur détruit le paquet et prévient PC 1', async () => {

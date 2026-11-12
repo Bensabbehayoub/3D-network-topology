@@ -33,6 +33,8 @@ export const DEFAULT_LATENCY = 400;
 const ID = /^[A-Za-z][A-Za-z0-9_-]*$/;
 const PROTOCOL = /^[a-z][a-z0-9-]*$/;
 const MAC = /^[0-9a-f]{2}(:[0-9a-f]{2}){5}$/i;
+import { CABLES, MODELS, SPEEDS } from './catalog.js';
+
 const HOSTNAME = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]$/i;
 const IPV4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
 
@@ -119,6 +121,15 @@ export function validateScenario(scenario) {
           if (!route || !isIpv4(route.via)) error(`${name}.routes[${k}].via : adresse IPv4 du routeur suivant attendue`);
         });
       }
+      if (device.model !== undefined) {
+        const model = MODELS[device.model];
+        if (!model) error(`${name}.model : modèle inconnu "${device.model}" (voir src/sim/catalog.js)`);
+        else {
+          if (model.type !== device.type) error(`${name}.model : "${device.model}" est un modèle de type ${model.type}, pas ${device.type}`);
+          const count = model.ports.reduce((sum, group) => sum + group.count, 0);
+          if (Array.isArray(device.interfaces) && device.interfaces.length > count) error(`${name}.interfaces : ${device.interfaces.length} interfaces pour un modèle à ${count} ports`);
+        }
+      }
       if (device.dns !== undefined && !isIpv4(device.dns)) error(`${name}.dns : adresse IPv4 du serveur DNS attendue`);
       if (device.services !== undefined) {
         if (!Array.isArray(device.services)) error(`${name}.services : tableau attendu`);
@@ -172,6 +183,7 @@ export function validateScenario(scenario) {
           if (itf.mac !== undefined && !isMac(itf.mac)) error(`${at}.mac : format aa:bb:cc:dd:ee:ff attendu`);
           if (itf.mac === undefined && NEEDS_MAC.has(device.type)) error(`${at}.mac : obligatoire pour un équipement ${device.type}`);
           if (itf.ip !== undefined && !parseCidr(itf.ip)) error(`${at}.ip : format 192.168.1.10/24 attendu`);
+          if (itf.speed !== undefined && !SPEEDS.includes(itf.speed)) error(`${at}.speed : une valeur parmi ${SPEEDS.join(', ')} (Mb/s)`);
         });
       }
       if (typeof device.id === 'string' && !interfaces.has(device.id)) interfaces.set(device.id, names);
@@ -200,6 +212,8 @@ export function validateScenario(scenario) {
       if (typeof link.id !== 'string' || !ID.test(link.id)) error(`${where}.id : identifiant attendu`);
       else if (ids.has(link.id)) error(`${where} : id en double`);
       else ids.add(link.id);
+      if (link.bandwidth !== undefined && !SPEEDS.includes(link.bandwidth)) error(`${where}.bandwidth : une valeur parmi ${SPEEDS.join(', ')} (Mb/s)`);
+      if (link.cable !== undefined && !CABLES[link.cable]) error(`${where}.cable : une valeur parmi ${Object.keys(CABLES).join(', ')}`);
       if (link.latency !== undefined && !(Number.isFinite(link.latency) && link.latency > 0)) {
         error(`${where}.latency : nombre > 0 attendu (ms simulées)`);
       }

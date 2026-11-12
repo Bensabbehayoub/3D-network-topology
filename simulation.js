@@ -25,3 +25,7 @@ export {
   parseCidr,
   parseEndpoint,
 } from './src/sim/scenario.js';
+export {
+  CABLES, DEFAULT_SPEED, MODELS, SPEEDS, formatNumber, formatSpeed, modelOf, modelPorts, modelSheet, portConnector, portSpeed,
+} from './src/sim/catalog.js';
+export { SLOWDOWN, createTrafficMeter, frameSize, linkBandwidth, transmissionModel, transmissionTime } from './src/sim/traffic.js';

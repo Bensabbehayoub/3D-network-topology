@@ -21,11 +21,24 @@ export const STEP_HINT = 'Lancez la simulation avec le panneau de commandes : ch
  *   props: Array<{ label: string, value: string }>, interfaces: Array<{ name: string, ip: string, mac: string }> }}
  */
 export function deviceSheet(view) {
-  const base = { heading: 'ÉQUIPEMENT', title: null, hint: null, props: [], interfaces: [] };
+  const base = { heading: 'ÉQUIPEMENT', title: null, hint: null, props: [], interfaces: [], model: null, ports: [], totals: null };
   if (!view) return { ...base, hint: DEVICE_HINT };
   if (!view.found) return { ...base, title: view.id, hint: 'Équipement introuvable dans le scénario.' };
-  return { ...base, title: view.info.title, props: view.info.props, interfaces: view.info.interfaces };
+  // Phase 5 : modèle, ports reliés avec leur débit et leur charge, débit global (fiche de src/ui/datasheet.js).
+  const sheet = view.sheet ?? null;
+  return {
+    ...base,
+    title: view.info.title,
+    props: view.info.props,
+    interfaces: view.info.interfaces,
+    model: sheet?.model ? `${sheet.model.name} · ${sheet.model.reference}` : null,
+    ports: (sheet?.ports ?? []).filter((port) => port.state === 'connecté'),
+    totals: sheet?.totals ?? null,
+  };
 }
+
+/** Couleurs des barres de charge (mêmes seuils que les liens de la scène). */
+const LOAD = { idle: '#70b7df', low: '#06d6a0', medium: '#f7b538', high: '#ef476f' };
 
 /**
  * Contenu du panneau d'explications.
@@ -84,6 +97,11 @@ export function drawDeviceSheet(ctx, sheet, layout = DEVICE_PANEL) {
     ctx.font = `700 56px ${FONT}`;
     y = drawParagraph(ctx, sheet.title, MARGIN, y, width, 62, 2) + 14;
   }
+  if (sheet.model) {
+    ctx.fillStyle = PALETTE.accent;
+    ctx.font = `32px ${FONT}`;
+    y = drawParagraph(ctx, sheet.model, MARGIN, y - 4, width, 42, 1) + 10;
+  }
   if (sheet.hint) {
     ctx.fillStyle = PALETTE.muted;
     ctx.font = `36px ${FONT}`;
@@ -99,9 +117,53 @@ export function drawDeviceSheet(ctx, sheet, layout = DEVICE_PANEL) {
     y += 50;
   }
   y += 40;
+  // Ports reliés : une ligne chacun (port, voisin, débit, charge), puis le débit global en bas.
+  const bottom = layout.pxHeight - (sheet.totals ? 110 : 40);
+  if (sheet.ports.length) {
+    // Place gardée pour un bloc IP/MAC seulement si l'équipement a des adresses (pas un switch).
+    const reserve = sheet.interfaces.some((itf) => itf.ip !== '—' || itf.mac !== '—') ? 140 : 0;
+    const rows = Math.max(0, Math.min(sheet.ports.length, Math.floor((bottom - y - reserve) / 64)));
+    // Les ports les plus chargés d'abord : en VR, la place est comptée.
+    const busiest = [...sheet.ports].sort((a, b) => b.utilization - a.utilization);
+    for (const port of busiest.slice(0, rows)) {
+      ctx.fillStyle = PALETTE.accent;
+      ctx.font = `600 32px ${MONO}`;
+      ctx.fillText(port.name, MARGIN, y);
+      ctx.fillStyle = PALETTE.text;
+      ctx.font = `30px ${FONT}`;
+      ctx.fillText(wrapText(port.peer, 330, (text) => ctx.measureText(text).width, 1)[0] ?? '', MARGIN + 120, y);
+      ctx.font = `30px ${MONO}`;
+      ctx.fillText(port.current, MARGIN + 470, y);
+      ctx.fillStyle = PALETTE.border;
+      ctx.fillRect(MARGIN + 660, y - 22, 150, 20);
+      ctx.fillStyle = LOAD[port.level] ?? LOAD.idle;
+      ctx.fillRect(MARGIN + 660, y - 22, Math.round(150 * Math.min(1, port.utilization)), 20);
+      ctx.fillStyle = PALETTE.muted;
+      ctx.font = `26px ${FONT}`;
+      ctx.fillText(port.percent, MARGIN + 660, y + 22);
+      y += 64;
+    }
+    if (rows < sheet.ports.length) {
+      ctx.fillStyle = PALETTE.muted;
+      ctx.font = `28px ${FONT}`;
+      ctx.fillText(`… et ${sheet.ports.length - rows} autre(s) port(s) relié(s)`, MARGIN, y);
+      y += 50;
+    }
+    y += 30;
+  }
+  if (sheet.totals) {
+    ctx.fillStyle = PALETTE.border;
+    ctx.fillRect(MARGIN, layout.pxHeight - 104, width, 2);
+    ctx.fillStyle = PALETTE.text;
+    ctx.font = `600 32px ${FONT}`;
+    ctx.fillText(`Débit global ${sheet.totals.current} · charge ${sheet.totals.percent}`, MARGIN, layout.pxHeight - 62);
+    ctx.fillStyle = PALETTE.muted;
+    ctx.font = `26px ${FONT}`;
+    ctx.fillText(`Bande passante globale ${sheet.totals.bandwidth} · 1 s ici = 1 ms de réseau`, MARGIN, layout.pxHeight - 24);
+  }
   // Une interface par bloc : nom, puis IP et MAC en chasse fixe. On s'arrête avant le bord.
-  const room = Math.max(0, Math.floor((layout.pxHeight - 40 - y) / 138));
-  const shown = sheet.interfaces.slice(0, room);
+  const room = Math.max(0, Math.floor((bottom - y) / 138));
+  const shown = sheet.interfaces.filter((itf) => itf.ip !== '—' || itf.mac !== '—').slice(0, room);
   for (const itf of shown) {
     ctx.fillStyle = PALETTE.border;
     ctx.fillRect(MARGIN, y - 34, width, 2);
@@ -114,10 +176,11 @@ export function drawDeviceSheet(ctx, sheet, layout = DEVICE_PANEL) {
     ctx.fillText(`MAC  ${itf.mac}`, MARGIN + 24, y + 96);
     y += 138;
   }
-  if (shown.length < sheet.interfaces.length) {
+  const addressed = sheet.interfaces.filter((itf) => itf.ip !== '—' || itf.mac !== '—').length;
+  if (shown.length < addressed && !sheet.totals) {
     ctx.fillStyle = PALETTE.muted;
     ctx.font = `30px ${FONT}`;
-    ctx.fillText(`… et ${sheet.interfaces.length - shown.length} autre(s) interface(s)`, MARGIN, layout.pxHeight - 36);
+    ctx.fillText(`… et ${addressed - shown.length} autre(s) interface(s)`, MARGIN, layout.pxHeight - 36);
   }
 }
 
@@ -144,6 +207,17 @@ export function createVrDevicePanel(app, { documentRef } = {}) {
   };
   const off = typeof app?.ui?.onChange === 'function' ? app.ui.onChange((id) => show(id)) : null;
   show(app?.ui?.getSelection?.() ?? null);
+  // Débits en direct pendant la lecture (phase 5), deux fois par seconde au plus : redessiner un
+  // canevas a un coût, surtout sur un casque.
+  let last = 0;
+  const live = () => {
+    const id = app?.ui?.getSelection?.() ?? null;
+    const now = globalThis.performance?.now?.() ?? Date.now();
+    if (id === null || now - last < 500) return;
+    last = now;
+    show(id);
+  };
+  const offLive = typeof app?.sim?.on === 'function' ? app.sim.on(TOPICS.TICK, live) : null;
   return {
     mesh: panel.mesh,
     setPose: panel.setPose,
@@ -152,6 +226,7 @@ export function createVrDevicePanel(app, { documentRef } = {}) {
     press: () => false,
     dispose() {
       off?.();
+      offLive?.();
       panel.dispose();
     },
   };

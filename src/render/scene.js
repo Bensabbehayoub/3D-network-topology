@@ -152,6 +152,8 @@ export async function initScene(container,{onDeviceClick=()=>{},onPacketClick=()
    const pending=next.devices.map(device=>factory.loadModel(device).then(root=>replaceDevice(device,root,token)));ready=Promise.allSettled(pending);return {devices:next.devices.length,links:next.links.length};
   },
   whenReady(){return ready;},
+  /** Couleur des liens selon leur charge (phase 5) : { idLien: utilisation 0..1 }. */
+  setLinkLoads(loads){if(disposed)return false;linkLayer?.setLoads(loads);return Boolean(linkLayer);},
   pickDevice(origin,direction){if(disposed)throw new Error('Renderer disposed');return pickDeviceFromObjects(raycaster,[...deviceMeshes.values()],origin,direction,content);},
   /**
    * Comme pickDevice, avec le point d'impact et la distance (rayon des manettes VR).

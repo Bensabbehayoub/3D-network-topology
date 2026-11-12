@@ -732,6 +732,128 @@ input[type="range"] {
   color: var(--danger);
 }
 
+/* ---------- Fiche d'équipement (phase 5) ---------- */
+
+.device-model {
+  margin: -4px 0 10px;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.device-section {
+  margin: 14px 0 6px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.device-description {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.device-ports {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  table-layout: fixed;
+}
+
+.device-ports th:nth-child(1) { width: 12%; }
+.device-ports th:nth-child(2) { width: 20%; }
+.device-ports th:nth-child(4) { width: 26%; }
+.device-ports th:nth-child(5) { width: 18%; }
+
+.device-ports td {
+  overflow-wrap: anywhere;
+}
+
+.device-ports th,
+.device-ports td {
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.device-ports th {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.port-rate span {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.device-specs summary {
+  cursor: pointer;
+  padding: 12px 0; /* cible de 44 px, avec le triangle d'ouverture */
+}
+
+.device-specs summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.device-ports td.mono {
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.port-free td {
+  color: var(--text-muted);
+}
+
+.port-negotiated,
+.port-cable {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.port-load {
+  white-space: nowrap;
+}
+
+.device-ports .load-bar {
+  margin: 4px 0 3px;
+}
+
+.load-bar {
+  display: block;
+  width: 100%;
+  max-width: 48px;
+  height: 8px;
+  margin-right: 6px;
+  vertical-align: middle;
+  background: var(--surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.load-fill {
+  display: block;
+  width: var(--load, 0%);
+  height: 100%;
+  background: #70b7df;
+  transition: width 0.2s;
+}
+
+.load-low .load-fill { background: #06d6a0; }
+.load-medium .load-fill { background: #f7b538; }
+.load-high .load-fill { background: #ef476f; }
+
+.load-text {
+  font: 0.75rem var(--mono);
+}
+
 /* ---------- Inspecteur : paquet sélectionné ---------- */
 
 .inspector-device:not([hidden]) + .inspector-packet {

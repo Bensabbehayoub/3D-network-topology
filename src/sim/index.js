@@ -14,6 +14,8 @@ import { createSimulation } from './commands.js';
 import { DEVICE_BEHAVIOURS } from './devices/index.js';
 import { createScenarioLibrary, summarize } from './library.js';
 import { createMockSimulation, DEMO_SCENARIO } from './mock.js';
+import { TOPICS } from './events.js';
+import { createTrafficMeter, SLOWDOWN, transmissionModel } from './traffic.js';
 
 /**
  * @param {object} [app] objet partagé rempli par main.js
@@ -34,7 +36,11 @@ export async function init(app = {}, { library = createScenarioLibrary(), option
     });
   }
 
-  const sim = createSimulation({ ...options, devices: DEVICE_BEHAVIOURS });
+  // Phase 5 : chaque trame a une taille et un temps d'émission (bande passante), et le trafic est mesuré.
+  const sim = createSimulation({ ...options, devices: DEVICE_BEHAVIOURS, transmission: transmissionModel });
+  const meter = createTrafficMeter();
+  sim.on(TOPICS.NETWORK, (event) => meter.add(event));
+  sim.on(TOPICS.RESET, () => meter.reset());
   const byId = new Map(scenarios.map((scenario) => [scenario.id, scenario]));
   await sim.load(scenarios[0]);
 
@@ -53,5 +59,13 @@ export async function init(app = {}, { library = createScenarioLibrary(), option
       if (!scenario) return false;
       return sim.load(scenario, params);
     },
+    /**
+     * Trafic mesuré à l'instant courant (phase 5) : débits instantané et moyen, utilisation, par
+     * lien (sens a→b et b→a), par port et par équipement. Débits en Mb/s de temps réseau
+     * (1 s de simulation = 1 ms de réseau, voir traffic.js).
+     */
+    getTraffic: () => meter.snapshot(sim.getScenario(), sim.getState().time),
+    /** Facteur de ralenti : 1 ms de simulation = 1/SLOWDOWN ms de réseau. */
+    timeScale: SLOWDOWN,
   });
 }

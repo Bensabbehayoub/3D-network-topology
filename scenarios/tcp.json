@@ -19,6 +19,7 @@
       "id": "pc1",
       "type": "host",
       "label": "PC 1",
+      "model": "pc-1g",
       "position": [
         -4,
         0,
@@ -37,6 +38,7 @@
       "id": "sw1",
       "type": "switch",
       "label": "Switch",
+      "model": "sw-24g",
       "position": [
         0,
         0,
@@ -55,6 +57,7 @@
       "id": "srv1",
       "type": "server",
       "label": "Serveur de sauvegarde",
+      "model": "srv-1g",
       "position": [
         4,
         0,
@@ -81,12 +84,16 @@
     {
       "id": "l1",
       "a": "pc1:eth0",
-      "b": "sw1:p1"
+      "b": "sw1:p1",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
     },
     {
       "id": "l2",
       "a": "sw1:p2",
-      "b": "srv1:eth0"
+      "b": "srv1:eth0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
     }
   ],
   "steps": [

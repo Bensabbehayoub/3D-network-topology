@@ -132,8 +132,12 @@ test('rendu : nom, propriétés et tableau des interfaces écrits en texte', asy
   assert.equal(node.findAll('h3')[0].textContent, 'PC 1');
   assert.deepEqual(node.findAll('dt').map((dt) => dt.textContent), ['Type', 'Identifiant', 'Passerelle']);
   assert.deepEqual(node.findAll('dd').map((dd) => dd.textContent), ['Ordinateur', 'pc1', '192.168.1.1']);
-  assert.deepEqual(node.findAll('td').map((td) => td.textContent), ['eth0', '192.168.1.10/24', '02:00:00:00:01:01']);
+  const addresses = node.findAll('table').find((table) => table.className === 'device-interfaces');
+  assert.deepEqual(addresses.findAll('td').map((td) => td.textContent), ['eth0', '192.168.1.10/24', '02:00:00:00:01:01']);
   assert.ok(node.findAll('th').every((th) => th.attributes.scope === 'col'));
+  // Phase 5 : tableau des ports (sans modèle : 1 Gb/s par défaut ; faux moteur : pas de mesure).
+  const ports = node.findAll('table').find((table) => table.className === 'device-ports');
+  assert.deepEqual(ports.findAll('td').slice(0, 3).map((td) => td.textContent), ['eth0', '1 Gb/s', 'Switch 1 (p1)']);
 
   const missing = renderDeviceInfo(fakeDocument(), { id: 'x', found: false });
   assert.match(missing.textContent, /« x » introuvable/);

@@ -95,6 +95,9 @@ function deepFreeze(value) {
  *   comportements d'équipements par type (S3 : switch.js, host.js, router.js). Appelé avant le
  *   protocole à chaque réception ; s'il renvoie true, le paquet est traité et le protocole n'est pas appelé.
  * @param {number} [options.speed] vitesse initiale (1 par défaut)
+ * @param {(scenario: object, link: object, packet: object) => { bytes: number, duration: number }} [options.transmission]
+ *   taille de la trame et durée d'émission sur le lien (phase 5, voir traffic.js). Sans elle, une
+ *   trame part et arrive comme avant (durée nulle, aucune file d'attente).
  */
 export function createSimulation(options = {}) {
   const bus = createBus();
@@ -245,7 +248,7 @@ export function createSimulation(options = {}) {
         bus.emit(TOPICS.STEP, { time: engine.now(), step: step.id, title: step.title, text: step.text });
       },
 
-      send(deviceId, packet, { interface: name, step = null, delay = 0 } = {}) {
+      send(deviceId, packet, { interface: name, step = null, delay = 0, lost = null } = {}) {
         assertPacket(packet);
         const frozen = deepFreeze(structuredClone(packet));
         const device = deviceOrThrow(deviceId);
@@ -257,7 +260,7 @@ export function createSimulation(options = {}) {
             return;
           }
           const { link, peer } = attached;
-          const arrival = engine.now() + (link.latency ?? DEFAULT_LATENCY);
+          const { bytes = null, duration = 0 } = options.transmission?.(scenario, link, frozen) ?? {};
           const common = {
             source: device.id,
             sourceInterface,
@@ -267,13 +270,31 @@ export function createSimulation(options = {}) {
             packet: frozen,
             step,
           };
-          const sent = publish(EVENT_TYPES.SEND, { ...common, arrival });
-          run.inFlight.set(sent.id, sent);
-          engine.schedule(arrival, () => {
-            run.inFlight.delete(sent.id);
-            publish(EVENT_TYPES.RECEIVE, common);
-            receive(peer.device, frozen, { interface: peer.interface, link: link.id, from: device.id });
-          });
+          // Un port n'émet qu'une trame à la fois : la suivante attend la fin de la précédente.
+          const port = `${device.id}:${sourceInterface}`;
+          const start = Math.max(engine.now(), run.portFree.get(port) ?? 0);
+          run.portFree.set(port, start + duration);
+          const transmit = () => {
+            const transmitted = engine.now() + duration;
+            const arrival = transmitted + (link.latency ?? DEFAULT_LATENCY);
+            const sent = publish(EVENT_TYPES.SEND, { ...common, arrival, bytes, transmitted });
+            run.inFlight.set(sent.id, sent);
+            if (lost) {
+              // Perte simulée sur le câble : la trame part, puis disparaît à mi-chemin.
+              engine.schedule(transmitted + (arrival - transmitted) / 2, () => {
+                run.inFlight.delete(sent.id);
+                publish(EVENT_TYPES.DROP, { source: device.id, sourceInterface, link: link.id, packet: frozen, step, reason: String(lost) });
+              });
+              return;
+            }
+            engine.schedule(arrival, () => {
+              run.inFlight.delete(sent.id);
+              publish(EVENT_TYPES.RECEIVE, common);
+              receive(peer.device, frozen, { interface: peer.interface, link: link.id, from: device.id });
+            });
+          };
+          if (start > engine.now()) engine.schedule(start, transmit);
+          else transmit();
         });
       },
 
@@ -296,7 +317,7 @@ export function createSimulation(options = {}) {
     stop();
     engine.clear();
     lastError = null;
-    run = { eventId: 0, packetId: 0, memory: new Map(), history: [], inFlight: new Map(), ctx: null };
+    run = { eventId: 0, packetId: 0, memory: new Map(), history: [], inFlight: new Map(), portFree: new Map(), ctx: null };
     run.ctx = createContext();
     engine.schedule(0, () => protocol.start(run.ctx));
     bus.emit(TOPICS.RESET, { time: 0 });

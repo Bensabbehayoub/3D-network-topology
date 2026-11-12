@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 import { createSimulation, TOPICS } from '../simulation.js';
 import { DEVICE_BEHAVIOURS } from '../src/sim/devices/index.js';
+import { transmissionModel } from '../src/sim/traffic.js';
 
 export const noClock = { start: () => () => {} };
 
@@ -14,15 +15,17 @@ export async function readScenario(id) {
 /**
  * @param {object} scenario
  * @param {Record<string, any>} [params]
+ * @param {(sim: object) => void} [setup] appelé avant le chargement
  * @returns {Promise<{ sim: object, events: object[], steps: string[], sends: string[], drops: object[], state: object }>}
  *   sends : « protocole/type source→destination » pour chaque envoi, dans l'ordre
  */
-export async function play(scenario, params = {}) {
-  const sim = createSimulation({ devices: DEVICE_BEHAVIOURS, scheduler: noClock });
+export async function play(scenario, params = {}, setup = () => {}) {
+  const sim = createSimulation({ devices: DEVICE_BEHAVIOURS, transmission: transmissionModel, scheduler: noClock });
   const events = [];
   const steps = [];
   sim.on(TOPICS.NETWORK, (event) => events.push(event));
   sim.on(TOPICS.STEP, ({ step }) => steps.push(step));
+  setup(sim); // ex. brancher un compteur de trafic avant la lecture
   await sim.load(scenario, params);
   let guard = 0;
   while (sim.getState().status !== 'finished' && guard++ < 10_000) sim.step();

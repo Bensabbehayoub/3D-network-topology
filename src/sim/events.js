@@ -67,6 +67,8 @@ const TYPES = new Set(Object.values(EVENT_TYPES));
  * @property {Packet} packet
  * @property {string|null} step id de l'étape pédagogique (scenario.steps[].id) liée à ce message
  * @property {string|null} reason raison de la perte (drop seulement)
+ * @property {number|null} bytes taille de la trame en octets (send seulement, phase 5 ; null sans mesure)
+ * @property {number|null} transmitted instant où la trame a fini de partir (send seulement) : time + durée d'émission
  */
 
 /**
@@ -97,6 +99,8 @@ export function createEvent(fields) {
     packet,
     step: fields.step ?? null,
     reason: type === EVENT_TYPES.DROP ? (fields.reason ?? 'inconnue') : null,
+    bytes: type === EVENT_TYPES.SEND && Number.isFinite(fields.bytes) ? fields.bytes : null,
+    transmitted: type === EVENT_TYPES.SEND ? (Number.isFinite(fields.transmitted) ? fields.transmitted : time) : null,
   });
 }
 

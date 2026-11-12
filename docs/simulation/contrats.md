@@ -73,6 +73,18 @@ Un fichier `scenarios/<protocole>.json` par scénario. Il contient **sa** topolo
 
 - `a` et `b` : `"équipement:interface"`. Une interface n'est reliée qu'une fois ; un lien relie deux équipements différents.
 - `latency` : facultatif, en ms simulées (400 par défaut, soit 0,4 s à vitesse 1).
+- `bandwidth` (phase 5) : facultatif, 10, 100, 1000 ou 10000 (Mb/s).
+- `cable` (phase 5) : facultatif, `cuivre-cat5` (100 Mb/s au plus), `cuivre-cat5e`, `cuivre-cat6` (1 Gb/s), `cuivre-cat6a`, `fibre-mm`, `fibre-sm` (10 Gb/s). Liste et longueurs dans `src/sim/catalog.js`.
+- Bande passante **effective** d'un lien : la plus petite de `bandwidth`, des vitesses des deux ports et du câble.
+
+### Modèles d'équipements (phase 5)
+
+- `model` (facultatif) sur un équipement : un identifiant du catalogue `src/sim/catalog.js` (`pc-1g`, `srv-1g`, `srv-10g`, `sw-8fe`, `sw-24g`, `sw-48x`, `rt-4g`, `rt-8x`). Modèles **génériques et fictifs** (références inventées), valeurs réalistes. Le type du modèle doit être celui de l'équipement, et l'équipement ne peut pas avoir plus d'interfaces que le modèle n'a de ports.
+- `speed` (facultatif) sur une interface : 10, 100, 1000 ou 10000 (Mb/s). Sans elle : la vitesse du port du modèle (les interfaces suivent l'ordre des ports du modèle), sinon 1 Gb/s.
+
+### Échelle de temps et transmission (phase 5)
+
+1 seconde de simulation (à vitesse ×1) représente **1 milliseconde de réseau** (`SLOWDOWN = 1000`, `src/sim/traffic.js`). Une trame occupe le câble pendant (taille + 20 octets de préambule et d'intervalle) × 8 / bande passante ; un port n'émet qu'une trame à la fois, les suivantes attendent dans sa file. Taille d'une trame : en-têtes réels (Ethernet 18, IP 20, UDP 8, TCP 20) + données, 64 octets au minimum (`frameSize`).
 
 ### Étape pédagogique
 
@@ -125,7 +137,9 @@ Comme `app.sim` est créé avant les autres pôles, le scénario de départ est 
   "arrival": 800,                  // send seulement : instant d'arrivée prévu
   "packet": { ... },               // Packet (ci-dessous)
   "step": "arp-request",           // étape liée, ou null
-  "reason": null                   // drop seulement : "TTL nul", "interface non reliée"...
+  "reason": null,                  // drop seulement : "TTL nul", "interface non reliée"...
+  "bytes": 1058,                   // send seulement (phase 5) : taille de la trame en octets, null sans mesure
+  "transmitted": 412.6             // send seulement (phase 5) : fin de l'émission (time + durée d'émission)
 }
 ```
 
@@ -204,7 +218,7 @@ Aucun registre à modifier : le moteur charge le fichier d'après le champ `prot
 | `ctx.now()` | instant simulé (ms) |
 | `ctx.device(id)` | équipement du scénario (erreur s'il n'existe pas) |
 | `ctx.memory(deviceId)` | objet modifiable propre à l'équipement : cache ARP, baux DHCP, état TCP... Vidé à chaque réinitialisation |
-| `ctx.send(deviceId, packet, { interface?, step?, delay? })` | émet par l'interface donnée, ou par la seule interface reliée. Publie `send`, puis `receive` après la latence du lien, puis appelle `onReceive` sur l'équipement d'en face |
+| `ctx.send(deviceId, packet, { interface?, step?, delay?, lost? })` | émet par l'interface donnée, ou par la seule interface reliée. La trame attend son tour dans la file du port, part (`send`, avec `bytes` et `transmitted`), puis arrive (`receive`) après sa durée d'émission et la latence du lien, et `onReceive` est appelé sur l'équipement d'en face. `lost` (texte) : perte simulée, la trame part puis disparaît à mi-câble (`drop`) |
 | `ctx.drop(deviceId, packet, reason, { step? })` | publie une perte |
 | `ctx.explain(stepId)` | publie l'étape `stepId` de `scenario.steps` (erreur si elle n'existe pas) |
 | `ctx.schedule(delay, action)` | exécute `action` après `delay` ms simulées (délais de traitement, temporisations). **Renvoie une fonction d'annulation** (S2) : `const cancel = ctx.schedule(3000, retransmettre); … cancel();` quand l'ACK arrive |
@@ -296,6 +310,8 @@ Une commande non permise renvoie `false` sans exception : un clic au mauvais mom
 | --- | --- |
 | `listScenarios()` → `[{ id, title, protocol, description }]` | scénarios de `scenarios/index.json`, dans l'ordre |
 | `loadScenario(id, params?)` → promesse de booléen | charge le scénario (comme `load`) ; `false` si l'id est inconnu |
+| `getTraffic()` (phase 5) | `{ time, links, ports, devices }` : par lien `{ bandwidth, cable, ab, ba, utilization }` (sens a→b et b→a), par port `"équipement:interface"` `{ speed, negotiated, linked, link, peer, tx, rx, utilization }`, par équipement `{ current, average, bandwidth, utilization }`. Chaque mesure `{ current, average, bytes, utilization }` : débit instantané (fenêtre de 1 ms de réseau) et moyen en Mb/s, utilisation de 0 à 1 |
+| `timeScale` | 1000 : 1 ms de simulation = 1 µs de réseau |
 
 ## 5. Faux moteur (mock)
 
@@ -328,7 +344,7 @@ Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle x
 | `modules.install` | `getView()` → `{ showButton, buttonTitle, offline, message }`, `install()` → `'accepted' \| 'dismissed' \| 'failed' \| 'unavailable'` |
 | `packets` (phase 4d) | paquet sélectionné, désigné par l'id de son évènement d'envoi : `select(eventId)` → booléen (id présent dans `app.sim.getHistory()`), `clear()`, `get()`, `onChange(listener)`. Effacé à chaque réinitialisation et changement de scénario ; met le paquet en avant dans la scène (`app.render.highlightPacket`) |
 | `modules.explanations` | `getView()` → `{ heading, title, text, time, hint }` (étape en cours), `getLog()` → lignes du journal `{ eventId, kind, time, label, route, protocol, broadcast, reason }` |
-| `modules.inspector` | `getView()` (équipement sélectionné), `getPacketView()` → `{ eventId, title, meta, layers }` ou `null` (paquet sélectionné) |
+| `modules.inspector` | `getView()` (équipement sélectionné, avec `sheet` : fiche de `src/ui/datasheet.js`, mise à jour en direct), `getPacketView()` → `{ eventId, title, meta, layers }` ou `null` (paquet sélectionné) |
 
 ## 7. API du pôle render (`app.render`) utilisée par les autres pôles
 
@@ -347,6 +363,7 @@ Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle x
 | `getVRAnchor()` → `{ x, y, z, width, depth }` ou `null` | centre et taille (m) de la maquette pendant une session VR ; les panneaux VR s'y accrochent |
 | `packetStyle(protocol, broadcast?)` → `{ color, radius }` | couleur (`'#rrggbb'`) et taille d'un paquet, une couleur par protocole (`src/render/packetStyles.js`) ; le journal de l'interface utilise les mêmes |
 | `highlightPacket(eventId)` | met en avant (plus gros) le paquet en vol de cet évènement d'envoi ; `null` : aucun |
+| `setLinkLoads({ idLien: utilisation })` (phase 5) | couleur des liens selon leur charge : bleu au repos, vert < 50 %, orange 50 à 80 %, rouge ≥ 80 %. Appelé par le pôle render lui-même 4 fois par seconde d'après `app.sim.getTraffic()` |
 | `scene`, `world`, `camera` | objets Three.js : `scene` est dans l'espace de référence WebXR (mètres), `world` porte la topologie mise à l'échelle |
 
 `initScene(container, options)` est **asynchrone** depuis la phase 2 (`WebGPURenderer` s'initialise avant le premier rendu) ; `init(app)` du pôle render l'attend. Sans WebGPU, `initScene` lève `WebGPUUnavailableError` : `init(app)` affiche « WebGPU requis » et renvoie `{ available: false, reason }` (pas de repli WebGL).

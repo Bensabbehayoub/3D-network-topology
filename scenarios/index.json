@@ -8,6 +8,7 @@
     "dns",
     "dhcp",
     "tcp",
-    "http"
+    "http",
+    "debit"
   ]
 }

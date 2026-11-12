@@ -86,6 +86,25 @@ export async function init(app = {}) {
   /** Met en avant dans la scène le paquet d'un évènement d'envoi (null : aucun). */
   handle.highlightPacket = (eventId) => { animator?.select(eventId); return Boolean(animator); };
 
+  // Phase 5 : charge des liens dans la scène, d'après le trafic mesuré par le moteur (4 fois par seconde).
+  if (typeof sim?.getTraffic === 'function' && typeof sim?.on === 'function') {
+    let last = 0;
+    const paintLoads = (force = false) => {
+      const now = performance.now();
+      if (!force && now - last < 250) return;
+      last = now;
+      try {
+        const { links } = sim.getTraffic();
+        handle.setLinkLoads(Object.fromEntries(Object.entries(links).map(([id, link]) => [id, link.utilization])));
+      } catch (error) {
+        console.error('Charge des liens non affichée :', error);
+      }
+    };
+    sim.on(TOPICS.TICK, () => paintLoads());
+    sim.on(TOPICS.RESET, () => paintLoads(true));
+    sim.on(TOPICS.SCENARIO, () => setTimeout(() => paintLoads(true), 0));
+  }
+
   // On renvoie l'objet lui-même (pas une copie) : les fonctions ajoutées ci-dessus en font partie.
   handle.available = true;
   return handle;

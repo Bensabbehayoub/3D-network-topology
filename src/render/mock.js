@@ -27,6 +27,7 @@ export function createMockRenderer({onDeviceClick=()=>{}}={}){
   xrSessionFeatures(){guard();return [];},
   packetStyle(protocol,broadcast=false){return packetStyle(protocol,broadcast);},
   highlightPacket(){guard();return false;},
+  setLinkLoads(){guard();return false;},
   highlightDevice(id,mode='selected'){guard();if(!['selected','active','error','normal'].includes(mode))throw new TypeError('Invalid mode');return data.devices.some(d=>d.id===id);},
   getDevice(id){guard();return data.devices.find(d=>d.id===id)||null;},
   listDevices(){guard();return data.devices.map(d=>({...d,position:{...d.position}}));},

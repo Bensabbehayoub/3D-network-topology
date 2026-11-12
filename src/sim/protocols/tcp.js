@@ -24,7 +24,7 @@ import { explainOnce, openPort, runtimeDevice, sendIp } from '../stack.js';
 
 export const MSS = 1000;
 export const WINDOW = 8000;
-export const DEFAULTS = Object.freeze({ rto: 6000, maxRetries: 3, gap: 150, port: 9000, size: 3000 });
+export const DEFAULTS = Object.freeze({ rto: 6000, maxRetries: 3, port: 9000, size: 3000 });
 const CLIENT_ISN = 1000;
 const SERVER_ISN = 5000;
 
@@ -50,12 +50,8 @@ function emit(ctx, conn, { type, flags, seq, ack, protocol = 'tcp', data = {}, s
     transport: { protocol: 'tcp', src: conn.local.port, dst: conn.remote.port, flags, seq, ack, window: WINDOW },
     data: { length: 0, ...data },
   };
-  if (lose) {
-    const lost = { id: ctx.nextPacketId(), eth: null, ...packet, ip: { ...packet.ip, ttl: 64 } };
-    ctx.drop(conn.device, lost, 'segment perdu sur le câble (perte simulée)', { step });
-    return;
-  }
-  sendIp(ctx, conn.device, packet, { step });
+  // Perte simulée : le segment part normalement et disparaît sur le câble (voir ctx.send, option lost).
+  sendIp(ctx, conn.device, packet, { step, lost: lose ? 'segment perdu sur le câble (perte simulée)' : null });
 }
 
 /** Garde un segment jusqu'à son acquittement ; démarre la temporisation si aucune ne tourne. */
@@ -114,7 +110,7 @@ function createConnection(ctx, deviceId, { localIp, localPort, remoteIp, remoteP
     key: keyOf(localPort, remoteIp, remotePort),
     state: 'CLOSED',
     sndUna: isn, sndNxt: isn, writeSeq: isn, rcvNxt: 0,
-    outbox: [], timer: null, unsent: 0, buffered: new Map(), dupAcks: 0, dataSegments: 0, messages: 0,
+    outbox: [], timer: null, sendQueue: [], buffered: new Map(), dupAcks: 0, dataSegments: 0, messages: 0,
     closeRequested: false, handlers,
   };
   conn.send = (message, options) => sendMessage(ctx, conn, message, options);
@@ -154,24 +150,34 @@ function sendMessage(ctx, conn, message, { protocol = conn.protocol, type = 'dat
   const messageId = conn.messages;
   for (let part = 1; part <= parts; part += 1) {
     const length = part < parts ? MSS : size - MSS * (parts - 1);
-    const seq = conn.writeSeq; // numéro réservé maintenant, segment émis un peu plus tard
+    const seq = conn.writeSeq; // numéro réservé maintenant, segment émis quand la fenêtre le permet
     conn.writeSeq += length;
     conn.dataSegments += 1;
-    conn.unsent += 1;
-    const number = conn.dataSegments;
-    ctx.schedule((part - 1) * DEFAULTS.gap, () => {
-      conn.unsent -= 1;
-      if (conn.state === 'CLOSED') return;
-      const lose = shouldLose(ctx, conn, number);
-      const segmentStep = lose
-        ? explainOnce(ctx, [`tcp-lost-${number}`, 'tcp-lost'])
-        : explainOnce(ctx, [`tcp-data-${conn.role}-${number}`, `tcp-data-${number}`, 'tcp-data']) ?? step;
-      const fields = { type, flags: part === parts ? ['PSH', 'ACK'] : ['ACK'], seq, protocol,
-        data: { length, messageId, part, parts, message } };
-      emit(ctx, conn, { ...fields, ack: conn.rcvNxt, step: segmentStep ?? step, lose });
-      conn.sndNxt = Math.max(conn.sndNxt, seq + length);
-      track(ctx, conn, { seq, end: seq + length, kind: 'data', number, fields, retries: 0 });
-    });
+    conn.sendQueue.push({ seq, length, number: conn.dataSegments, part, parts, messageId, message, type, protocol, step });
+  }
+  pump(ctx, conn);
+}
+
+/**
+ * Fenêtre d'émission : tant que les octets envoyés et non acquittés laissent de la place dans
+ * la fenêtre annoncée (WINDOW), on émet le segment suivant. Chaque acquittement rouvre la
+ * fenêtre (processAck). Le rythme suit donc ce que le réseau absorbe : sur un lien lent, les
+ * segments attendent dans la file du port, les acquittements arrivent plus tard, l'émetteur ralentit.
+ */
+function pump(ctx, conn) {
+  while (conn.sendQueue.length > 0 && conn.state === 'ESTABLISHED') {
+    const next = conn.sendQueue[0];
+    if (conn.sndNxt - conn.sndUna + next.length > WINDOW) return;
+    conn.sendQueue.shift();
+    const lose = shouldLose(ctx, conn, next.number);
+    const segmentStep = lose
+      ? explainOnce(ctx, [`tcp-lost-${next.number}`, 'tcp-lost'])
+      : explainOnce(ctx, [`tcp-data-${conn.role}-${next.number}`, `tcp-data-${next.number}`, 'tcp-data']) ?? next.step;
+    const fields = { type: next.type, flags: next.part === next.parts ? ['PSH', 'ACK'] : ['ACK'], seq: next.seq, protocol: next.protocol,
+      data: { length: next.length, messageId: next.messageId, part: next.part, parts: next.parts, message: next.message } };
+    emit(ctx, conn, { ...fields, ack: conn.rcvNxt, step: segmentStep ?? next.step, lose });
+    conn.sndNxt = Math.max(conn.sndNxt, next.seq + next.length);
+    track(ctx, conn, { seq: next.seq, end: next.seq + next.length, kind: 'data', number: next.number, fields, retries: 0 });
   }
 }
 
@@ -193,7 +199,7 @@ function requestClose(ctx, conn) {
 }
 
 function maybeClose(ctx, conn) {
-  if (!conn.closeRequested || conn.unsent > 0 || conn.outbox.length > 0 || conn.state !== 'ESTABLISHED') return;
+  if (!conn.closeRequested || conn.sendQueue.length > 0 || conn.outbox.length > 0 || conn.state !== 'ESTABLISHED') return;
   conn.state = 'FIN_WAIT';
   const step = explainOnce(ctx, [`tcp-fin-${conn.device}`, 'tcp-fin']);
   const fields = { type: 'fin', flags: ['FIN', 'ACK'], seq: conn.sndNxt };
@@ -215,6 +221,7 @@ function processAck(ctx, conn, ack, hasPayload) {
     conn.dupAcks = 0;
     conn.outbox = conn.outbox.filter((segment) => segment.end > ack);
     restartTimer(ctx, conn);
+    pump(ctx, conn); // la fenêtre s'est rouverte
     if (jumped) explainOnce(ctx, [`tcp-cumulative-ack-${conn.device}`, 'tcp-cumulative-ack']);
     return;
   }
@@ -357,15 +364,53 @@ export function tcpFields(packet) {
   return fields;
 }
 
+/**
+ * Plusieurs transferts simultanés (phase 5, scénario « débit ») :
+ * params.transfers = [{ client, server | serverIp, port?, size?, delay?, fileName? }].
+ * Étapes : tcp-transfer-done-<client> à la fin de chacun, tcp-summary quand tous sont finis.
+ */
+function startTransfers(ctx, transfers) {
+  let remaining = transfers.length;
+  const finished = () => {
+    remaining -= 1;
+    if (remaining === 0) explainOnce(ctx, ['tcp-summary']);
+  };
+  for (const transfer of transfers) {
+    const delay = Number.isFinite(transfer.delay) && transfer.delay > 0 ? transfer.delay : 0;
+    ctx.schedule(delay, () => {
+      connect(ctx, transfer.client, {
+        dstIp: transfer.serverIp ?? primaryIp(ctx.device(transfer.server)),
+        dstPort: Number.isInteger(transfer.port) ? transfer.port : DEFAULTS.port,
+        onEstablished(conn) {
+          conn.send({ size: transfer.size ?? DEFAULTS.size, name: transfer.fileName ?? `${transfer.client}.dat` }, { type: 'data' });
+          conn.close();
+        },
+        onClosed() {
+          explainOnce(ctx, [`tcp-transfer-done-${transfer.client}`, 'tcp-transfer-done']);
+          finished();
+        },
+        onFailed() {
+          explainOnce(ctx, ['tcp-failed']);
+          finished();
+        },
+      });
+    });
+  }
+}
+
 export default {
   name: 'tcp',
 
   start(ctx) {
     const { params } = ctx;
+    explainOnce(ctx, ['tcp-start']);
+    if (Array.isArray(params.transfers)) {
+      startTransfers(ctx, params.transfers);
+      return;
+    }
     const serverIp = params.serverIp ?? primaryIp(ctx.device(params.server));
     const port = Number.isInteger(params.port) ? params.port : DEFAULTS.port;
     const size = Number.isInteger(params.size) && params.size > 0 ? params.size : DEFAULTS.size;
-    explainOnce(ctx, ['tcp-start']);
     const refused = () => {
       if (!Number.isInteger(params.closedPort)) {
         explainOnce(ctx, ['tcp-summary']);
