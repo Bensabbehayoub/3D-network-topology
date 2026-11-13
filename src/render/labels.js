@@ -1,4 +1,4 @@
-import * as THREE from '../../vendor/three/build/three.module.js';
+import * as THREE from '../../vendor/three/build/three.webgpu.js';
 
 export function labelLines(device){
  const name=device.label?.trim()||device.id;const ip=typeof device.ip==='string'?device.ip.trim():'';return ip?[name,ip]:[name];

@@ -5,6 +5,8 @@
 // La topologie de secours ne sert que si le pôle sim n'a pas pu se charger.
 import { TOPICS } from '../../simulation.js';
 import { initScene } from './scene.js';
+import { WEBGPU_REQUIRED_MESSAGE } from './renderers.js';
+import { packetStyle } from './packetStyles.js';
 export { initScene } from './scene.js';
 export { createMockRenderer } from './mock.js';
 export { normalizeTopology } from './topology.js';
@@ -19,16 +21,50 @@ const FALLBACK_TOPOLOGY = {
   links: [{from:'pc-1',to:'sw-1'},{from:'pc-2',to:'sw-1'},{from:'sw-1',to:'r-1'}]
 };
 
+/** Message « WebGPU requis » affiché dans la zone de la scène (texte seulement, jamais de HTML). */
+function showWebGPURequired(mount, detail) {
+  const box = document.createElement('div');
+  box.className = 'webgpu-required';
+  box.setAttribute('role', 'alert');
+  const title = document.createElement('strong');
+  title.textContent = 'WebGPU requis';
+  const text = document.createElement('p');
+  text.textContent = WEBGPU_REQUIRED_MESSAGE;
+  const cause = document.createElement('p');
+  cause.className = 'webgpu-required-detail';
+  cause.textContent = `Détail : ${detail}.`;
+  box.append(title, text, cause);
+  mount.append(box);
+}
+
 /** Appelé par main.js ; ne modifie aucun fichier partagé. */
 export async function init(app = {}) {
   if (typeof document === 'undefined') return {available:false};
   const mount = document.getElementById('scene');
   if (!mount) return {available:false};
-  const handle = initScene(mount, {
-    onDeviceClick(id, device) {
-      mount.dispatchEvent(new CustomEvent('topology:device-selected', {detail:{id,device}}));
-    }
-  });
+  let handle;
+  try {
+    handle = await initScene(mount, {
+      onDeviceClick(id, device) {
+        mount.dispatchEvent(new CustomEvent('topology:device-selected', {detail:{id,device}}));
+      },
+      onPacketClick(eventId, info) {
+        mount.dispatchEvent(new CustomEvent('topology:packet-selected', {detail:{eventId, packetId: info.packetId}}));
+      },
+      // Mode « Construire » (phase 7) : l'éditeur de l'interface écoute ces deux évènements.
+      onDeviceMove(id, position) {
+        mount.dispatchEvent(new CustomEvent('topology:device-moved', {detail:{id, position:[position.x, position.y, position.z]}}));
+      },
+      onGroundClick(position) {
+        mount.dispatchEvent(new CustomEvent('topology:ground-clicked', {detail:{position:[position.x, position.y, position.z]}}));
+      }
+    });
+  } catch (error) {
+    // Rendu 100 % WebGPU : sans WebGPU, pas de repli WebGL, un message à la place de la scène.
+    if (error?.name !== 'WebGPUUnavailableError') throw error;
+    showWebGPURequired(mount, error.detail);
+    return {available:false, reason:error.message};
+  }
 
   const show = (topology) => {
     try {
@@ -46,8 +82,37 @@ export async function init(app = {}) {
     show(FALLBACK_TOPOLOGY);
   }
 
-  const { mountPacketAnimator } = await import('./packetAnimator.js');
-  mountPacketAnimator({ sim: app.sim, render: handle });
+  // Boucle d'animation unique : chaque image du rendu fait avancer l'horloge de la simulation,
+  // en mode classique comme en session VR (où le requestAnimationFrame de la fenêtre est suspendu).
+  if (typeof sim?.tick === 'function') handle.onFrame(({ delta }) => sim.tick(delta));
 
-  return {available:true,...handle};
+  const { mountPacketAnimator } = await import('./packetAnimator.js');
+  const animator = mountPacketAnimator({ sim: app.sim, render: handle });
+  /** Couleur et taille d'un paquet (le journal de l'interface utilise les mêmes couleurs). */
+  handle.packetStyle = packetStyle;
+  /** Met en avant dans la scène le paquet d'un évènement d'envoi (null : aucun). */
+  handle.highlightPacket = (eventId) => { animator?.select(eventId); return Boolean(animator); };
+
+  // Phase 5 : charge des liens dans la scène, d'après le trafic mesuré par le moteur (4 fois par seconde).
+  if (typeof sim?.getTraffic === 'function' && typeof sim?.on === 'function') {
+    let last = 0;
+    const paintLoads = (force = false) => {
+      const now = performance.now();
+      if (!force && now - last < 250) return;
+      last = now;
+      try {
+        const { links } = sim.getTraffic();
+        handle.setLinkLoads(Object.fromEntries(Object.entries(links).map(([id, link]) => [id, link.utilization])));
+      } catch (error) {
+        console.error('Charge des liens non affichée :', error);
+      }
+    };
+    sim.on(TOPICS.TICK, () => paintLoads());
+    sim.on(TOPICS.RESET, () => paintLoads(true));
+    sim.on(TOPICS.SCENARIO, () => setTimeout(() => paintLoads(true), 0));
+  }
+
+  // On renvoie l'objet lui-même (pas une copie) : les fonctions ajoutées ci-dessus en font partie.
+  handle.available = true;
+  return handle;
 }

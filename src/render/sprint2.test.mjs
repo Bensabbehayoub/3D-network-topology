@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,stat} from 'node:fs/promises';
-import * as THREE from '../../vendor/three/build/three.module.js';
+import * as THREE from '../../vendor/three/build/three.webgpu.js';
 import {GLTFLoader} from '../../vendor/three/examples/jsm/loaders/GLTFLoader.js';
 import {createDeviceFactory,createGenerationTracker,DEVICE_MODEL_TYPES,MODEL_URLS} from './factory.js';
 import {createLinkLayer,resolveLinkEndpoints} from './links.js';

@@ -96,6 +96,14 @@ body {
   min-width: 0;
 }
 
+/* Erreur de chargement d'un scénario, sous la liste. */
+.picker-error {
+  display: block;
+  margin-top: 4px;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -268,6 +276,32 @@ body {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* Rendu 100 % WebGPU : message affiché à la place de la scène si le navigateur n'a pas WebGPU. */
+.webgpu-required {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  padding: 16px;
+  max-width: 560px;
+  margin: auto;
+  text-align: center;
+  color: var(--text);
+}
+.webgpu-required strong {
+  font-size: 1.2rem;
+  color: var(--danger);
+}
+.webgpu-required p {
+  margin: 0;
+  line-height: 1.5;
+}
+.webgpu-required-detail {
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 /* Tant que le pôle render n'a rien monté, on indique ce que sera la zone. */
@@ -460,6 +494,19 @@ body {
   cursor: not-allowed;
 }
 
+/* Action destructive (supprimer) : bordure rouge, texte lisible sur fond sombre. */
+.btn-danger {
+  border-color: var(--danger);
+  color: #ffb3b3;
+  margin-top: 8px;
+}
+
+/* Bouton discret dans une liste, toujours de 44 px de haut (cible tactile). */
+.btn-small {
+  padding: 0 10px;
+  font-size: 0.8rem;
+}
+
 .field {
   display: inline-flex;
   align-items: center;
@@ -569,11 +616,745 @@ input[type="range"] {
 }
 
 .log {
-  margin: 12px 0 0;
+  margin: 6px 0 0;
   padding: 0;
   list-style: none;
-  font: 0.85rem/1.4 var(--mono);
+}
+
+/* ---------- Explications (phase 4d) ---------- */
+
+/* L'explication reste visible en haut ; seul le journal défile en dessous. */
+#explanations {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.explanation {
+  flex: 0 0 auto;
+  max-height: 60%;
+  overflow: auto;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+#explanations .log {
+  flex: 1 1 auto;
+  min-height: 92px; /* au moins deux lignes du journal visibles */
+  overflow: auto;
+}
+
+.explanation-scenario {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.explanation-title {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.explanation-time {
+  font: 0.8rem var(--mono);
+  font-weight: 400;
   color: var(--text-muted);
+}
+
+.explanation-text {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.log-title {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Une ligne du journal = un bouton (clavier, lecteur d'écran, cible tactile de 44 px). */
+.log-entry {
+  display: grid;
+  grid-template-columns: 4.2em 12px minmax(0, 1fr);
+  grid-template-areas: "time dot label" "time dot route";
+  align-items: center;
+  column-gap: 8px;
+  width: 100%;
+  min-height: var(--touch);
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.log-entry:hover {
+  background: var(--surface-2);
+}
+
+.log-entry:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.log-entry[aria-pressed="true"] {
+  background: var(--surface-2);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.log-time {
+  grid-area: time;
+  font: 0.8rem var(--mono);
+  color: var(--text-muted);
+}
+
+.log-dot {
+  grid-area: dot;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dot, var(--text-muted));
+}
+
+.log-dot-broadcast {
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dot, var(--text-muted)) 35%, transparent);
+}
+
+.log-label {
+  grid-area: label;
+  font-weight: 600;
+}
+
+.log-route {
+  grid-area: route;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.log-drop .log-label,
+.log-drop .log-route {
+  color: var(--danger);
+}
+
+/* ---------- Mode « Construire » (phase 7) ---------- */
+
+.mode-switch {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mode-button {
+  min-height: var(--touch);
+  padding: 0 14px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.mode-button[aria-pressed="true"] {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+.mode-button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* En Explorer, pas d'éditeur ; en Construire, l'éditeur prend la place de l'inspecteur, et la
+   liste des scénarios comme la barre de lecture s'effacent (rien à jouer pendant la construction). */
+.panel-editor {
+  display: none;
+}
+
+body[data-mode="build"] .panel-editor {
+  display: flex;
+}
+
+/* L'éditeur est long : il prend 3/5 de la colonne, les recommandations 2/5. */
+body[data-mode="build"] .app-side {
+  grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
+}
+
+body[data-mode="build"] .panel-inspector,
+body[data-mode="build"] #scenario-picker,
+body[data-mode="build"] #controls {
+  display: none;
+}
+
+body[data-mode="build"] .scene {
+  outline: 2px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: -6px;
+}
+
+.editor-section {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-section:first-child {
+  padding-top: 0;
+}
+
+.editor-heading {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.editor-field select,
+.editor-field input {
+  width: 100%;
+  min-height: var(--touch);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 8px;
+}
+
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.editor-message {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: #06d6a0;
+}
+
+.editor-message:empty {
+  display: none;
+}
+
+.editor-error {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+  border-left: 4px solid var(--danger);
+  border-radius: 4px;
+}
+
+.editor-selected-name {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.editor-rename {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.editor-rename .editor-field {
+  flex: 1 1 auto;
+}
+
+.editor-ports,
+.editor-links {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.editor-ports li {
+  padding: 3px 0;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.editor-port-free {
+  color: var(--text-muted);
+}
+
+.editor-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "label button" "meta button";
+  column-gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-link-label { grid-area: label; overflow-wrap: anywhere; }
+.editor-link-meta { grid-area: meta; font-size: 0.75rem; color: var(--text-muted); }
+.editor-link .btn { grid-area: button; }
+
+/* ---------- Éditeur : configuration et protocole (phase 7b) ---------- */
+
+.editor-config {
+  margin-top: 10px;
+}
+
+.editor-subheading {
+  margin: 14px 0 6px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--accent);
+}
+
+.editor-hint {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* Champ(s) et bouton sur une ligne ; passent à la ligne quand la colonne est étroite. */
+.editor-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px 8px;
+  margin-bottom: 6px;
+}
+
+.editor-inline .editor-field {
+  flex: 1 1 120px;
+  margin-bottom: 0;
+}
+
+.editor-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.editor-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--touch);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.editor-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.editor-list {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+}
+
+.editor-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+}
+
+.editor-fieldset {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.editor-fieldset legend {
+  padding: 0 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.editor-checks {
+  margin: 4px 0 10px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.editor-checks li {
+  margin-bottom: 4px;
+  padding-left: 8px;
+  border-left: 3px solid var(--border);
+}
+
+.editor-check-error { border-left-color: var(--danger) !important; color: #ffb3b3; }
+.editor-check-warning { border-left-color: #f7b538 !important; color: #ffe0a3; }
+.editor-check-ok { border-left-color: #06d6a0 !important; color: #8ff0cf; }
+
+/* ---------- Éditeur : enregistrer et ouvrir (phase 7c) ---------- */
+
+.editor-saved li {
+  font-family: inherit;
+}
+
+.editor-saved-actions {
+  display: inline-flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Le champ fichier est caché ; son libellé sert de bouton, et montre le focus clavier. */
+.editor-import {
+  position: relative;
+  cursor: pointer;
+}
+
+.editor-import:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ---------- Onglets Explications | Recommandations (phase 6) ---------- */
+
+.panel-tablist {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-tab {
+  flex: 1 1 0;
+  min-height: var(--touch);
+  padding: 0 8px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+}
+
+.panel-tab[aria-selected="true"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.panel-tab:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.tab-badge {
+  display: inline-block;
+  min-width: 1.5em;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  color: #fff;
+  background: var(--danger);
+}
+
+.tab-badge[hidden] {
+  display: none;
+}
+
+/* Sélecteurs d'id : #explanations a son propre « display: flex », qui l'emporterait sur [hidden]. */
+#explanations[hidden],
+#recommendations[hidden] {
+  display: none;
+}
+
+/* ---------- Recommandations (phase 6) ---------- */
+
+.recommendations-summary {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.recommendations {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recommendation {
+  margin-bottom: 10px;
+  padding: 0 0 10px 10px;
+  border-left: 4px solid var(--severity, var(--border));
+  border-bottom: 1px solid var(--border);
+}
+
+.recommendation-critique { --severity: #ef476f; }
+.recommendation-avertissement { --severity: #f7b538; }
+.recommendation-conseil { --severity: #70b7df; }
+
+.recommendation-target {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "severity problem" "severity where";
+  column-gap: 8px;
+  align-items: center;
+  width: 100%;
+  min-height: var(--touch);
+  padding: 4px 6px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.recommendation-target:hover,
+.recommendation-target[aria-pressed="true"] {
+  background: var(--surface-2);
+}
+
+.recommendation-target:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.severity {
+  grid-area: severity;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #0b1323;
+  background: var(--severity, var(--text-muted));
+}
+
+.recommendation-problem {
+  grid-area: problem;
+  font-weight: 600;
+}
+
+.recommendation-where {
+  grid-area: where;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.recommendation-cause,
+.recommendation-fix {
+  margin: 4px 6px 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.recommendation-fix strong {
+  color: #06d6a0;
+}
+
+/* ---------- Fiche d'équipement (phase 5) ---------- */
+
+.device-model {
+  margin: -4px 0 10px;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.device-section {
+  margin: 14px 0 6px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.device-description {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.device-ports {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  table-layout: fixed;
+}
+
+.device-ports th:nth-child(1) { width: 12%; }
+.device-ports th:nth-child(2) { width: 20%; }
+.device-ports th:nth-child(4) { width: 26%; }
+.device-ports th:nth-child(5) { width: 18%; }
+
+.device-ports td {
+  overflow-wrap: anywhere;
+}
+
+.device-ports th,
+.device-ports td {
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.device-ports th {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.port-rate span {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.device-specs summary {
+  cursor: pointer;
+  padding: 12px 0; /* cible de 44 px, avec le triangle d'ouverture */
+}
+
+.device-specs summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.device-ports td.mono {
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.port-free td {
+  color: var(--text-muted);
+}
+
+.port-negotiated,
+.port-cable {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.port-load {
+  white-space: nowrap;
+}
+
+.device-ports .load-bar {
+  margin: 4px 0 3px;
+}
+
+.load-bar {
+  display: block;
+  width: 100%;
+  max-width: 48px;
+  height: 8px;
+  margin-right: 6px;
+  vertical-align: middle;
+  background: var(--surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.load-fill {
+  display: block;
+  width: var(--load, 0%);
+  height: 100%;
+  background: #70b7df;
+  transition: width 0.2s;
+}
+
+.load-low .load-fill { background: #06d6a0; }
+.load-medium .load-fill { background: #f7b538; }
+.load-high .load-fill { background: #ef476f; }
+
+.load-text {
+  font: 0.75rem var(--mono);
+}
+
+/* ---------- Inspecteur : paquet sélectionné ---------- */
+
+.inspector-device:not([hidden]) + .inspector-packet {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.packet-layer {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.packet-layer-name {
+  padding: 4px 0;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.packet-layer th,
+.packet-layer td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.packet-layer th {
+  width: 45%;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.packet-layer td {
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
 }
 
 .noscript {

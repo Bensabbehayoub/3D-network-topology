@@ -1,6 +1,219 @@
 {
+  "schema": 1,
+  "id": "dhcp",
+  "title": "DHCP : obtenir une adresse IP automatiquement",
   "protocol": "dhcp",
-  "devices": [],
-  "links": [],
-  "steps": []
+  "description": "Deux PC qui viennent d'être branchés n'ont pas d'adresse IP. Ils l'obtiennent du serveur DHCP du réseau en quatre messages : DISCOVER, OFFER, REQUEST, ACK. Le serveur distribue les adresses de sa plage 192.168.1.100 à 192.168.1.110, avec le masque et la passerelle.",
+  "params": {
+    "clients": [
+      "pc1",
+      "pc2"
+    ],
+    "spacing": 8000,
+    "verify": true
+  },
+  "devices": [
+    {
+      "id": "pc1",
+      "type": "host",
+      "label": "PC 1",
+      "model": "pc-1g",
+      "position": [
+        -4,
+        0,
+        -2
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:11"
+        }
+      ]
+    },
+    {
+      "id": "pc2",
+      "type": "host",
+      "label": "PC 2",
+      "model": "pc-1g",
+      "position": [
+        -4,
+        0,
+        2
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:12"
+        }
+      ]
+    },
+    {
+      "id": "sw1",
+      "type": "switch",
+      "label": "Switch",
+      "model": "sw-24g",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        },
+        {
+          "name": "p3"
+        },
+        {
+          "name": "p4"
+        }
+      ]
+    },
+    {
+      "id": "srv1",
+      "type": "server",
+      "label": "Serveur DHCP",
+      "model": "srv-1g",
+      "position": [
+        4,
+        0,
+        2
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:02",
+          "ip": "192.168.1.2/24"
+        }
+      ],
+      "gateway": "192.168.1.1",
+      "services": [
+        {
+          "name": "dhcp",
+          "transport": "udp",
+          "port": 67
+        }
+      ],
+      "dhcp": {
+        "start": "192.168.1.100",
+        "end": "192.168.1.110",
+        "prefix": 24,
+        "gateway": "192.168.1.1",
+        "lease": 86400
+      }
+    },
+    {
+      "id": "r1",
+      "type": "router",
+      "label": "Routeur",
+      "model": "rt-4g",
+      "position": [
+        4,
+        0,
+        -2
+      ],
+      "interfaces": [
+        {
+          "name": "g0",
+          "mac": "02:00:00:00:00:a0",
+          "ip": "192.168.1.1/24"
+        },
+        {
+          "name": "g1",
+          "mac": "02:00:00:00:00:a1",
+          "ip": "203.0.113.2/30"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": "l1",
+      "a": "pc1:eth0",
+      "b": "sw1:p1",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l2",
+      "a": "pc2:eth0",
+      "b": "sw1:p2",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l3",
+      "a": "sw1:p3",
+      "b": "srv1:eth0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l4",
+      "a": "sw1:p4",
+      "b": "r1:g0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    }
+  ],
+  "steps": [
+    {
+      "id": "dhcp-start",
+      "title": "Deux PC sans adresse",
+      "text": "PC 1 et PC 2 viennent d'être branchés. Ils ont une adresse MAC mais pas d'adresse IP, ni passerelle : ils ne peuvent encore parler à personne en IP."
+    },
+    {
+      "id": "dhcp-discover-pc1",
+      "title": "DISCOVER",
+      "text": "PC 1 diffuse un message DHCP DISCOVER : « Y a-t-il un serveur DHCP ? ». Il n'a pas d'adresse : IP source 0.0.0.0, destination 255.255.255.255 (tout le réseau local), UDP du port 68 vers le port 67."
+    },
+    {
+      "id": "dhcp-offer",
+      "title": "OFFER",
+      "text": "Le serveur DHCP choisit la première adresse libre de sa plage, 192.168.1.100, et la propose dans un message OFFER, avec le masque 255.255.255.0, la passerelle 192.168.1.1 et la durée du bail (24 h). Le client n'ayant pas d'adresse, l'offre est diffusée."
+    },
+    {
+      "id": "dhcp-request-pc1",
+      "title": "REQUEST",
+      "text": "PC 1 accepte l'offre en diffusant un REQUEST qui nomme l'adresse demandée et le serveur choisi. La diffusion prévient aussi les autres serveurs DHCP éventuels que leur offre est déclinée."
+    },
+    {
+      "id": "dhcp-ack",
+      "title": "ACK",
+      "text": "Le serveur confirme par un ACK : l'adresse 192.168.1.100 est louée à la MAC de PC 1 pour 24 heures."
+    },
+    {
+      "id": "dhcp-configured-pc1",
+      "title": "PC 1 configuré",
+      "text": "PC 1 applique la configuration reçue : adresse 192.168.1.100/24, passerelle 192.168.1.1. Il peut maintenant communiquer en IP."
+    },
+    {
+      "id": "dhcp-verify-pc1",
+      "title": "Vérification",
+      "text": "Pour vérifier, PC 1 envoie un ping à sa nouvelle passerelle. Il fait d'abord une requête ARP avec sa nouvelle adresse."
+    },
+    {
+      "id": "dhcp-verified-pc1",
+      "title": "Ça fonctionne",
+      "text": "Le routeur répond au ping : la configuration obtenue par DHCP est correcte."
+    },
+    {
+      "id": "dhcp-discover-pc2",
+      "title": "Au tour de PC 2",
+      "text": "PC 2 démarre à son tour et diffuse son DISCOVER. Le serveur se souvient que 192.168.1.100 est louée à PC 1 : il proposera 192.168.1.101."
+    },
+    {
+      "id": "dhcp-configured-pc2",
+      "title": "PC 2 configuré",
+      "text": "Après OFFER, REQUEST et ACK, PC 2 reçoit 192.168.1.101/24. Deux machines ne reçoivent jamais la même adresse : le serveur tient la liste de ses baux."
+    },
+    {
+      "id": "dhcp-summary",
+      "title": "Bilan",
+      "text": "Deux PC configurés sans aucune saisie manuelle. Les 4 messages DHCP sont diffusés au début, car le client n'a pas encore d'adresse : DHCP ne fonctionne donc que dans le réseau local (au-delà, il faut un relais DHCP sur le routeur)."
+    }
+  ]
 }

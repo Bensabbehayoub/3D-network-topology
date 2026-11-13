@@ -1,10 +1,17 @@
 name: CI
 
+# Pipeline (docs/ci-cd.md) :
+#   pull request      → test
+#   push sur main     → test → deploy (GitHub Pages) → verify-tls
+#   chaque lundi 6 h  → verify-tls seul (surveillance du certificat)
+#   lancement manuel  → test → deploy → verify-tls
 on:
   pull_request:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
 
 permissions:
   contents: read
@@ -15,6 +22,7 @@ concurrency:
 
 jobs:
   test:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -26,7 +34,7 @@ jobs:
       - run: node tools/build-precache.js
 
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     needs: test
     runs-on: ubuntu-latest
     permissions:
@@ -35,6 +43,9 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    # Adresse publiée, transmise à la vérification HTTPS.
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -48,3 +59,21 @@ jobs:
           path: .
       - id: deployment
         uses: actions/deploy-pages@v5
+
+  # Interroge le site publié en HTTPS : version TLS, suite de chiffrement, certificat (openssl
+  # s_client), redirection HTTP → HTTPS, HSTS. Échoue si le site ne répond pas en HTTPS ou si le
+  # certificat est invalide ou expiré. Après chaque déploiement, et chaque semaine.
+  verify-tls:
+    needs: deploy
+    if: always() && (needs.deploy.result == 'success' || github.event_name == 'schedule')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Vérification HTTPS et TLS du site publié
+        env:
+          # Après un déploiement : l'adresse donnée par GitHub Pages. Chaque semaine : l'adresse
+          # habituelle d'un site de projet, https://<propriétaire>.github.io/<dépôt>/.
+          PAGE_URL: ${{ needs.deploy.outputs.page_url || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
+        run: |
+          openssl version
+          bash tools/verify-tls.sh "$PAGE_URL"

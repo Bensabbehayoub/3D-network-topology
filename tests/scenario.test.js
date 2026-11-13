@@ -19,6 +19,55 @@ test('scenarios/arp.json respecte le format', async () => {
   assert.equal(result.ok, true);
 });
 
+test('scenarios/index.json : chaque scénario listé est valide et porte le nom de son fichier', async () => {
+  const index = JSON.parse(await readFile(new URL('../scenarios/index.json', import.meta.url), 'utf8'));
+  assert.ok(index.scenarios.length >= 4);
+  for (const id of index.scenarios) {
+    const scenario = await readScenario(id);
+    assert.deepEqual(validateScenario(scenario).errors, [], id);
+    assert.equal(scenario.id, id);
+  }
+});
+
+test('routes statiques : réseau CIDR et routeur suivant vérifiés', () => {
+  const scenario = copy(DEMO_SCENARIO);
+  const router = scenario.devices.find((d) => d.type === 'router');
+  router.routes = [{ network: '10.0.0.0/8', via: '192.168.2.254' }];
+  assert.deepEqual(validateScenario(scenario).errors, []);
+  router.routes = [{ network: '10.0.0.0', via: 'routeur' }];
+  assert.equal(validateScenario(scenario).errors.length, 2);
+  router.routes = 'aucune';
+  assert.match(validateScenario(scenario).errors[0], /routes : tableau attendu/);
+});
+
+test('services, DNS, enregistrements et DHCP : formats vérifiés (phase 4b)', () => {
+  const scenario = copy(DEMO_SCENARIO);
+  const pc = scenario.devices.find((d) => d.id === 'pc2');
+  pc.dns = '192.168.2.53';
+  pc.services = [{ name: 'http', transport: 'tcp', port: 80 }];
+  pc.records = [{ name: 'www.ecole.test', type: 'A', value: '192.168.2.80', ttl: 60 }];
+  pc.dhcp = { start: '192.168.2.100', end: '192.168.2.110', prefix: 24, gateway: '192.168.2.1', lease: 3600 };
+  assert.deepEqual(validateScenario(scenario).errors, []);
+  pc.dns = 'serveur';
+  pc.services = [{ transport: 'icmp', port: 70000 }];
+  pc.records = [{ name: 'pas un nom', type: 'MX', value: 'x' }];
+  pc.dhcp = { start: '1.1.1', prefix: 33 };
+  const errors = validateScenario(scenario).errors;
+  for (const field of ['.dns', 'services[0].transport', 'services[0].port', 'records[0].name', 'records[0].type', 'records[0].value', 'dhcp.start', 'dhcp.end', 'dhcp.prefix']) {
+    assert.ok(errors.some((message) => message.includes(field)), field);
+  }
+});
+
+test("pages d'un serveur web : chemin, taille, code (phase 4c)", () => {
+  const scenario = copy(DEMO_SCENARIO);
+  const server = scenario.devices.find((d) => d.id === 'pc2');
+  server.pages = [{ path: '/', size: 2400, status: 200, type: 'text/html' }];
+  assert.deepEqual(validateScenario(scenario).errors, []);
+  server.pages = [{ path: 'index.html', size: -1, status: 'ok' }];
+  const errors = validateScenario(scenario).errors;
+  for (const field of ['pages[0].path', 'pages[0].size', 'pages[0].status']) assert.ok(errors.some((m) => m.includes(field)), field);
+});
+
 test('le scénario de démonstration du mock respecte le format', () => {
   assert.deepEqual(validateScenario(DEMO_SCENARIO).errors, []);
 });

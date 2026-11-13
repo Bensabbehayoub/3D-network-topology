@@ -10,6 +10,16 @@
 /** Fonctionnalités demandées à l'ouverture de la session (facultatives : la session s'ouvre sans). */
 export const SESSION_OPTIONS = Object.freeze({ optionalFeatures: ['local-floor', 'bounded-floor'] });
 
+/**
+ * Options de session : SESSION_OPTIONS, plus les fonctionnalités demandées par le rendu
+ * (« webgpu » : voie native de la VR en WebGPU, voir src/render/renderers.js).
+ * @param {string[]} [extra] app.render.xrSessionFeatures()
+ */
+export function sessionOptions(extra = []) {
+  const optionalFeatures = [...new Set([...SESSION_OPTIONS.optionalFeatures, ...(Array.isArray(extra) ? extra : [])])];
+  return { optionalFeatures };
+}
+
 async function supports(xr, mode) {
   try {
     return Boolean(await xr.isSessionSupported(mode));
@@ -21,20 +31,14 @@ async function supports(xr, mode) {
 /**
  * Détecte ce que le navigateur sait faire.
  * @param {object} [env] globalThis par défaut ; un faux objet dans les tests
+ * Rendu 100 % WebGPU : on ne teste pas WebGL (le tester créerait un contexte WebGL).
  * @returns {Promise<{ secureContext: boolean, webxr: boolean, immersiveVR: boolean,
- *   immersiveAR: boolean, webgpu: boolean, webgl2: boolean }>}
+ *   immersiveAR: boolean, webgpu: boolean, xrGPUBinding: boolean }>}
  */
 export async function detectCapabilities(env = globalThis) {
   const navigator = env.navigator ?? {};
   const xr = navigator.xr;
   const webxr = Boolean(xr && typeof xr.isSessionSupported === 'function');
-
-  let webgl2 = false;
-  try {
-    webgl2 = Boolean(env.document?.createElement?.('canvas')?.getContext?.('webgl2'));
-  } catch {
-    webgl2 = false;
-  }
 
   return {
     secureContext: env.isSecureContext === true,
@@ -42,7 +46,8 @@ export async function detectCapabilities(env = globalThis) {
     immersiveVR: webxr ? await supports(xr, 'immersive-vr') : false,
     immersiveAR: webxr ? await supports(xr, 'immersive-ar') : false,
     webgpu: Boolean(navigator.gpu),
-    webgl2,
+    // API WebXR/WebGPU du navigateur ; le pont de l'émulateur (src/render/xrBridge.js) n'est pas compté.
+    xrGPUBinding: typeof env.XRGPUBinding === 'function' && env.XRGPUBinding.isTopologyBridge !== true,
   };
 }
 
@@ -79,17 +84,35 @@ export function describeStatus(caps) {
   };
 }
 
-/** Lignes du détail technique (une par capacité testée). */
-export function capabilityRows(caps) {
+/**
+ * Lignes du détail technique (une par capacité testée).
+ * @param {object} caps résultat de detectCapabilities
+ * @param {{ classic: string | null, xr: { backend: string, path: string } | null } | null} [rendering]
+ *   rendu réellement utilisé (app.render.getRenderingInfo()), absent si la scène n'est pas chargée
+ */
+export function capabilityRows(caps, rendering = null) {
   const yes = (value, onText = 'détecté', offText = 'non détecté') => (value ? onText : offText);
   return [
     { label: 'Contexte sécurisé (HTTPS)', ok: caps.secureContext, value: yes(caps.secureContext, 'oui', 'non') },
     { label: 'WebXR Device API (navigator.xr)', ok: caps.webxr, value: yes(caps.webxr, 'détectée', 'non détectée') },
     { label: 'Session immersive-vr', ok: caps.immersiveVR, value: yes(caps.immersiveVR, 'prise en charge', 'non prise en charge') },
     { label: 'Session immersive-ar (option F10)', ok: caps.immersiveAR, value: yes(caps.immersiveAR, 'prise en charge', 'non prise en charge') },
-    { label: 'WebGL 2 (rendu utilisé)', ok: caps.webgl2, value: yes(caps.webgl2, 'disponible', 'indisponible') },
-    { label: 'WebGPU (navigator.gpu)', ok: caps.webgpu, value: caps.webgpu ? 'détecté, non utilisé (voir décision)' : 'non détecté' },
+    { label: 'WebGPU (navigator.gpu)', ok: caps.webgpu, value: yes(caps.webgpu, 'détecté', 'non détecté : WebGPU requis') },
+    { label: 'XRGPUBinding (WebXR + WebGPU)', ok: true, value: caps.xrGPUBinding ? 'fourni par le navigateur' : 'fourni par le pont de l\'émulateur' },
+    { label: 'Rendu en mode classique', ok: Boolean(rendering?.classic), value: classicRenderingText(rendering) },
+    { label: 'Rendu en VR', ok: caps.immersiveVR && Boolean(rendering?.classic), value: xrRenderingText(rendering) },
   ];
+}
+
+function classicRenderingText(rendering) {
+  if (!rendering?.classic) return 'scène 3D indisponible (WebGPU requis)';
+  return `${rendering.classic} (WebGPURenderer)`;
+}
+
+function xrRenderingText(rendering) {
+  if (!rendering?.classic) return 'indisponible (WebGPU requis)';
+  if (rendering.xr) return `${rendering.xr.backend} — ${rendering.xr.path === 'natif' ? 'XRGPUBinding du navigateur' : 'pont WebGPU de l\'émulateur'}`;
+  return 'WebGPU (WebGPURenderer), aucun contexte WebGL';
 }
 
 /**
@@ -97,8 +120,10 @@ export function capabilityRows(caps) {
  * @param {HTMLElement} container élément #xr-slot
  * @param {object} app objet partagé (app.render.startXR est utilisé pour afficher la scène en VR)
  * @param {object} [env] globalThis par défaut
+ * @param {{ onSessionStart?: (session: object) => void, onSessionEnd?: () => void }} [hooks]
+ *   appelés quand la scène est affichée dans le casque, puis à la fin de la session (interface VR)
  */
-export async function mount(container, app, env = globalThis) {
+export async function mount(container, app, env = globalThis, hooks = {}) {
   const doc = container.ownerDocument;
   let caps = await detectCapabilities(env);
   let session = null;
@@ -141,7 +166,7 @@ export async function mount(container, app, env = globalThis) {
     summary.title = status.hint;
     hint.textContent = status.hint;
     list.textContent = '';
-    for (const row of capabilityRows(caps)) {
+    for (const row of capabilityRows(caps, app?.render?.getRenderingInfo?.() ?? null)) {
       const dt = doc.createElement('dt');
       dt.textContent = row.label;
       const dd = doc.createElement('dd');
@@ -162,16 +187,30 @@ export async function mount(container, app, env = globalThis) {
   async function enter() {
     if (session) return;
     try {
-      session = await env.navigator.xr.requestSession('immersive-vr', SESSION_OPTIONS);
+      session = await env.navigator.xr.requestSession('immersive-vr', sessionOptions(app.render.xrSessionFeatures?.()));
       session.addEventListener('end', () => {
         session = null;
+        // Sortie par le bouton, par le casque ou par l'émulateur : on démonte l'interface VR.
+        try {
+          hooks.onSessionEnd?.();
+        } catch (error) {
+          console.error('Interface VR non démontée :', error);
+        }
         render();
+        // Le pôle render apprend la fin de session par un écouteur posé après celui-ci : on
+        // redessine une fois de plus, ensuite, pour que le détail n'affiche plus le rendu VR.
+        setTimeout(render, 0);
       });
       render();
       await app.render.startXR(session);
+      render(); // le détail affiche maintenant le rendu choisi pour la VR
+      if (session) hooks.onSessionStart?.(session);
     } catch (error) {
       console.error('Session VR non ouverte :', error);
+      // Session ouverte mais affichage impossible : on la referme pour revenir proprement en 2D.
+      const opened = session;
       session = null;
+      opened?.end?.().catch?.(() => {});
       render();
     }
   }

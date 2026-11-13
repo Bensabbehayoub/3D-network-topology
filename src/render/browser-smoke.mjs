@@ -33,19 +33,19 @@ try{
  const expression=`(async()=>{
   const errors=[];addEventListener('error',event=>errors.push(event.message));addEventListener('unhandledrejection',event=>errors.push(String(event.reason)));
   const mount=document.createElement('div');Object.assign(mount.style,{position:'fixed',left:'0',top:'0',width:'640px',height:'420px',zIndex:'9999'});document.body.appendChild(mount);
-  const {initScene}=await import('./src/render/scene.js');let emitted=0;const renderer=initScene(mount,{onDeviceClick:()=>emitted++});
+  const {initScene}=await import('./src/render/scene.js');let emitted=0;const renderer=await initScene(mount,{onDeviceClick:()=>emitted++});
   const topology={devices:[{id:'pc',type:'pc',label:'PC',ip:'10.0.0.2',position:[-4,0,0]},{id:'sw',type:'switch',label:'Switch',position:[0,0,0]},{id:'r',type:'router',label:'Router',ip:'10.0.0.1',position:[4,0,0]}],links:[{from:'pc',to:'sw'},{from:'sw',to:'r'}]};
   const summary=renderer.loadTopology(topology);await renderer.whenReady();const canvas=mount.querySelector('canvas');
   const picked=renderer.pickDevice({x:0,y:.3,z:10},{x:0,y:0,z:-20});const api={highlight:renderer.highlightDevice('sw','selected'),focus:renderer.focusDevice('r'),devices:renderer.listDevices().length,selected:window.__smokeSelected,picked,emitted};
-  const gl=canvas.getContext('webgl2')||canvas.getContext('webgl');const modelFetches=performance.getEntriesByType('resource').filter(entry=>entry.name.endsWith('.glb')).map(entry=>entry.name.split('/').pop()).sort();
-  renderer.dispose();mount.remove();return {summary,api,webgl:Boolean(gl),modelFetches,mainCanvas:Boolean(document.querySelector('#scene canvas')),errors};
+  const backend=canvas.dataset.backend;const modelFetches=performance.getEntriesByType('resource').filter(entry=>entry.name.endsWith('.glb')).map(entry=>entry.name.split('/').pop()).sort();
+  renderer.dispose();mount.remove();return {summary,api,webgpu:backend==='WebGPU',modelFetches,mainCanvas:Boolean(document.querySelector('#scene canvas')),errors};
  })()`;
  const evaluation=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(evaluation.exceptionDetails)throw new Error(evaluation.exceptionDetails.text);const result=evaluation.result.value;result.interactionChanged=interactionChanged;
  const screenshot=await send('Page.captureScreenshot',{format:'png'}),screenshotPath=`${tmpdir()}${sep}3d-network-topology-smoke.png`;await writeFile(screenshotPath,Buffer.from(screenshot.data,'base64'));
  await send('Page.reload');await delay(1800);const reload=await send('Runtime.evaluate',{expression:`Boolean(document.querySelector('#scene canvas'))`,returnByValue:true});result.reloadCanvas=reload.result.value;
  const consoleErrors=events.filter(event=>event.method==='Runtime.exceptionThrown'||(event.method==='Runtime.consoleAPICalled'&&event.params.type==='error')).map(event=>event.params);
  console.log(JSON.stringify({...result,consoleErrors:consoleErrors.length,screenshotPath},null,2));
- if(!result.webgl||!result.mainCanvas||!result.reloadCanvas||!result.interactionChanged||result.summary.devices!==3||result.summary.links!==2||!result.api.highlight||!result.api.focus||result.api.devices!==3||result.api.picked!=='sw'||result.api.emitted!==0||result.modelFetches.length<3||result.errors.length||consoleErrors.length)process.exitCode=1;
+ if(!result.webgpu||!result.mainCanvas||!result.reloadCanvas||!result.interactionChanged||result.summary.devices!==3||result.summary.links!==2||!result.api.highlight||!result.api.focus||result.api.devices!==3||result.api.picked!=='sw'||result.api.emitted!==0||result.modelFetches.length<3||result.errors.length||consoleErrors.length)process.exitCode=1;
 }finally{
  socket?.close();chrome.kill();server.close();await delay(350);await rm(profile,{recursive:true,force:true,maxRetries:5,retryDelay:100});
 }

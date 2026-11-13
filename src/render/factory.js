@@ -1,4 +1,4 @@
-import * as THREE from '../../vendor/three/build/three.module.js';
+import * as THREE from '../../vendor/three/build/three.webgpu.js';
 import { GLTFLoader } from '../../vendor/three/examples/jsm/loaders/GLTFLoader.js';
 
 export const DEVICE_MODEL_TYPES = Object.freeze({pc:'pc',host:'pc',router:'router',switch:'switch',server:null});

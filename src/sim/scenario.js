@@ -33,6 +33,9 @@ export const DEFAULT_LATENCY = 400;
 const ID = /^[A-Za-z][A-Za-z0-9_-]*$/;
 const PROTOCOL = /^[a-z][a-z0-9-]*$/;
 const MAC = /^[0-9a-f]{2}(:[0-9a-f]{2}){5}$/i;
+import { CABLES, MODELS, SPEEDS } from './catalog.js';
+
+const HOSTNAME = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]$/i;
 const IPV4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
 
 /** Types dont chaque interface doit avoir une adresse MAC. */
@@ -44,6 +47,11 @@ export function isMac(value) {
 
 export function isIpv4(value) {
   return typeof value === 'string' && IPV4.test(value);
+}
+
+/** Nom de domaine complet : 'www.ecole.test'. */
+export function isHostname(value) {
+  return typeof value === 'string' && HOSTNAME.test(value);
 }
 
 /** '192.168.1.10/24' → { address: '192.168.1.10', prefix: 24 } ; null si invalide. */
@@ -90,8 +98,9 @@ export function validateScenario(scenario) {
   // Équipements et interfaces
   /** @type {Map<string, Set<string>>} interfaces par équipement */
   const interfaces = new Map();
-  if (!Array.isArray(scenario.devices) || scenario.devices.length === 0) {
-    error('devices : au moins un équipement attendu');
+  // Une topologie vide est permise depuis la phase 7 : l'éditeur part de rien.
+  if (!Array.isArray(scenario.devices)) {
+    error("devices : tableau d'équipements attendu (vide pour une topologie à construire)");
   } else {
     scenario.devices.forEach((device, i) => {
       const where = `devices[${i}]`;
@@ -106,6 +115,62 @@ export function validateScenario(scenario) {
         error(`${name}.position : [x, y, z] attendu`);
       }
       if (device.gateway !== undefined && !isIpv4(device.gateway)) error(`${name}.gateway : adresse IPv4 attendue`);
+      if (device.routes !== undefined) {
+        if (!Array.isArray(device.routes)) error(`${name}.routes : tableau attendu`);
+        else device.routes.forEach((route, k) => {
+          if (!route || !parseCidr(route.network)) error(`${name}.routes[${k}].network : réseau au format 192.168.3.0/24 attendu`);
+          if (!route || !isIpv4(route.via)) error(`${name}.routes[${k}].via : adresse IPv4 du routeur suivant attendue`);
+        });
+      }
+      if (device.model !== undefined) {
+        const model = MODELS[device.model];
+        if (!model) error(`${name}.model : modèle inconnu "${device.model}" (voir src/sim/catalog.js)`);
+        else {
+          if (model.type !== device.type) error(`${name}.model : "${device.model}" est un modèle de type ${model.type}, pas ${device.type}`);
+          const count = model.ports.reduce((sum, group) => sum + group.count, 0);
+          if (Array.isArray(device.interfaces) && device.interfaces.length > count) error(`${name}.interfaces : ${device.interfaces.length} interfaces pour un modèle à ${count} ports`);
+        }
+      }
+      if (device.dns !== undefined && !isIpv4(device.dns)) error(`${name}.dns : adresse IPv4 du serveur DNS attendue`);
+      if (device.services !== undefined) {
+        if (!Array.isArray(device.services)) error(`${name}.services : tableau attendu`);
+        else device.services.forEach((service, k) => {
+          const at = `${name}.services[${k}]`;
+          if (!service || !['udp', 'tcp'].includes(service.transport)) error(`${at}.transport : "udp" ou "tcp" attendu`);
+          if (!service || !Number.isInteger(service.port) || service.port < 1 || service.port > 65535) error(`${at}.port : entier de 1 à 65535 attendu`);
+          if (service?.name !== undefined && typeof service.name !== 'string') error(`${at}.name : texte attendu`);
+        });
+      }
+      if (device.records !== undefined) {
+        if (!Array.isArray(device.records)) error(`${name}.records : tableau attendu`);
+        else device.records.forEach((record, k) => {
+          const at = `${name}.records[${k}]`;
+          if (!record || typeof record.name !== 'string' || !HOSTNAME.test(record.name)) error(`${at}.name : nom de domaine attendu (ex. www.ecole.test)`);
+          if (!record || record.type !== 'A') error(`${at}.type : "A" attendu`);
+          if (!record || !isIpv4(record.value)) error(`${at}.value : adresse IPv4 attendue`);
+          if (record?.ttl !== undefined && !(Number.isInteger(record.ttl) && record.ttl >= 0)) error(`${at}.ttl : entier ≥ 0 attendu (secondes)`);
+        });
+      }
+      if (device.pages !== undefined) {
+        if (!Array.isArray(device.pages)) error(`${name}.pages : tableau attendu`);
+        else device.pages.forEach((page, k) => {
+          const at = `${name}.pages[${k}]`;
+          if (!page || typeof page.path !== 'string' || !page.path.startsWith('/')) error(`${at}.path : chemin commençant par / attendu`);
+          if (!page || !Number.isInteger(page.size) || page.size < 0) error(`${at}.size : taille en octets attendue`);
+          if (page?.status !== undefined && !Number.isInteger(page.status)) error(`${at}.status : code HTTP attendu`);
+        });
+      }
+      if (device.dhcp !== undefined) {
+        const dhcp = device.dhcp;
+        const at = `${name}.dhcp`;
+        if (!dhcp || typeof dhcp !== 'object') error(`${at} : objet attendu`);
+        else {
+          for (const key of ['start', 'end']) if (!isIpv4(dhcp[key])) error(`${at}.${key} : adresse IPv4 attendue`);
+          if (!Number.isInteger(dhcp.prefix) || dhcp.prefix < 1 || dhcp.prefix > 30) error(`${at}.prefix : longueur de préfixe de 1 à 30 attendue`);
+          for (const key of ['gateway', 'dns']) if (dhcp[key] !== undefined && !isIpv4(dhcp[key])) error(`${at}.${key} : adresse IPv4 attendue`);
+          if (dhcp.lease !== undefined && !(Number.isInteger(dhcp.lease) && dhcp.lease > 0)) error(`${at}.lease : durée en secondes attendue`);
+        }
+      }
 
       const names = new Set();
       if (!Array.isArray(device.interfaces) || device.interfaces.length === 0) {
@@ -119,6 +184,7 @@ export function validateScenario(scenario) {
           if (itf.mac !== undefined && !isMac(itf.mac)) error(`${at}.mac : format aa:bb:cc:dd:ee:ff attendu`);
           if (itf.mac === undefined && NEEDS_MAC.has(device.type)) error(`${at}.mac : obligatoire pour un équipement ${device.type}`);
           if (itf.ip !== undefined && !parseCidr(itf.ip)) error(`${at}.ip : format 192.168.1.10/24 attendu`);
+          if (itf.speed !== undefined && !SPEEDS.includes(itf.speed)) error(`${at}.speed : une valeur parmi ${SPEEDS.join(', ')} (Mb/s)`);
         });
       }
       if (typeof device.id === 'string' && !interfaces.has(device.id)) interfaces.set(device.id, names);
@@ -147,6 +213,8 @@ export function validateScenario(scenario) {
       if (typeof link.id !== 'string' || !ID.test(link.id)) error(`${where}.id : identifiant attendu`);
       else if (ids.has(link.id)) error(`${where} : id en double`);
       else ids.add(link.id);
+      if (link.bandwidth !== undefined && !SPEEDS.includes(link.bandwidth)) error(`${where}.bandwidth : une valeur parmi ${SPEEDS.join(', ')} (Mb/s)`);
+      if (link.cable !== undefined && !CABLES[link.cable]) error(`${where}.cable : une valeur parmi ${Object.keys(CABLES).join(', ')}`);
       if (link.latency !== undefined && !(Number.isFinite(link.latency) && link.latency > 0)) {
         error(`${where}.latency : nombre > 0 attendu (ms simulées)`);
       }

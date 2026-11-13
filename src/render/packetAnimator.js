@@ -8,20 +8,14 @@
 //
 // Le calcul des positions (computeFrame) est séparé de l'affichage Three.js : il se teste sous Node.
 
-import * as THREE from '../../vendor/three/build/three.module.js';
+import * as THREE from '../../vendor/three/build/three.webgpu.js';
 import { isBroadcast, TOPICS } from '../../simulation.js';
+import { colorNumber, packetStyle } from './packetStyles.js';
 
 /** Hauteur du paquet : au-dessus des équipements, pour qu'ils ne le cachent pas. */
 export const PACKET_HEIGHT = 1.6;
 
-/**
- * Couleur provisoire. En S3, packetStyles.js (Aziz) fournira la palette des neuf protocoles :
- * il suffira de remplacer cette fonction par packetStyles.get(protocole, type).
- */
-export const PROVISIONAL_STYLE = Object.freeze({
-  unicast: { color: 0x4ea8ff, radius: 0.3 },
-  broadcast: { color: 0xffd166, radius: 0.38 }, // diffusion : plus gros et jaune, visible de loin
-});
+// Couleur par protocole et taille selon la diffusion : packetStyles.js (phase 4d).
 
 /** Point à la fraction `progress` du segment from → to (progress borné entre 0 et 1). */
 export function packetPosition(from, to, progress, height = PACKET_HEIGHT) {
@@ -78,16 +72,24 @@ export function createPacketAnimator({ sim, parent, getPosition }) {
   group.name = 'packets';
   parent.add(group);
 
-  // Géométries et matériaux partagés : un seul jeu pour tous les paquets (performance mobile).
+  // Géométrie partagée, un matériau par couleur : quelques objets seulement (performance mobile).
   const geometry = new THREE.SphereGeometry(1, 20, 14);
-  const materials = {
-    unicast: new THREE.MeshStandardMaterial({ color: PROVISIONAL_STYLE.unicast.color, emissive: PROVISIONAL_STYLE.unicast.color, emissiveIntensity: 0.4 }),
-    broadcast: new THREE.MeshStandardMaterial({ color: PROVISIONAL_STYLE.broadcast.color, emissive: PROVISIONAL_STYLE.broadcast.color, emissiveIntensity: 0.4 }),
+  /** @type {Map<string, THREE.MeshStandardMaterial>} */
+  const materials = new Map();
+  const materialFor = (hex) => {
+    if (!materials.has(hex)) {
+      const color = colorNumber(hex);
+      materials.set(hex, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.45 }));
+    }
+    return materials.get(hex);
   };
 
   /** @type {Map<number, THREE.Mesh>} */
   const meshes = new Map();
   let frame = [];
+  /** Évènement d'envoi du paquet sélectionné dans l'inspecteur : dessiné plus gros. */
+  let selectedKey = null;
+  const SELECTED_SCALE = 1.7;
   let disposed = false;
 
   function update() {
@@ -98,15 +100,15 @@ export function createPacketAnimator({ sim, parent, getPosition }) {
       seen.add(item.key);
       let mesh = meshes.get(item.key);
       if (!mesh) {
-        const style = item.broadcast ? 'broadcast' : 'unicast';
-        mesh = new THREE.Mesh(geometry, materials[style]);
-        mesh.scale.setScalar(PROVISIONAL_STYLE[style].radius);
+        const style = packetStyle(item.protocol, item.broadcast);
+        mesh = new THREE.Mesh(geometry, materialFor(style.color));
         mesh.name = `packet-${item.packetId}`;
-        mesh.userData = { packetId: item.packetId, protocol: item.protocol, type: item.type, eventId: item.key };
+        mesh.userData = { packetId: item.packetId, protocol: item.protocol, type: item.type, eventId: item.key, radius: style.radius };
         group.add(mesh);
         meshes.set(item.key, mesh);
       }
       mesh.position.set(item.position.x, item.position.y, item.position.z);
+      mesh.scale.setScalar(mesh.userData.radius * (item.key === selectedKey ? SELECTED_SCALE : 1));
     }
     // Arrivé, perdu ou effacé par une réinitialisation : il n'est plus en vol, on le retire.
     for (const [key, mesh] of meshes) {
@@ -125,6 +127,11 @@ export function createPacketAnimator({ sim, parent, getPosition }) {
   return {
     update,
     count: () => meshes.size,
+    /** Met en avant le paquet de l'évènement d'envoi `eventId` (null : aucun). */
+    select(eventId) {
+      selectedKey = Number.isInteger(eventId) ? eventId : null;
+      update();
+    },
     getFrame: () => frame,
     dispose() {
       if (disposed) return;
@@ -133,7 +140,7 @@ export function createPacketAnimator({ sim, parent, getPosition }) {
       parent.remove(group);
       meshes.clear();
       geometry.dispose();
-      Object.values(materials).forEach((material) => material.dispose());
+      materials.forEach((material) => material.dispose());
     },
   };
 }

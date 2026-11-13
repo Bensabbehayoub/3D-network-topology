@@ -1,0 +1,198 @@
+// Tests de l'éditeur de topologie (phase 7a) : contrôleur sans DOM, avec le vrai moteur.
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { test } from 'node:test';
+
+import { createSimulation, TOPICS } from '../../simulation.js';
+import { DEVICE_BEHAVIOURS } from '../sim/devices/index.js';
+import { createEditorController, freeSpot, linkLabel, mount } from './editor.js';
+import { createModeService } from './modeSwitch.js';
+import { createTopologyStore } from './storage.js';
+
+/** Faux localStorage en mémoire (défini ici : importer storage.test.js rejouerait ses tests). */
+function memoryStorage() {
+  const data = new Map();
+  return { getItem: (key) => (data.has(key) ? data.get(key) : null), setItem: (key, value) => data.set(key, String(value)), removeItem: (key) => data.delete(key) };
+}
+
+async function setup({ storage = memoryStorage() } = {}) {
+  const ping = JSON.parse(await readFile(new URL('../../scenarios/ping.json', import.meta.url), 'utf8'));
+  const sim = createSimulation({ devices: DEVICE_BEHAVIOURS, scheduler: { start: () => () => {} } });
+  await sim.load(ping);
+  // Comme src/sim/index.js : recharger un scénario fourni par son id.
+  const app = { sim: { ...sim, loadScenario: async (id) => (id === 'ping' ? sim.load(ping) : false), listScenarios: () => [{ id: 'ping' }] } };
+  let selected = null;
+  const selection = { getSelection: () => selected, select: (id) => { selected = id; return true; }, clear: () => { selected = null; return true; } };
+  const views = [];
+  const store = createTopologyStore(storage);
+  const editor = createEditorController(app, { onChange: (view) => views.push(view), selection, store });
+  return { app, sim, editor, views, selection, storage, store };
+}
+
+test('place libre : spirale autour du centre, sans chevauchement', () => {
+  assert.deepEqual(freeSpot([]), [0, 0, 0]);
+  assert.deepEqual(freeSpot([{ position: [0, 0, 0] }]), [-3, 0, -3]);
+  const many = Array.from({ length: 8 }, (_, i) => ({ position: freeSpot([]) })).reduce((list) => [...list, { position: freeSpot(list) }], []);
+  assert.equal(new Set(many.map((d) => d.position.join(','))).size, many.length);
+});
+
+test('entrer en construction : copie du scénario affiché, chargée dans le moteur', async () => {
+  const { sim, editor } = await setup();
+  const scenarios = [];
+  sim.on(TOPICS.SCENARIO, ({ scenario }) => scenarios.push(scenario));
+  await editor.enter();
+  assert.equal(editor.isActive(), true);
+  assert.equal(sim.getScenario().id, 'perso');
+  assert.equal(sim.getScenario().protocol, 'aucun');
+  assert.equal(sim.getScenario().devices.length, 5);
+  assert.equal(scenarios.length, 1, 'la scène et le diagnostic suivent (TOPICS.SCENARIO)');
+  await editor.leave();
+  assert.equal(sim.getScenario().id, 'ping', 'retour au scénario affiché avant');
+});
+
+test('ajouter, renommer, relier, retirer : brouillon rechargé à chaque fois, messages', async () => {
+  const { sim, editor, selection } = await setup();
+  await editor.enter();
+  await editor.restart(false);
+  assert.equal(sim.getScenario().devices.length, 0, 'topologie vide');
+  const pc = await editor.addAtCenter('pc-1g');
+  assert.equal(pc, 'pc1');
+  assert.equal(selection.getSelection(), 'pc1', 'le nouvel équipement est sélectionné');
+  await editor.addAtCenter('sw-24g');
+  assert.equal(editor.getView().notice, 'Switch 1 ajouté.');
+  assert.deepEqual(sim.getScenario().devices.map((d) => d.position), [[0, 0, 0], [-3, 0, -3]]);
+  await editor.connect('pc1:eth0', 'sw1:p1');
+  assert.equal(sim.getScenario().links.length, 1);
+  assert.match(editor.getView().notice, /Câble posé : PC 1 \(eth0\) ↔ Switch 1 \(p1\)/);
+  assert.equal(editor.getView().links[0].bandwidth, '1 Gb/s');
+  assert.equal(await editor.connect('pc1:eth0', 'sw1:p2'), false);
+  assert.match(editor.getView().error, /déjà relié/);
+  await editor.rename('pc1', 'Accueil');
+  assert.equal(sim.getScenario().devices[0].label, 'Accueil');
+  selection.select('pc1'); // l'ajout du switch l'avait sélectionné
+  assert.equal(editor.getView().selected.label, 'Accueil');
+  assert.deepEqual(editor.getView().selected.ports, [{ name: 'eth0', peer: 'Switch 1 (p1)' }]);
+  await editor.move('pc1', [4, 0, 1]);
+  assert.deepEqual(sim.getScenario().devices[0].position, [4, 0, 1]);
+  await editor.disconnect('l1');
+  assert.equal(sim.getScenario().links.length, 0);
+  await editor.remove('sw1');
+  assert.deepEqual(sim.getScenario().devices.map((d) => d.id), ['pc1']);
+});
+
+test('placement dans la scène : armé par le modèle, consommé par un toucher du sol', async () => {
+  const { sim, editor } = await setup();
+  await editor.enter();
+  assert.equal(await editor.place([1, 0, 1]), false, 'rien d\'armé : le sol ne fait rien');
+  editor.arm('rt-4g');
+  assert.match(editor.getView().notice, /Touchez le sol/);
+  const id = await editor.place([6, 0, 2]);
+  assert.equal(id, 'r2', 'r1 existe déjà dans la copie du scénario ping');
+  assert.deepEqual(sim.getScenario().devices.find((d) => d.id === 'r2').position, [6, 0, 2]);
+  assert.equal(editor.getView().armed, null);
+  editor.arm('pc-1g');
+  editor.arm(null);
+  assert.equal(await editor.place([0, 0, 0]), false);
+});
+
+test('repartir d\'une copie du scénario affiché, et brouillon gardé entre deux constructions', async () => {
+  const { sim, editor } = await setup();
+  await editor.enter();
+  await editor.addAtCenter('pc-1g');
+  await editor.leave();
+  await editor.enter();
+  assert.equal(sim.getScenario().devices.length, 6, 'le brouillon est retrouvé');
+  await editor.restart(true);
+  assert.equal(sim.getScenario().devices.length, 5, 'copie du scénario ping');
+  assert.equal(sim.getScenario().title, 'Ping : joindre un PC d\'un autre réseau (copie)');
+});
+
+test('service de mode : éditeur, rendu, onglets et mise en page prévenus', async () => {
+  const calls = [];
+  const editor = { enter: async () => calls.push('entrer'), leave: async () => calls.push('sortir') };
+  const body = { dataset: {} };
+  const mode = createModeService({
+    getEditor: () => editor,
+    render: { setEditMode: (on) => calls.push(`rendu ${on}`) },
+    tabs: { select: (id) => calls.push(`onglet ${id}`) },
+    body,
+  });
+  assert.equal(await mode.set('build'), true);
+  assert.equal(body.dataset.mode, 'build');
+  assert.equal(await mode.set('build'), false, 'déjà dans ce mode');
+  await mode.set('explore');
+  assert.equal(await mode.set('inconnu'), false);
+  assert.deepEqual(calls, ['rendu true', 'entrer', 'onglet recommendations', 'rendu false', 'sortir', 'onglet explanations']);
+});
+
+test('mount sous Node : gabarit fixe, aucun nom d\'équipement dans le HTML', async () => {
+  const { app } = await setup();
+  const container = { innerHTML: '' };
+  const editor = mount(container, app);
+  assert.match(container.innerHTML, /Relier deux ports libres/);
+  assert.doesNotMatch(container.innerHTML, /PC 1/);
+  assert.equal(linkLabel({ devices: [{ id: 'a', label: 'A' }, { id: 'b' }] }, { a: 'a:x', b: 'b:y' }), 'A (x) ↔ b (y)');
+  editor.dispose();
+});
+
+test('7b : configurer, choisir le protocole, jouer « Ma topologie » puis revenir en Explorer dessus', async () => {
+  const { sim, editor, app } = await setup();
+  let custom = null;
+  app.sim.setCustomScenario = (scenario) => { custom = scenario; return { id: 'perso' }; };
+  app.sim.loadScenario = async (id) => (id === 'perso' ? sim.load(custom) : false);
+  await editor.enter();
+  // Configuration : effacer puis proposer une adresse, passerelle proposée.
+  await editor.setAddress('pc2', 'eth0', '');
+  assert.equal(sim.getScenario().devices.find((d) => d.id === 'pc2').interfaces[0].ip, undefined);
+  await editor.proposeAddress('pc2', 'eth0');
+  assert.equal(sim.getScenario().devices.find((d) => d.id === 'pc2').interfaces[0].ip, '192.168.2.10/24');
+  await editor.setGateway('pc2', '');
+  await editor.proposeGateway('pc2');
+  assert.equal(sim.getScenario().devices.find((d) => d.id === 'pc2').gateway, '192.168.2.1');
+  assert.equal(await editor.setAddress('pc2', 'eth0', '999.1.1.1'), false);
+  assert.match(editor.getView().error, /n'est pas une adresse valide/);
+  // Protocole : DHCP impossible ici (erreurs), ping prêt.
+  editor.chooseRun('dhcp');
+  assert.ok(editor.getView().run.errors.length > 0);
+  assert.equal(editor.play(), false);
+  editor.chooseRun('ping');
+  editor.setRunValue('count', 1);
+  assert.deepEqual(editor.getView().run.errors, []);
+  assert.equal(editor.getView().run.fields.find((f) => f.key === 'count').value, 1);
+  assert.equal(editor.play(), true);
+  assert.equal(custom.protocol, 'icmp');
+  assert.equal(custom.params.count, 1);
+  await editor.leave();
+  assert.equal(sim.getScenario().id, 'perso', 'Explorer affiche « Ma topologie »');
+  assert.equal(sim.getScenario().protocol, 'icmp');
+});
+
+test('7c : brouillon retrouvé après un « rechargement », enregistrer, rouvrir, exporter, importer', async () => {
+  const storage = memoryStorage();
+  const first = await setup({ storage });
+  await first.editor.enter();
+  await first.editor.restart(false);
+  await first.editor.addAtCenter('pc-1g');
+  // Nouvelle page (nouveau contrôleur), même stockage : la topologie est retrouvée.
+  const second = await setup({ storage });
+  await second.editor.enter();
+  assert.deepEqual(second.sim.getScenario().devices.map((d) => d.id), ['pc1']);
+  assert.match(second.editor.getView().notice, /Topologie retrouvée/);
+  // Enregistrer sous un nom : il devient le titre, et la liste le montre.
+  await second.editor.saveAs('Salle 12');
+  assert.equal(second.sim.getScenario().title, 'Salle 12');
+  assert.deepEqual(second.editor.getView().saved.items.map((item) => item.name), ['Salle 12']);
+  await second.editor.addAtCenter('sw-24g');
+  await second.editor.openSaved('Salle 12');
+  assert.equal(second.sim.getScenario().devices.length, 1, 'version enregistrée rouverte');
+  // Export puis import.
+  const { name, text } = second.editor.exportFile();
+  assert.equal(name, 'topologie-salle-12.json');
+  await second.editor.restart(false);
+  assert.equal(await second.editor.importText(text), true);
+  assert.equal(second.sim.getScenario().title, 'Salle 12');
+  assert.equal(await second.editor.importText('{ cassé'), false);
+  assert.match(second.editor.getView().error, /JSON valide/);
+  assert.equal(second.editor.removeSaved('Salle 12'), true);
+  assert.deepEqual(second.editor.getView().saved.items, []);
+});

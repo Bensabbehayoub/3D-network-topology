@@ -17,6 +17,7 @@
 //   getHistory()                    évènements réseau publiés depuis la dernière réinitialisation (S2)
 //   getPacketsInFlight()            paquets en cours de trajet et leur avancement 0..1 (S2, animateur)
 //   isAllowed(command)              la commande est-elle permise maintenant ? (activer les boutons)
+//   tick(realDeltaMs)               avance la lecture d'une image, depuis la boucle de rendu (VR comprise)
 //   on(topic, listener) / once(...) abonnement au bus (TOPICS de events.js) → désabonnement
 //
 // Les commandes renvoient true si elles ont été exécutées, false si l'état ne les permet pas
@@ -32,6 +33,10 @@ export { COMMANDS } from './state.js';
 
 export const MIN_SPEED = 0.25;
 export const MAX_SPEED = 4;
+/** Durée réelle maximale prise en compte pour une image (ms) : au-delà, on ne rattrape pas. */
+export const MAX_FRAME_DELTA = 100;
+/** Sans tick() externe depuis ce délai (ms), l'horloge interne reprend le relais. */
+export const EXTERNAL_TICK_TIMEOUT = 250;
 
 /**
  * @typedef {object} SimulationState
@@ -90,6 +95,9 @@ function deepFreeze(value) {
  *   comportements d'équipements par type (S3 : switch.js, host.js, router.js). Appelé avant le
  *   protocole à chaque réception ; s'il renvoie true, le paquet est traité et le protocole n'est pas appelé.
  * @param {number} [options.speed] vitesse initiale (1 par défaut)
+ * @param {(scenario: object, link: object, packet: object) => { bytes: number, duration: number }} [options.transmission]
+ *   taille de la trame et durée d'émission sur le lien (phase 5, voir traffic.js). Sans elle, une
+ *   trame part et arrive comme avant (durée nulle, aucune file d'attente).
  */
 export function createSimulation(options = {}) {
   const bus = createBus();
@@ -240,7 +248,7 @@ export function createSimulation(options = {}) {
         bus.emit(TOPICS.STEP, { time: engine.now(), step: step.id, title: step.title, text: step.text });
       },
 
-      send(deviceId, packet, { interface: name, step = null, delay = 0 } = {}) {
+      send(deviceId, packet, { interface: name, step = null, delay = 0, lost = null } = {}) {
         assertPacket(packet);
         const frozen = deepFreeze(structuredClone(packet));
         const device = deviceOrThrow(deviceId);
@@ -252,7 +260,7 @@ export function createSimulation(options = {}) {
             return;
           }
           const { link, peer } = attached;
-          const arrival = engine.now() + (link.latency ?? DEFAULT_LATENCY);
+          const { bytes = null, duration = 0 } = options.transmission?.(scenario, link, frozen) ?? {};
           const common = {
             source: device.id,
             sourceInterface,
@@ -262,13 +270,31 @@ export function createSimulation(options = {}) {
             packet: frozen,
             step,
           };
-          const sent = publish(EVENT_TYPES.SEND, { ...common, arrival });
-          run.inFlight.set(sent.id, sent);
-          engine.schedule(arrival, () => {
-            run.inFlight.delete(sent.id);
-            publish(EVENT_TYPES.RECEIVE, common);
-            receive(peer.device, frozen, { interface: peer.interface, link: link.id, from: device.id });
-          });
+          // Un port n'émet qu'une trame à la fois : la suivante attend la fin de la précédente.
+          const port = `${device.id}:${sourceInterface}`;
+          const start = Math.max(engine.now(), run.portFree.get(port) ?? 0);
+          run.portFree.set(port, start + duration);
+          const transmit = () => {
+            const transmitted = engine.now() + duration;
+            const arrival = transmitted + (link.latency ?? DEFAULT_LATENCY);
+            const sent = publish(EVENT_TYPES.SEND, { ...common, arrival, bytes, transmitted });
+            run.inFlight.set(sent.id, sent);
+            if (lost) {
+              // Perte simulée sur le câble : la trame part, puis disparaît à mi-chemin.
+              engine.schedule(transmitted + (arrival - transmitted) / 2, () => {
+                run.inFlight.delete(sent.id);
+                publish(EVENT_TYPES.DROP, { source: device.id, sourceInterface, link: link.id, packet: frozen, step, reason: String(lost) });
+              });
+              return;
+            }
+            engine.schedule(arrival, () => {
+              run.inFlight.delete(sent.id);
+              publish(EVENT_TYPES.RECEIVE, common);
+              receive(peer.device, frozen, { interface: peer.interface, link: link.id, from: device.id });
+            });
+          };
+          if (start > engine.now()) engine.schedule(start, transmit);
+          else transmit();
         });
       },
 
@@ -291,16 +317,31 @@ export function createSimulation(options = {}) {
     stop();
     engine.clear();
     lastError = null;
-    run = { eventId: 0, packetId: 0, memory: new Map(), history: [], inFlight: new Map(), ctx: null };
+    run = { eventId: 0, packetId: 0, memory: new Map(), history: [], inFlight: new Map(), portFree: new Map(), ctx: null };
     run.ctx = createContext();
     engine.schedule(0, () => protocol.start(run.ctx));
     bus.emit(TOPICS.RESET, { time: 0 });
   }
 
+  /** Avance l'horloge simulée de (durée réelle × vitesse), si la lecture est en cours. */
+  function advance(realDelta) {
+    if (status !== STATUS.PLAYING) return;
+    if (guarded(() => engine.advanceTo(engine.now() + realDelta * speed))) afterProgress();
+  }
+
+  // Deux sources de temps réel possibles pour la lecture :
+  // - externe : la boucle de rendu appelle tick() à chaque image. C'est la seule qui continue
+  //   pendant une session WebXR immersive, où le requestAnimationFrame de la fenêtre est suspendu ;
+  // - interne (scheduler) : relais quand personne n'appelle tick() (rendu en panne, tests, Node).
+  // Tant qu'un tick externe est récent, les images du scheduler sont ignorées : le temps
+  // n'avance jamais deux fois pour la même image.
+  const wallClock = () => globalThis.performance?.now?.() ?? Date.now();
+  let lastExternalTick = Number.NEGATIVE_INFINITY;
+  const externalActive = () => wallClock() - lastExternalTick < EXTERNAL_TICK_TIMEOUT;
+
   function startLoop() {
     stopLoop = scheduler.start((realDelta) => {
-      if (status !== STATUS.PLAYING) return;
-      if (guarded(() => engine.advanceTo(engine.now() + realDelta * speed))) afterProgress();
+      if (!externalActive()) advance(realDelta);
     });
   }
 
@@ -356,6 +397,20 @@ export function createSimulation(options = {}) {
       if (!guarded(() => engine.stepNext())) return true;
       bus.emit(TOPICS.TICK, { time: engine.now() });
       setStatus(engine.hasPending() ? next : STATUS.FINISHED);
+      return true;
+    },
+
+    /**
+     * Fait avancer la lecture d'une image, depuis la boucle de rendu (renderer.setAnimationLoop).
+     * Sans effet hors lecture. Le moteur reste indépendant du nombre d'images par seconde :
+     * seul compte le temps réel écoulé, borné pour ne pas rattraper un long gel d'un coup.
+     * @param {number} realDeltaMs temps réel écoulé depuis l'image précédente (ms)
+     * @returns {boolean} false si la durée est invalide
+     */
+    tick(realDeltaMs) {
+      if (!Number.isFinite(realDeltaMs) || realDeltaMs < 0) return false;
+      lastExternalTick = wallClock();
+      advance(Math.min(realDeltaMs, MAX_FRAME_DELTA));
       return true;
     },
 

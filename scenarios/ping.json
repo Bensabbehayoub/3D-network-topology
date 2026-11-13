@@ -1,6 +1,217 @@
 {
+  "schema": 1,
+  "id": "ping",
+  "title": "Ping : joindre un PC d'un autre réseau",
   "protocol": "icmp",
-  "devices": [],
-  "links": [],
-  "steps": []
+  "description": "ping envoie des requêtes d'écho ICMP et mesure le temps de réponse. PC 1 et PC 2 sont dans deux réseaux différents : chaque requête passe par le routeur, qui a besoin d'ARP pour connaître les adresses MAC de part et d'autre. Les durées sont ralenties pour être visibles.",
+  "params": {
+    "source": "pc1",
+    "target": "pc2",
+    "count": 2,
+    "interval": 7000,
+    "timeout": 10000
+  },
+  "devices": [
+    {
+      "id": "pc1",
+      "type": "host",
+      "label": "PC 1",
+      "model": "pc-1g",
+      "position": [
+        -6,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:10",
+          "ip": "192.168.1.10/24"
+        }
+      ],
+      "gateway": "192.168.1.1"
+    },
+    {
+      "id": "sw1",
+      "type": "switch",
+      "label": "Switch 1",
+      "model": "sw-24g",
+      "position": [
+        -3,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        }
+      ]
+    },
+    {
+      "id": "r1",
+      "type": "router",
+      "label": "Routeur",
+      "model": "rt-4g",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "g0",
+          "mac": "02:00:00:00:00:a0",
+          "ip": "192.168.1.1/24"
+        },
+        {
+          "name": "g1",
+          "mac": "02:00:00:00:00:a1",
+          "ip": "192.168.2.1/24"
+        }
+      ]
+    },
+    {
+      "id": "sw2",
+      "type": "switch",
+      "label": "Switch 2",
+      "model": "sw-24g",
+      "position": [
+        3,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        }
+      ]
+    },
+    {
+      "id": "pc2",
+      "type": "host",
+      "label": "PC 2",
+      "model": "pc-1g",
+      "position": [
+        6,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:02:20",
+          "ip": "192.168.2.20/24"
+        }
+      ],
+      "gateway": "192.168.2.1"
+    }
+  ],
+  "links": [
+    {
+      "id": "l1",
+      "a": "pc1:eth0",
+      "b": "sw1:p1",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l2",
+      "a": "sw1:p2",
+      "b": "r1:g0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l3",
+      "a": "r1:g1",
+      "b": "sw2:p1",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l4",
+      "a": "sw2:p2",
+      "b": "pc2:eth0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    }
+  ],
+  "steps": [
+    {
+      "id": "icmp-start",
+      "title": "Lancement de ping",
+      "text": "PC 1 exécute « ping 192.168.2.20 » : il va envoyer deux requêtes d'écho ICMP à PC 2 et attendre chaque réponse."
+    },
+    {
+      "id": "icmp-request-1",
+      "title": "Première requête d'écho",
+      "text": "PC 1 prépare la requête d'écho n°1 : IP source 192.168.1.10, IP destination 192.168.2.20, TTL 64."
+    },
+    {
+      "id": "route-gateway",
+      "title": "Destination dans un autre réseau",
+      "text": "PC 1 compare l'adresse de destination avec son réseau 192.168.1.0/24 : elle n'en fait pas partie. Le paquet doit donc passer par la passerelle par défaut, le routeur 192.168.1.1."
+    },
+    {
+      "id": "arp-request-pc1",
+      "title": "ARP pour la passerelle",
+      "text": "PC 1 ne connaît pas l'adresse MAC du routeur. La requête d'écho attend pendant que PC 1 diffuse une requête ARP : « Qui a 192.168.1.1 ? »."
+    },
+    {
+      "id": "arp-reply-r1",
+      "title": "Le routeur répond",
+      "text": "L'interface g0 du routeur porte 192.168.1.1 : elle répond directement à PC 1 avec son adresse MAC 02:00:00:00:00:a0."
+    },
+    {
+      "id": "arp-cache-update-pc1",
+      "title": "La requête d'écho part",
+      "text": "PC 1 enregistre la MAC du routeur dans son cache ARP. La requête d'écho part enfin, avec l'adresse MAC du routeur comme destination Ethernet et l'adresse IP de PC 2 comme destination IP."
+    },
+    {
+      "id": "router-forward-r1",
+      "title": "Le routeur fait suivre",
+      "text": "Le routeur reçoit le paquet sur g0. Sa table de routage indique que 192.168.2.0/24 est directement connecté à g1. Il décrémente le TTL (64 → 63) et prépare une nouvelle trame Ethernet pour ce réseau."
+    },
+    {
+      "id": "arp-request-r1",
+      "title": "ARP de l'autre côté",
+      "text": "Le routeur ne connaît pas encore la MAC de PC 2 : à son tour il diffuse une requête ARP sur le réseau 192.168.2.0/24."
+    },
+    {
+      "id": "arp-reply-pc2",
+      "title": "PC 2 répond au routeur",
+      "text": "PC 2 reconnaît son adresse et répond au routeur. Il retient au passage la MAC du routeur, qui s'est présenté dans sa requête."
+    },
+    {
+      "id": "icmp-reply-pc2",
+      "title": "Réponse d'écho",
+      "text": "PC 2 reçoit la requête d'écho et renvoie une réponse d'écho vers 192.168.1.10. Il connaît déjà la MAC de sa passerelle : aucune requête ARP n'est nécessaire."
+    },
+    {
+      "id": "icmp-reply-received-1",
+      "title": "Réponse reçue",
+      "text": "La réponse a traversé le routeur en sens inverse (TTL 64 → 63). PC 1 affiche « réponse de 192.168.2.20 » et le temps aller-retour."
+    },
+    {
+      "id": "icmp-request-2",
+      "title": "Deuxième requête",
+      "text": "Sept secondes plus tard, PC 1 envoie la requête n°2. Cette fois les caches ARP de PC 1, du routeur et de PC 2 sont remplis : le paquet part tout de suite, sans aucune diffusion. Le temps aller-retour est bien plus court."
+    },
+    {
+      "id": "icmp-reply-received-2",
+      "title": "Deuxième réponse",
+      "text": "La réponse n°2 arrive : son temps aller-retour ne compte plus que les trajets sur les câbles."
+    },
+    {
+      "id": "icmp-summary",
+      "title": "Bilan",
+      "text": "2 paquets envoyés, 2 reçus, 0 % de perte. La première requête a payé le coût des résolutions ARP ; les suivantes profitent des caches."
+    }
+  ]
 }

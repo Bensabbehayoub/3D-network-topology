@@ -11,7 +11,12 @@ import { mount as mountControls } from './controls.js';
 import { mount as mountExplanations } from './explanations.js';
 import { mount as mountInspector } from './inspector.js';
 import { mount as mountInstall } from './install.js';
+import { mount as mountEditor } from './editor.js';
+import { createModeService, mount as mountModeSwitch } from './modeSwitch.js';
+import { mount as mountRecommendations } from './recommendations.js';
 import { mount as mountScenarioPicker } from './scenarioPicker.js';
+import { attachTabs } from './tabs.js';
+import { createPacketSelection, PACKET_SELECTED_EVENT } from './packets.js';
 import { attachSelection, createSelection, deviceExists, renderHighlighter } from './selection.js';
 
 /**
@@ -25,6 +30,9 @@ export const MOUNT_POINTS = Object.freeze({
   scenarioPicker: 'scenario-picker',
   inspector: 'inspector',
   explanations: 'explanations',
+  recommendations: 'recommendations',
+  mode: 'mode-slot',
+  editor: 'editor',
   xr: 'xr-slot',
   install: 'install-slot',
 });
@@ -32,10 +40,13 @@ export const MOUNT_POINTS = Object.freeze({
 // Modules montés par ce pôle, dans l'ordre d'affichage.
 // selection.js n'a pas de zone à lui : il est créé à part.
 const MODULES = [
+  { name: 'mode', id: MOUNT_POINTS.mode, mount: mountModeSwitch },
   { name: 'scenarioPicker', id: MOUNT_POINTS.scenarioPicker, mount: mountScenarioPicker },
   { name: 'controls', id: MOUNT_POINTS.controls, mount: mountControls },
   { name: 'inspector', id: MOUNT_POINTS.inspector, mount: mountInspector },
   { name: 'explanations', id: MOUNT_POINTS.explanations, mount: mountExplanations },
+  { name: 'recommendations', id: MOUNT_POINTS.recommendations, mount: mountRecommendations },
+  { name: 'editor', id: MOUNT_POINTS.editor, mount: mountEditor },
   { name: 'install', id: MOUNT_POINTS.install, mount: mountInstall },
 ];
 
@@ -50,7 +61,8 @@ const MODULES = [
  *     son lancer de rayon en VR) ; false si l'id est inconnu ;
  *   - clear() → boolean : retire la sélection ;
  *   - getSelection() → id de l'équipement sélectionné, ou null ;
- *   - onChange(listener) → désabonnement ; listener(id, previous) à chaque changement.
+ *   - onChange(listener) → désabonnement ; listener(id, previous) à chaque changement ;
+ *   - packets : paquet sélectionné (packets.js) : select(eventId), clear(), get(), onChange(listener).
  */
 export async function init(app = {}, { root = globalThis.document } = {}) {
   const shared = app ?? {};
@@ -61,9 +73,14 @@ export async function init(app = {}, { root = globalThis.document } = {}) {
     highlight: renderHighlighter(shared),
     isKnown: (id) => deviceExists(shared, id),
   });
+  // Paquet sélectionné (journal ou clic dans la scène), détaillé par l'inspecteur (phase 4d).
+  const packets = createPacketSelection(shared);
   const api = {
+    tabs: null,
+    mode: null,
     mountPoints: MOUNT_POINTS,
     modules,
+    packets,
     select: selection.select,
     clear: selection.clear,
     getSelection: selection.getSelection,
@@ -81,6 +98,16 @@ export async function init(app = {}, { root = globalThis.document } = {}) {
     return api;
   }
 
+  root.getElementById(MOUNT_POINTS.scene)?.addEventListener?.(PACKET_SELECTED_EVENT, (event) => {
+    packets.select(event?.detail?.eventId);
+  });
+  // Onglets « Explications | Recommandations » (phase 6) et pastille du nombre de problèmes.
+  api.tabs = attachTabs(root);
+  const badge = root.getElementById('recommendations-badge');
+  // Mode « Explorer | Construire » (phase 7) : l'éditeur est monté plus bas, on le lit au besoin.
+  const mode = createModeService({ getEditor: () => modules.editor ?? null, render: shared.render, tabs: api.tabs, body: root.body ?? null });
+  api.mode = mode;
+
   for (const { name, id, mount } of MODULES) {
     const container = root.getElementById(id);
     if (!container) {
@@ -88,8 +115,8 @@ export async function init(app = {}, { root = globalThis.document } = {}) {
       continue;
     }
     try {
-      // Troisième paramètre : services partagés entre modules (la sélection pour l'inspecteur).
-      modules[name] = mount(container, shared, { selection }) ?? {};
+      // Troisième paramètre : services partagés entre modules (sélections d'équipement et de paquet).
+      modules[name] = mount(container, shared, { selection, packets, badge, mode }) ?? {};
     } catch (error) {
       // Un module en panne ne doit pas empêcher les autres de s'afficher.
       console.error(`Module ui "${name}" non monté :`, error);

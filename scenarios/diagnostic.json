@@ -1,0 +1,279 @@
+{
+  "schema": 1,
+  "id": "diagnostic",
+  "title": "Diagnostic : un réseau mal configuré",
+  "protocol": "icmp",
+  "description": "Ce réseau contient plusieurs erreurs volontaires de configuration et de câblage. PC 1 essaie de pinguer le serveur, deux routeurs plus loin. Ouvrez l'onglet « Recommandations » : chaque problème y est expliqué, avec sa cause et sa correction ; un clic le montre dans la scène.",
+  "params": {
+    "source": "pc1",
+    "target": "srv1",
+    "count": 1,
+    "timeout": 12000
+  },
+  "devices": [
+    {
+      "id": "pc1",
+      "type": "host",
+      "label": "PC 1",
+      "model": "pc-1g",
+      "position": [
+        -9,
+        0,
+        -3
+      ],
+      "gateway": "192.168.1.1",
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:10",
+          "ip": "192.168.1.10/24"
+        }
+      ]
+    },
+    {
+      "id": "pc2",
+      "type": "host",
+      "label": "PC 2",
+      "model": "pc-1g",
+      "position": [
+        -9,
+        0,
+        0
+      ],
+      "gateway": "192.168.10.1",
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:20",
+          "ip": "192.168.1.20/24"
+        }
+      ]
+    },
+    {
+      "id": "pc3",
+      "type": "host",
+      "label": "PC 3",
+      "model": "pc-1g",
+      "position": [
+        -9,
+        0,
+        3
+      ],
+      "gateway": "192.168.1.1",
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:30",
+          "ip": "192.168.1.20/24",
+          "speed": 100
+        }
+      ]
+    },
+    {
+      "id": "sw1",
+      "type": "switch",
+      "label": "Switch 1",
+      "model": "sw-24g",
+      "position": [
+        -5,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        },
+        {
+          "name": "p3"
+        },
+        {
+          "name": "p4"
+        }
+      ]
+    },
+    {
+      "id": "r1",
+      "type": "router",
+      "label": "Routeur 1",
+      "model": "rt-4g",
+      "position": [
+        -1,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "g0",
+          "mac": "02:00:00:00:00:a0",
+          "ip": "192.168.1.1/24"
+        },
+        {
+          "name": "g1",
+          "mac": "02:00:00:00:00:a1",
+          "ip": "10.0.0.1/30"
+        }
+      ],
+      "routes": [
+        {
+          "network": "192.168.3.0/24",
+          "via": "10.0.0.2"
+        }
+      ]
+    },
+    {
+      "id": "r2",
+      "type": "router",
+      "label": "Routeur 2",
+      "model": "rt-4g",
+      "position": [
+        3,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "g0",
+          "mac": "02:00:00:00:00:b0",
+          "ip": "10.0.0.2/30"
+        },
+        {
+          "name": "g1",
+          "mac": "02:00:00:00:00:b1",
+          "ip": "192.168.3.1/24"
+        }
+      ]
+    },
+    {
+      "id": "sw2",
+      "type": "switch",
+      "label": "Switch 2",
+      "model": "sw-24g",
+      "position": [
+        6,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        }
+      ]
+    },
+    {
+      "id": "srv1",
+      "type": "server",
+      "label": "Serveur",
+      "model": "srv-1g",
+      "position": [
+        9,
+        0,
+        0
+      ],
+      "gateway": "192.168.3.1",
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:03:10",
+          "ip": "192.168.3.10/24"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": "l1",
+      "a": "pc1:eth0",
+      "b": "sw1:p1",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l2",
+      "a": "pc2:eth0",
+      "b": "sw1:p2",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l3",
+      "a": "pc3:eth0",
+      "b": "sw1:p3",
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l4",
+      "a": "sw1:p4",
+      "b": "r1:g0",
+      "cable": "cuivre-cat5"
+    },
+    {
+      "id": "l5",
+      "a": "r1:g1",
+      "b": "r2:g0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l6",
+      "a": "r2:g1",
+      "b": "sw2:p1",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l7",
+      "a": "sw2:p2",
+      "b": "srv1:eth0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    }
+  ],
+  "steps": [
+    {
+      "id": "icmp-start",
+      "title": "Un ping qui va échouer",
+      "text": "PC 1 envoie un ping au serveur 192.168.3.10. Ce réseau contient des erreurs volontaires : ouvrez l'onglet « Recommandations » pour les voir toutes, triées par gravité."
+    },
+    {
+      "id": "route-gateway",
+      "title": "Vers la passerelle",
+      "text": "Le serveur est dans un autre réseau : PC 1 passe par sa passerelle, le Routeur 1. Sa configuration à lui est correcte."
+    },
+    {
+      "id": "router-forward-r1",
+      "title": "Routeur 1",
+      "text": "Le Routeur 1 a une route vers 192.168.3.0/24 par 10.0.0.2 : il transmet la requête au Routeur 2. Le câble entre le switch et le Routeur 1 n'est que de catégorie 5 : le lien tourne à 100 Mb/s au lieu de 1 Gb/s (voir Recommandations)."
+    },
+    {
+      "id": "router-forward-r2",
+      "title": "Routeur 2",
+      "text": "Le réseau du serveur est connecté au Routeur 2 : la requête arrive au serveur."
+    },
+    {
+      "id": "icmp-reply-srv1",
+      "title": "Le serveur répond",
+      "text": "Le serveur renvoie une réponse d'écho vers 192.168.1.10, par sa passerelle, le Routeur 2."
+    },
+    {
+      "id": "router-no-route-r2",
+      "title": "Réponse perdue",
+      "text": "Le Routeur 2 n'a aucune route vers 192.168.1.0/24 : il détruit la réponse et prévient le serveur (ICMP « destination inaccessible »). C'est la recommandation critique « Route manquante » : il faut ajouter sur le Routeur 2 la route 192.168.1.0/24 via 10.0.0.1."
+    },
+    {
+      "id": "icmp-timeout",
+      "title": "Pas de réponse",
+      "text": "PC 1 n'a reçu aucune réponse dans le délai : « Délai d'attente de la demande dépassé ». L'aller fonctionnait ; c'est le retour qui manque."
+    },
+    {
+      "id": "icmp-summary",
+      "title": "Bilan",
+      "text": "Un seul problème a fait échouer ce ping, mais le diagnostic en a trouvé d'autres, qui attendent leur heure : PC 2 ne pourra jamais sortir de son réseau (passerelle hors sous-réseau), PC 2 et PC 3 se disputent la même adresse IP, PC 3 est limité à 100 Mb/s, et tout le réseau sort par un lien à 100 Mb/s."
+    }
+  ]
+}

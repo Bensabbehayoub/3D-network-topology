@@ -3,7 +3,7 @@
 **Projet :** 3D Network Topology
 **Équipe :** Ayoub Ben Sabbeh, Khalil Krifa, Mohamed Aziz Saoudi, Rami Driouech
 **Version :** 1.0 — Évaluation SUP'COM (2026/2027)
-**Dernière mise à jour :** 11 novembre 2026 (fin du sprint S2)
+**Dernière mise à jour :** 13 novembre 2026 (refonte, phase 9a)
 
 > Ce fichier est tenu à jour à chaque pull request qui ajoute un asset, une bibliothèque, un extrait de code tiers ou du code produit avec un assistant IA. Chaque membre complète les entrées qui le concernent.
 
@@ -11,13 +11,25 @@
 
 ## 1. Modèles 3D, Textures et Assets Graphiques
 
-**Aucun modèle 3D, texture ou asset graphique externe n'est importé à ce jour** (le dossier `assets/models/` est vide).
+**Aucun modèle 3D, texture ou asset graphique externe n'est importé.** Tout ce qui est affiché est produit par le code ou par des scripts du dépôt.
 
-*   **Asset :** Équipements de la topologie (PC, switch, routeur, serveur), câbles et sol de la scène 3D
-    *   **Source originale :** aucune ; formes générées par le code (`src/render/scene.js`) avec les primitives de Three.js (`BoxGeometry`, `SphereGeometry`, `CylinderGeometry`, `BufferGeometry`, `GridHelper`)
-    *   **Auteur / Créateur :** Mohamed Aziz Saoudi (équipe)
+*   **Asset :** Modèles 3D des équipements (`assets/models/pc.glb`, `router.glb`, `switch.glb`)
+    *   **Source originale :** aucune ; fichiers **générés par le script** `assets/models/generate-models.mjs` (géométrie low-poly faite de boîtes, matériaux PBR sans texture, tampons intégrés)
+    *   **Auteur / Créateur :** Mohamed Aziz Saoudi (S2, tâche 20, commit `5b23e0d`)
     *   **Licence :** code du projet
-    *   **Modifications apportées par l'équipe :** sans objet. Les modèles GLB légers prévus en S2 (tâche 20) seront déclarés ici avec leur source et leur licence s'ils proviennent d'une banque externe.
+    *   **Modifications apportées par l'équipe :** sans objet. Le serveur, les câbles, les paquets, les étiquettes et le sol sont dessinés par le code (`src/render/`) avec les primitives de Three.js ; une forme simple remplace un modèle qui ne se charge pas.
+
+*   **Asset :** Icônes de la PWA (`assets/icons/*.png`)
+    *   **Source originale :** aucune ; PNG **dessinés par le script** `tools/build-icons.js` (trois équipements reliés, écrits avec `zlib` de Node, sans dépendance)
+    *   **Auteur / Créateur :** refonte, phase 1 (Rami Driouech avec Claude Code, voir §4)
+    *   **Licence :** code du projet
+    *   **Modifications apportées par l'équipe :** sans objet
+
+*   **Asset :** Catalogue des modèles d'équipements (`src/sim/catalog.js` : `pc-1g`, `srv-1g`, `srv-10g`, `sw-8fe`, `sw-24g`, `sw-48x`, `rt-4g`, `rt-8x`) et adresses MAC des scénarios
+    *   **Source originale :** aucune ; **modèles génériques et fictifs**, aux valeurs réalistes (vitesses de port normalisées, capacité de commutation = somme des ports × 2). Aucun produit, aucune marque ni fiche constructeur réels ne sont repris. Les adresses MAC sont « administrées localement » (`02:00:…`), donc d'aucun constructeur.
+    *   **Auteur / Créateur :** refonte, phase 5 (voir §4)
+    *   **Licence :** code du projet
+    *   **Modifications apportées par l'équipe :** sans objet
 
 *   **Asset :** Maquettes de l'interface et diagramme de cas d'utilisation (`docs/conception/maquette.svg`, `maquette-mobile.svg`, `cas-utilisation.svg`)
     *   **Source originale :** création de l'équipe
@@ -25,13 +37,17 @@
     *   **Licence :** documents du projet
     *   **Modifications apportées par l'équipe :** sans objet
 
-*   **Asset :** Captures d'écran (`docs/captures/s1-statut-webxr.jpg`, `s1-vr-emulee.jpg`)
+*   **Asset :** Captures d'écran de S1 (`docs/captures/s1-statut-webxr.jpg`, `s1-vr-emulee.jpg`)
     *   **Source originale :** captures de l'application du projet, prises dans Chrome (sans interface, piloté par un script de test), avec un casque Meta Quest 3 émulé par IWER (voir §2)
     *   **Auteur / Créateur :** équipe (voir §4, entrée « Corrections après la revue S1 »)
     *   **Licence :** documents du projet
     *   **Modifications apportées par l'équipe :** conversion PNG → JPEG (qualité 82) pour alléger le dépôt
 
-*   **Icônes de la PWA** (`assets/icons/`) : pas encore créées (prévues en S5, tâche 60) ; à déclarer ici.
+*   **Asset :** Captures d'écran finales (`docs/captures/explorer-ping.jpg`, `inspecteur-paquet.jpg`, `fiche-debit.jpg`, `recommandations.jpg`, `editeur.jpg`, `mobile.jpg`, `vr.jpg`)
+    *   **Source originale :** captures de l'application du projet, prises le 13 novembre 2026 dans Chrome sans interface piloté par un script (hors dépôt), avec WebGPU réel ; `vr.jpg` avec un Meta Quest 3 émulé par IWER
+    *   **Auteur / Créateur :** refonte, phase 9a (voir §4)
+    *   **Licence :** documents du projet
+    *   **Modifications apportées par l'équipe :** enregistrées directement en JPEG
 
 ---
 
@@ -39,15 +55,15 @@
 
 Aucune bibliothèque n'est chargée depuis un CDN à l'exécution : les fichiers sont **copiés dans le dépôt** (`vendor/`), ce qui permet le mode hors ligne de la PWA. La version est figée et vérifiée par `vendor/three/install.mjs`, qui refuse toute autre version.
 
-*   **Bibliothèque :** Three.js (`three.module.js`, `three.core.js`)
-    *   **Version fixée :** r180 (paquet npm `three@0.180.0`), voir `vendor/three/VERSION.txt`
-    *   **Lien CDN de référence :** https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js (référence uniquement ; non utilisé à l'exécution)
+*   **Bibliothèque :** Three.js (`three.core.js`, `three.webgpu.js`, `three.tsl.js`)
+    *   **Version fixée :** r187 (paquet npm `three@0.187.0`), voir `vendor/three/VERSION.txt` ; licence copiée dans `vendor/three/LICENSE`
+    *   **Lien CDN de référence :** https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.webgpu.js (référence uniquement ; non utilisé à l'exécution)
     *   **Licence :** MIT, Copyright 2010-2025 Three.js Authors (en-tête conservé dans les fichiers)
-    *   **Rôle dans le projet :** moteur de rendu 3D (`WebGLRenderer`, WebGL 2) et intégration WebXR (`renderer.xr`) pour le mode classique et la VR. Choix de WebGL 2 plutôt que WebGPU : `docs/decision-renderer.md`.
+    *   **Rôle dans le projet :** moteur de rendu 3D et intégration WebXR (`renderer.xr`). Rendu 100 % WebGPU avec `WebGPURenderer`, en mode classique et en VR ; le build WebGL (`three.module.js`) n'est pas embarqué : voir `docs/decision-renderer.md`.
 
 *   **Bibliothèque :** OrbitControls (module complémentaire de Three.js, `vendor/three/examples/jsm/controls/OrbitControls.js`)
-    *   **Version fixée :** r180 (`three@0.180.0`)
-    *   **Lien CDN de référence :** https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js
+    *   **Version fixée :** r187 (`three@0.187.0`)
+    *   **Lien CDN de référence :** https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/controls/OrbitControls.js
     *   **Licence :** MIT (Three.js Authors)
     *   **Rôle dans le projet :** rotation, zoom et déplacement de la caméra à la souris et au toucher. Seul changement : l'import `from 'three'` est réécrit vers le fichier local (voir §3).
 
@@ -61,20 +77,26 @@ Aucune bibliothèque n'est chargée depuis un CDN à l'exécution : les fichiers
     *   **Rôle :** émulation d'un casque VR pour tester WebXR sans matériel (cahier des charges §3.2)
 
 *   **Outil :** IWER, Immersive Web Emulation Runtime (`iwer`, licence MIT, Meta), le moteur de l'extension ci-dessus
-    *   **Version fixée :** 2.x, installée temporairement hors dépôt
-    *   **Rôle :** tests automatisés de l'entrée et de la sortie de session `immersive-vr` dans Chrome piloté par script (Playwright)
+    *   **Version fixée :** 2.8, installée temporairement hors dépôt
+    *   **Rôle :** tests automatisés des sessions `immersive-vr` (entrée, pupitre, manettes, panneaux, sortie) dans Chrome piloté par script : Playwright en S1, puis, pendant la refonte, scripts utilisant directement le protocole Chrome DevTools, gardés hors dépôt. Rien de ces outils n'est publié avec le site.
+
+*   **Outil :** OpenSSL et curl (fournis par l'image Ubuntu de GitHub Actions et par Git Bash)
+    *   **Rôle :** vérification HTTPS et TLS du site publié (`tools/verify-tls.sh`, job `verify-tls` de la CI)
+
+*   **Outil :** GitHub Actions, actions officielles `actions/checkout@v7`, `setup-node@v7`, `configure-pages@v6`, `upload-pages-artifact@v5`, `deploy-pages@v5`
+    *   **Rôle :** tests, publication sur GitHub Pages et vérification après déploiement (`.github/workflows/ci.yml`)
 
 *   **Outil :** Mermaid (rendu des diagrammes par GitHub)
-    *   **Rôle :** diagrammes de `README.md` et `docs/architecture.md`, écrits en texte et affichés par GitHub. La syntaxe a été validée avec `mermaid@11` hors dépôt.
+    *   **Rôle :** diagrammes de `README.md`, `docs/architecture.md`, `docs/cahier-conceptuel.md`, `docs/ci-cd.md` et `docs/conception/cas-utilisation.md`, écrits en texte et affichés par GitHub.
 
 ---
 
 ## 3. Extraits de code copiés ou adaptés (StackOverflow, Tutoriels, Dépôts tiers)
 
 *   **Fonction / Fichier :** `vendor/three/examples/jsm/controls/OrbitControls.js` (fichier entier)
-    *   **Source du code original :** dépôt officiel Three.js r180, https://github.com/mrdoob/three.js/blob/r180/examples/jsm/controls/OrbitControls.js
+    *   **Source du code original :** dépôt officiel Three.js r187, https://github.com/mrdoob/three.js/blob/r187/examples/jsm/controls/OrbitControls.js (de même pour `GLTFLoader.js`, `BufferGeometryUtils.js` et `SkeletonUtils.js`, copiés par `vendor/three/install.mjs`)
     *   **Auteur :** Three.js Authors (licence MIT)
-    *   **Adaptation effectuée :** aucune modification de la logique. Le script `vendor/three/install.mjs` (Mohamed Aziz Saoudi) remplace seulement `from 'three'` par `from '../../../build/three.module.js'`, pour charger Three.js depuis le dépôt sans CDN ni import map.
+    *   **Adaptation effectuée :** aucune modification de la logique. Le script `vendor/three/install.mjs` (Mohamed Aziz Saoudi) remplace seulement `from 'three'` par `from '../../../build/three.webgpu.js'`, pour charger Three.js depuis le dépôt sans CDN ni import map.
 
 *   **Fonction / Fichier :** `tests/engine.test.js`, fonction `random(seed)` (générateur pseudo-aléatoire des tests du moteur)
     *   **Source du code original :** algorithme « Mulberry32 », https://gist.github.com/tommyettinger/46a874533244883189143505d203312c ; portage JavaScript de référence : https://github.com/bryc/code/blob/master/jshash/PRNGs.md
@@ -82,6 +104,10 @@ Aucune bibliothèque n'est chargée depuis un CDN à l'exécution : les fichiers
     *   **Adaptation effectuée :** reprise du portage JavaScript (mêmes constantes et opérations), renommé `random(seed)` et écrit dans le style du projet. Il sert uniquement à générer des séries de test reproductibles (2 000 et 50 000 actions) ; il n'est pas utilisé dans l'application.
 
 *   **Algorithmes classiques réimplémentés, sans copie de code :** tas binaire minimal (`src/sim/engine.js`), parcours en largeur pour le plus court chemin (`findPath` dans `src/sim/scenario.js`), patrons Observer, Command et State (cahier des charges §8.2).
+
+*   **Protocoles réseau (refonte) :** ARP, ICMP, routage par plus long préfixe, UDP, DNS, DHCP, TCP et HTTP sont écrits pour le projet d'après le comportement décrit par les normes (RFC 826, 792, 768, 1035, 2131, 9293, 9110), sans reprise de code d'une pile existante, avec les simplifications indiquées dans `docs/protocoles/`.
+
+*   **Pont WebXR/WebGPU pour l'émulateur (`src/render/xrBridge.js`) :** code du projet (refonte, phase 2). Il s'appuie sur l'API publique de Three.js r187 et sur le comportement observé d'IWER 2.8 ; aucun code de ces bibliothèques n'y est copié.
 
 ---
 
@@ -145,3 +171,7 @@ Claude a été utilisé de deux façons : dans claude.ai pour la planification d
 *   **Composant ou Shader concerné :** Livrables S2 (tâches 17 à 19) : barre de commandes reliée au moteur (`src/ui/controls.js`), sélection d'un équipement et API `app.ui.select / clear / getSelection / onChange` (`src/ui/selection.js`, `src/ui/keyboard.js`), panneau d'infos de l'équipement (`src/ui/inspector.js`), tests `src/ui/*.test.js`, styles associés
     *   **Prompt ou usage principal :** génération du code et des tests avec Claude Code, à partir des contrats du moteur (`docs/simulation/contrats.md`, §2 et §4) et de l'API de rendu ; consignes : modifier uniquement `src/ui/`, `index.html` et `styles.css`, ne pas refaire le lancer de rayon du pôle render, plan validé avant le code, aucun commit fait par l'assistant.
     *   **Axe de vérification appliqué par l'étudiant :** tests automatiques après chaque tâche ; vérification manuelle dans le navigateur de chaque commande dans chaque état (prêt, lecture, pause, terminé), des raccourcis clavier, de la sélection et de la désélection (Échap), et de la fiche de chaque type d'équipement ; relecture des différences (notamment `index.html`, pour garantir que les points de montage restent intacts) ; un commit par tâche fait par l'étudiant ; approbation du binôme (PR #9) ; vérification sur GitHub Pages après déploiement. Un besoin repéré pendant la tâche 18 (lancer de rayon pour la VR) a été transmis à Aziz au lieu de modifier son code.
+
+*   **Composant ou Shader concerné :** Refonte demandée par le superviseur (12 et 13 novembre 2026, branche `feature/refonte-prof`), phases 1 à 9 : PWA complète et icônes (phase 1, `5d30812`) ; Three.js r187 et rendu 100 % WebGPU, pont `xrBridge.js` (phase 2, `ac653fc`) ; session VR complète (phase 3, `d58dd6d`) ; vrai moteur, équipements, ARP, ICMP, routage, UDP, DNS, DHCP, TCP, HTTP, explications, journal, inspecteur (phases 4a à 4d, `ffba69f`, `1151dfd`, `eaa4efc`, `cafa1d3`) ; catalogue, débit et bande passante (phase 5, `81637a4`) ; diagnostic et recommandations en 2D et en VR (phase 6, `137faf9`) ; éditeur de topologie (phases 7a à 7c, `7b07bf7`, `bd2edf2`, `3acc806`) ; CI/CD et vérification TLS (phase 8, `4484f2d`) ; documentation finale et captures (phase 9). Fichiers : la quasi-totalité de `src/`, `scenarios/`, `tests/`, `tools/`, `.github/workflows/ci.yml`, `docs/` et `README.md`.
+    *   **Prompt ou usage principal :** Claude Code (VS Code, modèle Claude Opus) a écrit la **quasi-totalité du code, des tests, des scénarios et de la documentation de la refonte**, à partir des consignes de Rami : découpage en phases, règles permanentes (modules ES sans bundler, aucun CDN, aucune dépendance à l'exécution, logique pure testée sous Node, `textContent` pour les données, interface en français et accessible, catalogue fictif, contrats tenus à jour), et interdiction pour l'assistant de faire tout `git add`, `commit`, `push`, `merge` ou `rebase`. Plusieurs choix et corrections viennent de Rami : bande passante qui règle le temps d'émission avec une file par port (option B, phase 5), recommandations aussi en VR (phase 6), retour en Explorer sur « Ma topologie » au lieu du scénario de départ (phase 7b), brouillon gardé après un rechargement (phase 7c).
+    *   **Axe de vérification appliqué par l'étudiant :** pour chaque phase, plan court proposé par l'assistant et accepté par Rami avant le code ; suite `node --test` à 0 échec après chaque phase (393 tests à la phase 8) ; vérification par l'assistant dans Chrome piloté par script (mode classique, largeur mobile 390 px, VR avec IWER, hors ligne, console sans erreur), avec les résultats notés dans `docs/avancement.md` ; essais par Rami dans son navigateur (dont la VR avec l'extension Immersive Web Emulator 2.0, et les remarques qui ont mené aux corrections ci-dessus) ; relecture des changements, puis **un commit par phase fait par Rami lui-même**. Ce qui n'a pas pu être vérifié est écrit dans `docs/avancement.md` (vrai casque, suite sous Node 22 avant la première exécution en CI, glisser au doigt sur un vrai téléphone). La répartition des fichiers par membre (CODEOWNERS) a été suspendue pendant la refonte : les tâches du planning faites pendant la refonte sont marquées comme telles dans `docs/planning.md`, et ne sont pas attribuées aux membres qui devaient les faire.

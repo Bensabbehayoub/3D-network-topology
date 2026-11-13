@@ -1,0 +1,202 @@
+{
+  "schema": 1,
+  "id": "debit",
+  "title": "Débit : un lien trop lent pour tous",
+  "protocol": "tcp",
+  "description": "Trois PC envoient en même temps un fichier au serveur. Chaque PC est relié au switch à 1 Gb/s, mais le serveur l'est par un vieux câble de catégorie 5, limité à 100 Mb/s : tout le trafic se resserre sur ce lien. Cliquez sur le switch ou sur le serveur pendant la lecture pour suivre débits et utilisation. Le temps est ralenti : 1 s de simulation = 1 ms de réseau.",
+  "params": {
+    "transfers": [
+      {
+        "client": "pc1",
+        "server": "srv1",
+        "size": 20000,
+        "fileName": "sauvegarde-pc1.dat"
+      },
+      {
+        "client": "pc2",
+        "server": "srv1",
+        "size": 20000,
+        "fileName": "sauvegarde-pc2.dat"
+      },
+      {
+        "client": "pc3",
+        "server": "srv1",
+        "size": 20000,
+        "fileName": "sauvegarde-pc3.dat"
+      }
+    ],
+    "rto": 8000
+  },
+  "devices": [
+    {
+      "id": "pc1",
+      "type": "host",
+      "label": "PC 1",
+      "model": "pc-1g",
+      "position": [
+        -5,
+        0,
+        -3
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:11",
+          "ip": "192.168.1.11/24"
+        }
+      ]
+    },
+    {
+      "id": "pc2",
+      "type": "host",
+      "label": "PC 2",
+      "model": "pc-1g",
+      "position": [
+        -5,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:12",
+          "ip": "192.168.1.12/24"
+        }
+      ]
+    },
+    {
+      "id": "pc3",
+      "type": "host",
+      "label": "PC 3",
+      "model": "pc-1g",
+      "position": [
+        -5,
+        0,
+        3
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:13",
+          "ip": "192.168.1.13/24"
+        }
+      ]
+    },
+    {
+      "id": "sw1",
+      "type": "switch",
+      "label": "Switch",
+      "model": "sw-24g",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        },
+        {
+          "name": "p3"
+        },
+        {
+          "name": "p4"
+        }
+      ]
+    },
+    {
+      "id": "srv1",
+      "type": "server",
+      "label": "Serveur de sauvegarde",
+      "model": "srv-1g",
+      "position": [
+        5,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:60",
+          "ip": "192.168.1.60/24"
+        }
+      ],
+      "services": [
+        {
+          "name": "sauvegarde",
+          "transport": "tcp",
+          "port": 9000
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": "l1",
+      "a": "pc1:eth0",
+      "b": "sw1:p1",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l2",
+      "a": "pc2:eth0",
+      "b": "sw1:p2",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l3",
+      "a": "pc3:eth0",
+      "b": "sw1:p3",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l4",
+      "a": "sw1:p4",
+      "b": "srv1:eth0",
+      "cable": "cuivre-cat5"
+    }
+  ],
+  "steps": [
+    {
+      "id": "tcp-start",
+      "title": "Trois sauvegardes en même temps",
+      "text": "PC 1, PC 2 et PC 3 envoient chacun un fichier de 20 000 octets au serveur, par TCP. Leurs cartes et leurs câbles vont à 1 Gb/s. Le serveur aussi a une carte Gigabit, mais il est branché avec un câble de catégorie 5, qui ne permet que 100 Mb/s : la carte se cale sur cette vitesse."
+    },
+    {
+      "id": "tcp-syn",
+      "title": "Connexions",
+      "text": "Chaque PC ouvre sa connexion TCP (SYN, SYN-ACK, ACK). Ces petits segments passent sans difficulté."
+    },
+    {
+      "id": "tcp-data",
+      "title": "Envoi des données",
+      "text": "Chaque PC envoie ses segments de 1000 octets aussi vite que sa fenêtre TCP le permet (8000 octets non acquittés au plus). Sur leurs liens à 1 Gb/s, une trame part en 8,6 µs."
+    },
+    {
+      "id": "tcp-ack",
+      "title": "Le goulot d'étranglement",
+      "text": "Le switch reçoit les trames des trois PC, mais ne peut les renvoyer vers le serveur qu'à 100 Mb/s : 86 µs par trame, dix fois plus lent. Les trames attendent dans la file du port p4. Le lien vers le serveur est occupé presque à 100 %, les liens des PC à quelques pour cent seulement : cliquez sur le switch pour le voir."
+    },
+    {
+      "id": "tcp-delivered",
+      "title": "Premier fichier reçu",
+      "text": "Le serveur a reçu un fichier complet. Les acquittements reviennent au rythme du lien lent : TCP ralentit de lui-même chaque émetteur, sans perte, et les trois PC se partagent les 100 Mb/s."
+    },
+    {
+      "id": "tcp-transfer-done",
+      "title": "Un transfert terminé",
+      "text": "Une connexion se ferme (FIN). Les deux autres profitent alors d'une part plus grande du lien lent."
+    },
+    {
+      "id": "tcp-summary",
+      "title": "Bilan",
+      "text": "60 000 octets transférés. Le lien de 100 Mb/s a été le goulot d'étranglement : remplacer le câble par un câble de catégorie 6 (1 Gb/s) diviserait par dix la durée des sauvegardes. La phase « Diagnostic » le détectera automatiquement."
+    }
+  ]
+}

@@ -20,11 +20,15 @@
       #scenario-picker  choix du scénario (ui)
       #inspector        équipement sélectionné, puis champs du paquet sélectionné (ui)
       #explanations     explication de l'étape + journal des messages (ui)
+      #recommendations  diagnostic du réseau : problèmes, causes, corrections (ui, phase 6)
       #xr-slot          bouton « Entrer en VR » (pôle xr, Ayoub)
       #install-slot     bouton « Installer » et badge « Hors ligne » (ui)
+      #mode-slot        bascule « Explorer | Construire » (ui, phase 7)
+      #editor           éditeur de topologie du mode « Construire » (ui, phase 7)
   -->
   <header class="app-header">
     <h1 class="app-title">3D Network Topology</h1>
+    <div id="mode-slot" class="slot"></div>
     <div id="scenario-picker" class="slot slot-picker"></div>
     <div class="header-actions">
       <div id="install-slot" class="slot"></div>
@@ -38,13 +42,21 @@
   </main>
 
   <aside class="app-side" aria-label="Analyse pédagogique">
-    <section class="panel" aria-labelledby="inspector-title">
+    <section class="panel panel-inspector" aria-labelledby="inspector-title">
       <h2 id="inspector-title" class="panel-title">Inspecteur</h2>
       <div id="inspector" class="slot panel-body"></div>
     </section>
-    <section class="panel" aria-labelledby="explanations-title">
-      <h2 id="explanations-title" class="panel-title">Explications</h2>
-      <div id="explanations" class="slot panel-body" aria-live="polite"></div>
+    <section class="panel panel-editor" aria-labelledby="editor-title">
+      <h2 id="editor-title" class="panel-title">Éditeur de topologie</h2>
+      <div id="editor" class="slot panel-body"></div>
+    </section>
+    <section class="panel panel-tabs" aria-label="Explications et recommandations">
+      <div class="panel-tablist" role="tablist" aria-label="Contenu du panneau">
+        <button type="button" class="panel-tab" role="tab" id="tab-explanations" aria-controls="explanations" aria-selected="true">Explications</button>
+        <button type="button" class="panel-tab" role="tab" id="tab-recommendations" aria-controls="recommendations" aria-selected="false" tabindex="-1">Recommandations <span class="tab-badge" id="recommendations-badge" hidden></span></button>
+      </div>
+      <div id="explanations" class="slot panel-body" role="tabpanel" aria-labelledby="tab-explanations" aria-live="polite"></div>
+      <div id="recommendations" class="slot panel-body" role="tabpanel" aria-labelledby="tab-recommendations" hidden></div>
     </section>
   </aside>
 

@@ -1,38 +1,43 @@
 # DNS — Domain Name System
 
-| Responsable | Sprint | Couche | Fichiers |
+| Prévu (planning) | Réalisé | Couche | Fichiers |
 | --- | --- | --- | --- |
-| Aziz | S4 | Couche 7 (application), sur UDP port 53 | `src/sim/protocols/dns.js`, `scenarios/dns.json`, `tests/dns.test.js` |
+| Aziz, S4 | Refonte, phase 4b | Couche 7 (application), sur UDP port 53 | `src/sim/protocols/dns.js`, `scenarios/dns.json`, `tests/dns.test.js` |
 
-> Statut : **fiche de conception (S1)**. Elle décrit ce que le scénario montrera ; la section « Implémentation » sera complétée quand le protocole sera codé.
+> Statut : **implémenté et testé.** HTTP réutilise `resolveName` avant d'ouvrir sa connexion.
 
 ## Rôle
 
-DNS traduit un nom (`www.supcom.tn`) en adresse IP. Le client interroge son serveur DNS, qui répond directement ou après avoir interrogé d'autres serveurs.
+DNS traduit un nom (`www.ecole.test`) en adresse IP. Le client interroge son serveur DNS, qui répond à partir de ses enregistrements ; le client garde la réponse en cache pendant sa durée de vie (TTL).
 
 ## Messages simulés
 
 | Message | Sens | Contenu essentiel |
 | --- | --- | --- |
-| Requête DNS (type A) | Client → serveur DNS (UDP 53) | « Quelle est l'adresse de www.exemple.tn ? » |
-| Réponse DNS | Serveur DNS → client | « www.exemple.tn = 10.0.2.80 » |
+| Requête DNS (type A) | Client → serveur DNS (UDP 53) | Identifiant, « Quelle est l'adresse de www.ecole.test ? » |
+| Réponse DNS | Serveur DNS → client | Même identifiant, réponse `www.ecole.test = …` (TTL 300 s) ou code NXDOMAIN |
 
 ## Scénario pédagogique
 
-`scenarios/dns.json` : un PC, un serveur DNS et un serveur web. Le PC résout le nom du serveur web. Le scénario HTTP (S5) réutilise cette étape par import.
+`dns.json` : PC 1 sur un réseau, serveur DNS et serveur web sur un autre, reliés par un routeur. Le PC demande trois noms à 7 s d'intervalle : `www.ecole.test`, encore `www.ecole.test`, puis `inconnu.ecole.test`. Séquence relevée (25 envois, 17,2 s) :
+
+1. ARP vers la passerelle, requête DNS, ARP du routeur vers le serveur DNS, réponse.
+2. Deuxième demande : **réponse prise dans le cache**, aucun paquet.
+3. Troisième demande : requête, réponse **NXDOMAIN** (nom inexistant).
 
 ## Champs affichés par l'inspecteur
 
-Ports UDP, identifiant de requête, nom demandé, type d'enregistrement, adresse répondue.
+Ethernet, IP, ports UDP, identifiant de requête, question (nom, type), code de réponse, réponses (adresse, TTL).
 
 ## Simplifications pédagogiques
 
-Le projet simule les échanges pour l'apprentissage, sans reproduire une pile réseau complète (cahier §2.2).
-
-- Résolution directe par un seul serveur (pas de récursion racine → TLD → autoritaire).
-- Seuls les enregistrements A sont gérés.
-- Pas de cache côté client entre deux lancements.
+- Résolution directe par un seul serveur, qui fait autorité (pas de récursion racine → TLD → serveur du domaine).
+- Enregistrements A seulement.
+- Délai d'attente de 10 s simulées (au lieu de 5 s réels) pour tenir compte des durées ralenties.
 
 ## Implémentation
 
-À compléter en S4 : fonctions `start` et `onReceive`, étapes du scénario, et test de la séquence de messages. Contrat à respecter : [`../simulation/contrats.md`](../simulation/contrats.md#3-interface-protocole).
+- `protocols/dns.js` : `resolveName(ctx, client, name, { onResolved, onFailed })` (cache, requête par `sendUdp`, temporisation), `handleDns(ctx, device, packet)` côté serveur (enregistrements `records` du scénario).
+- Configuration : serveur DNS de chaque hôte (`dns`), ou obtenu par DHCP pendant l'exécution.
+- Le diagnostic signale un client sans serveur DNS ou un serveur DNS introuvable.
+- Tests (`tests/dns.test.js`) : scénario (requête, réponse, cache, NXDOMAIN) ; TTL 0 (pas de cache) ; hôte sans serveur DNS (échec immédiat) ; serveur injoignable (délai écoulé) ; champs de l'inspecteur.

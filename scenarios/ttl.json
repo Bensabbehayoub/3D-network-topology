@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "id": "ttl",
+  "title": "TTL expiré : la limite de sauts",
+  "protocol": "icmp",
+  "description": "Chaque routeur décrémente le TTL (Time To Live) d'un paquet IP et le détruit quand il atteint 0 : un paquet ne peut pas tourner en boucle indéfiniment. Ici PC 1 envoie un ping avec un TTL de 1 vers le serveur, deux routeurs plus loin.",
+  "params": {
+    "source": "pc1",
+    "target": "srv1",
+    "count": 1,
+    "ttl": 1,
+    "timeout": 12000
+  },
+  "devices": [
+    {
+      "id": "pc1",
+      "type": "host",
+      "label": "PC 1",
+      "model": "pc-1g",
+      "position": [
+        -8,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:01:10",
+          "ip": "192.168.1.10/24"
+        }
+      ],
+      "gateway": "192.168.1.1"
+    },
+    {
+      "id": "sw1",
+      "type": "switch",
+      "label": "Switch 1",
+      "model": "sw-24g",
+      "position": [
+        -5,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        }
+      ]
+    },
+    {
+      "id": "r1",
+      "type": "router",
+      "label": "Routeur 1",
+      "model": "rt-4g",
+      "position": [
+        -2,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "g0",
+          "mac": "02:00:00:00:00:a0",
+          "ip": "192.168.1.1/24"
+        },
+        {
+          "name": "g1",
+          "mac": "02:00:00:00:00:a1",
+          "ip": "10.0.0.1/30"
+        }
+      ],
+      "routes": [
+        {
+          "network": "192.168.3.0/24",
+          "via": "10.0.0.2"
+        }
+      ]
+    },
+    {
+      "id": "r2",
+      "type": "router",
+      "label": "Routeur 2",
+      "model": "rt-4g",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "g0",
+          "mac": "02:00:00:00:00:b0",
+          "ip": "10.0.0.2/30"
+        },
+        {
+          "name": "g1",
+          "mac": "02:00:00:00:00:b1",
+          "ip": "192.168.3.1/24"
+        }
+      ],
+      "routes": [
+        {
+          "network": "192.168.1.0/24",
+          "via": "10.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "sw2",
+      "type": "switch",
+      "label": "Switch 2",
+      "model": "sw-24g",
+      "position": [
+        5,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "p1"
+        },
+        {
+          "name": "p2"
+        }
+      ]
+    },
+    {
+      "id": "srv1",
+      "type": "server",
+      "label": "Serveur",
+      "model": "srv-1g",
+      "position": [
+        8,
+        0,
+        0
+      ],
+      "interfaces": [
+        {
+          "name": "eth0",
+          "mac": "02:00:00:00:03:10",
+          "ip": "192.168.3.10/24"
+        }
+      ],
+      "gateway": "192.168.3.1"
+    }
+  ],
+  "links": [
+    {
+      "id": "l1",
+      "a": "pc1:eth0",
+      "b": "sw1:p1",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l2",
+      "a": "sw1:p2",
+      "b": "r1:g0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l3",
+      "a": "r1:g1",
+      "b": "r2:g0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l4",
+      "a": "r2:g1",
+      "b": "sw2:p1",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    },
+    {
+      "id": "l5",
+      "a": "sw2:p2",
+      "b": "srv1:eth0",
+      "bandwidth": 1000,
+      "cable": "cuivre-cat6"
+    }
+  ],
+  "steps": [
+    {
+      "id": "icmp-start",
+      "title": "Ping avec TTL 1",
+      "text": "PC 1 lance un ping vers 192.168.3.10 avec un TTL de 1 au lieu de 64 (« ping -i 1 » sous Windows, « ping -t 1 » sous Linux)."
+    },
+    {
+      "id": "route-gateway",
+      "title": "Vers la passerelle",
+      "text": "Le serveur est dans un autre réseau : le paquet est envoyé au Routeur 1, après une requête ARP pour connaître sa MAC."
+    },
+    {
+      "id": "router-ttl-r1",
+      "title": "Le Routeur 1 détruit le paquet",
+      "text": "Le Routeur 1 décrémente le TTL : 1 → 0. Un paquet dont le TTL atteint 0 n'est jamais transmis : le routeur le détruit."
+    },
+    {
+      "id": "icmp-time-exceeded",
+      "title": "Message « TTL expiré »",
+      "text": "Le Routeur 1 prévient l'émetteur par un message ICMP « Time Exceeded » (type 11), envoyé depuis son adresse 192.168.1.1. PC 1 apprend ainsi quel routeur a détruit le paquet : c'est le principe de traceroute, qui envoie des paquets de TTL 1, 2, 3…"
+    },
+    {
+      "id": "icmp-summary",
+      "title": "Bilan",
+      "text": "1 paquet envoyé, aucune réponse du serveur, 1 message d'erreur du Routeur 1. Le serveur n'a jamais reçu la requête."
+    }
+  ]
+}
