@@ -2,45 +2,52 @@
 
 Point d'entrée de la documentation du projet **3D Network Topology**. Le README du dépôt donne la vue d'ensemble : [`../README.md`](../README.md).
 
+## Utilisateurs
+
+| Document | Contenu |
+| --- | --- |
+| [`manuel.md`](manuel.md) | Manuel complet : écran, exploration, scénarios, inspecteur, fiches et débit, recommandations, mode Construire, VR, installation et hors ligne, FAQ |
+
 ## Organisation du projet
 
 | Document | Contenu | Auteur |
 | --- | --- | --- |
-| [`planning.md`](planning.md) | Sprints, jalons, 79 tâches (membre, fichiers, points, statut), charge par membre, bilan S1 | Équipe |
-| [`architecture.md`](architecture.md) | Principes, déploiement, démarrage, flux d'une simulation, patrons de conception, WebXR, tests | Khalil |
+| [`planning.md`](planning.md) | Sprints, jalons, 79 tâches avec leur statut réel (membre ou phase de la refonte, commit), travail ajouté pendant la refonte, bilan S1 | Équipe, statuts mis à jour en 9a |
+| [`avancement.md`](avancement.md) | Journal de la refonte : règles, phases, décisions, ce qui a été vérifié et ce qui ne l'a pas été | Refonte |
+| [`../ATTRIBUTION.md`](../ATTRIBUTION.md) | Origine des ressources, bibliothèques, outils, usage des assistants IA | Équipe |
+
+## Technique
+
+| Document | Contenu | Auteur |
+| --- | --- | --- |
+| [`architecture.md`](architecture.md) | Principes, modules et dépendances, déploiement, démarrage, boucle de rendu, pile réseau, éditeur, WebXR, patrons, tests | Khalil (S1), réécrit en 9a |
+| [`simulation/contrats.md`](simulation/contrats.md) | Contrats entre pôles : format de scénario, évènements, interface protocole, API `app.sim`, `app.ui`, `app.render` | Khalil (S1), tenu à jour à chaque phase |
+| [`decision-renderer.md`](decision-renderer.md) | Rendu 100 % WebGPU (mode classique et VR), pont de l'émulateur : essais et justification | Ayoub (S1), refait en phase 2 |
 | [`ci-cd.md`](ci-cd.md) | Pipeline GitHub Actions (tests, déploiement, vérification HTTPS) et TLS de GitHub Pages : valeurs observées, démonstration, limites | Phase 8 |
-| [`decision-renderer.md`](decision-renderer.md) | Rendu 100 % WebGPU (mode classique et VR), pont de l'émulateur : essais et justification | Ayoub, mis à jour en phase 2 |
 
 ## Conception (livrable « cahier conceptuel »)
 
 | Document | Contenu | Auteur |
 | --- | --- | --- |
-| [`cahier-conceptuel.md`](cahier-conceptuel.md) | Besoins F01–F10 et sommaire de tous les diagrammes | Ramy |
-| [`conception/cas-utilisation.md`](conception/cas-utilisation.md) | 14 cas d'utilisation, acteurs, correspondance avec la démo | Ramy |
-| [`conception/maquette.svg`](conception/maquette.svg), [`maquette-mobile.svg`](conception/maquette-mobile.svg) | Maquettes PC et mobile | Ramy |
-| [`simulation/contrats.md`](simulation/contrats.md) | Contrats entre modules : format de scénario, évènements, interface protocole, API de commandes | Khalil |
+| [`cahier-conceptuel.md`](cahier-conceptuel.md) | Besoins et leur état, cas d'utilisation, maquettes et interface réalisée, déploiement, séquence du ping, états de la simulation, diagrammes de classes | Ramy |
+| [`conception/cas-utilisation.md`](conception/cas-utilisation.md) | 21 cas d'utilisation, acteurs, correspondance avec la démonstration | Ramy |
+| [`conception/maquette.svg`](conception/maquette.svg), [`maquette-mobile.svg`](conception/maquette-mobile.svg) | Maquettes PC et mobile (S1) | Ramy |
 
 ## Protocoles
 
-Une fiche par protocole : rôle, messages simulés, scénario, champs inspectés, simplifications.
+Une fiche par protocole : rôle, messages simulés, scénario et séquence relevée sur le moteur, champs inspectés, simplifications, implémentation et tests. Tous sont **implémentés et testés**.
 
-| Protocole | Responsable | Sprint |
+| Protocole | Prévu (planning) | Réalisé |
 | --- | --- | --- |
-| [ARP](protocoles/arp.md) | Khalil | S3 |
-| [ICMP (ping)](protocoles/icmp.md) | Aziz | S3 |
-| [UDP](protocoles/udp.md) | Aziz | S4 |
-| [DNS](protocoles/dns.md) | Aziz | S4 |
-| [DHCP](protocoles/dhcp.md) | Ramy | S4 |
-| [TCP](protocoles/tcp.md) | Khalil | S4 |
-| [HTTP](protocoles/http.md) | Ramy | S5 |
-| [Routage statique](protocoles/routage.md) | Khalil | S5 |
-
-## Utilisateurs
-
-| Document | Contenu | Auteur |
-| --- | --- | --- |
-| [`manuel.md`](manuel.md) | Navigation, statut WebXR, mode VR, dépannage (version S1, complétée chaque sprint) | Ramy |
+| [ARP](protocoles/arp.md) | Khalil, S3 | Refonte, phase 4a |
+| [ICMP (ping)](protocoles/icmp.md) | Aziz, S3 | Refonte, phase 4a |
+| [Routage statique](protocoles/routage.md) | Khalil, S5 | Refonte, phase 4a |
+| [UDP](protocoles/udp.md) | Aziz, S4 | Refonte, phase 4b |
+| [DNS](protocoles/dns.md) | Aziz, S4 | Refonte, phase 4b |
+| [DHCP](protocoles/dhcp.md) | Ramy, S4 | Refonte, phase 4b |
+| [TCP](protocoles/tcp.md) | Khalil, S4 | Refonte, phase 4c |
+| [HTTP](protocoles/http.md) | Ramy, S5 | Refonte, phase 4c |
 
 ## Captures
 
-`captures/` : captures d'écran datées par sprint, réutilisées dans le README et la vidéo.
+[`captures/`](captures/) : captures de S1 (`s1-*.jpg`) et captures finales du 13 novembre 2026 (exploration, inspecteur, fiche et débit, recommandations, éditeur, mobile, VR), utilisées dans le README, le manuel et le cahier conceptuel.

@@ -1,37 +1,37 @@
 # UDP — User Datagram Protocol
 
-| Responsable | Sprint | Couche | Fichiers |
+| Prévu (planning) | Réalisé | Couche | Fichiers |
 | --- | --- | --- | --- |
-| Aziz | S4 | Couche 4 (transport) | `src/sim/protocols/udp.js`, `scenarios/udp.json`, `tests/udp.test.js` |
+| Aziz, S4 | Refonte, phase 4b | Couche 4 (transport) | `src/sim/protocols/udp.js`, `src/sim/stack.js` (`sendUdp`, ports), `scenarios/udp.json`, `tests/udp.test.js` |
 
-> Statut : **fiche de conception (S1)**. Elle décrit ce que le scénario montrera ; la section « Implémentation » sera complétée quand le protocole sera codé.
+> Statut : **implémenté et testé.** `sendUdp` sert aussi à DNS et DHCP.
 
 ## Rôle
 
-UDP envoie des datagrammes sans connexion, sans accusé de réception et sans retransmission. C'est simple et rapide ; l'application gère elle-même les pertes. DNS l'utilise.
+UDP envoie des datagrammes sans connexion, sans accusé de réception et sans retransmission. C'est simple et rapide ; l'application gère elle-même les pertes. DNS et DHCP l'utilisent.
 
 ## Messages simulés
 
 | Message | Sens | Contenu essentiel |
 | --- | --- | --- |
-| Datagramme | Client → serveur | Port source éphémère → port de destination du service |
-| Datagramme (réponse éventuelle) | Serveur → client | Ports inversés |
+| Datagramme | Client → serveur | Port source éphémère (49152 et plus) → port du service |
+| ICMP Port unreachable | Serveur → client | Seule « réponse » possible quand le port est fermé |
 
 ## Scénario pédagogique
 
-`scenarios/udp.json` : un client envoie un datagramme à un serveur. Le scénario montre l'absence d'ouverture de connexion, et le cas d'un datagramme perdu que personne ne renvoie, pour comparer avec TCP.
+`udp.json` : un PC envoie des journaux (syslog, port 514) à un serveur, puis un datagramme vers un port fermé (5000). Séquence relevée (12 envois, 5,6 s) : ARP ; deux datagrammes livrés **sans aucune réponse** ; un datagramme vers le port 5000 rejeté par le serveur, qui renvoie « port inaccessible ». À comparer avec TCP (poignée de main, acquittements, RST).
 
 ## Champs affichés par l'inspecteur
 
-IP, ports source et destination, longueur, contenu simplifié.
+Ethernet, IP, protocole de transport, ports source et destination, longueur, contenu simplifié.
 
 ## Simplifications pédagogiques
 
-Le projet simule les échanges pour l'apprentissage, sans reproduire une pile réseau complète (cahier §2.2).
-
 - Pas de somme de contrôle.
-- La perte est provoquée par le scénario (lien coupé), pas aléatoire.
+- Pas de perte aléatoire : le scénario montre le port fermé, pas un datagramme perdu en route.
 
 ## Implémentation
 
-À compléter en S4 : fonctions `start` et `onReceive`, étapes du scénario, et test de la séquence de messages. Contrat à respecter : [`../simulation/contrats.md`](../simulation/contrats.md#3-interface-protocole).
+- `stack.js` : ports ouverts déclarés par le scénario (`services`) ; `sendUdp` ouvre le port source éphémère puis passe par `sendIp` ; un hôte qui reçoit un datagramme pour un port fermé le jette et renvoie ICMP « port inaccessible » (sauf pour une diffusion).
+- `protocols/udp.js` : envoie les datagrammes programmés et explique leur livraison (`udp-send`, `udp-delivered`, `udp-send-closed`, `udp-icmp-received`, `udp-summary`).
+- Tests (`tests/udp.test.js`) : scénario complet (livrés sans réponse, port fermé → ICMP) ; sans service déclaré, même le port 514 est fermé ; champs de l'inspecteur.

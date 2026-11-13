@@ -39,15 +39,15 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 
 | N° | Phase | Statut |
 | --- | --- | --- |
-| 1 | PWA complète (icônes, précache, hors ligne, bouton Installer) | ✅ Terminé (12 nov), à commiter par Ramy |
+| 1 | PWA complète (icônes, précache, hors ligne, bouton Installer) | ✅ Terminé et commité (`5d30812`) |
 | 2 | Three.js r187, rendu 100 % WebGPU (mode classique et VR), boucle d'animation WebXR unique | ✅ Terminé et commité (`ac653fc`) ; testé par Ramy avec l'extension Immersive Web Emulator 2.0 |
-| 3 | Session immersive complète (panneau VR, manettes, fiches en VR) | ✅ Terminé (12 nov), à commiter par Ramy |
+| 3 | Session immersive complète (panneau VR, manettes, fiches en VR) | ✅ Terminé et commité (`d58dd6d`) |
 | 4 | Moteur réel, équipements et protocoles | ✅ Terminé en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (commité, `1151dfd`) UDP, DNS, DHCP ; **4c ✅** (commité, `eaa4efc`) TCP, HTTP ; **4d ✅** (commité, `cafa1d3`) inspecteur de paquets, journal, explications en 2D, couleurs par protocole |
 | 5 | Caractéristiques des équipements, débit et bande passante | ✅ Terminé et commité (`81637a4`) |
 | 6 | Diagnostic et recommandations | ✅ Terminé et commité (`137faf9`) ; recommandations aussi en VR (demande de Ramy) |
 | 7 | Éditeur de topologie et choix du protocole | ✅ Terminé en trois sous-étapes (un commit chacune) : **7a ✅** (commité, `7b07bf7`) mode Construire, ajout, déplacement, renommage, suppression, câbles ; **7b ✅** (commité, `bd2edf2`) configuration (adresses, rôles) et choix du protocole ; **7c ✅** (commité, `3acc806`) enregistrement, import/export, finitions |
-| 8 | CI/CD et TLS | ✅ Terminé (13 nov), à commiter par Ramy |
-| 9 | Documentation et finition | À faire |
+| 8 | CI/CD et TLS | ✅ Terminé et commité (`4484f2d`) |
+| 9 | Documentation et finition | En deux sous-étapes : **9a ✅** documentation (13 nov), à commiter par Ramy ; **9b** revue finale (démonstration, console, performances mobiles) : à faire |
 
 Ordre suivi : 1, 3, puis 2, puis 4 à 9. La phase 3 a été faite avant la phase 2 parce que la
 session VR fonctionne déjà avec le rendu actuel (r180, WebGL), alors que la phase 2 (WebGPU)
@@ -111,6 +111,8 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 13 nov | Vérification HTTPS en script bash (`tools/verify-tls.sh`) appelé par la CI : lançable aussi à la main pour la démonstration. | Même sortie en CI et sur un poste ; `openssl s_client` comme demandé. |
 | 13 nov | Vérification hebdomadaire (lundi 6 h UTC) en plus de celle après chaque déploiement. | Un certificat Let's Encrypt dure 90 jours : surveiller son expiration entre deux déploiements. |
 | 13 nov | Valeurs TLS documentées uniquement d'après une mesure datée du vrai site. | Règle : ne rien inventer. |
+| 13 nov | Planning : une tâche faite pendant la refonte porte « Refonte, phase … », jamais le nom du membre prévu ; la colonne « Membre prévu » garde le planning d'origine. | Honnêteté sur qui a fait quoi ; l'usage de l'assistant IA est déclaré dans `ATTRIBUTION.md`. |
+| 13 nov | Séquences des fiches protocoles et du diagramme du ping relevées en exécutant le moteur, pas écrites de mémoire. | La documentation doit décrire ce que l'application montre vraiment. |
 | 12 nov | Le bouton « Installer » est visible tant que l'application n'est pas installée. Sans invite du navigateur, le clic explique comment installer. | « Message clair si l'installation est indisponible » sans encombrer l'en-tête. |
 
 ## Journal des phases
@@ -413,3 +415,35 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 - Non vérifié : la suite sous Node 22 (version de la CI) n'a pas pu être lancée sur ce poste
   (téléchargement de Node 22 refusé par les permissions) ; aucune fonction récente dans le code.
   Le job `verify-tls` lui-même ne s'exécutera qu'au premier déploiement depuis `main`.
+
+### Phase 9a — documentation finale (13 novembre)
+
+- Tests : 393 tests, 393 réussis, 0 échec (aucun code modifié).
+- `README.md` réécrit : fonctionnalités et état F01–F10, captures finales, lancement, VR sans casque,
+  choix techniques, architecture (Mermaid), tests et CI, équipe et déroulement de la refonte.
+- `docs/architecture.md` réécrit d'après le code : modules et dépendances, déploiement final (CI,
+  vérification TLS, stockage local), démarrage, boucle de rendu unique, pile réseau, éditeur, WebXR,
+  patrons, tests, contraintes.
+- `docs/manuel.md` : version finale (Explorer, 11 scénarios, clavier, inspecteur, fiche et débit,
+  recommandations, Construire, VR, installation et hors ligne, FAQ).
+- `docs/planning.md` : statuts réels d'après `git log` ; tâches S3–S7 faites pendant la refonte
+  marquées « Refonte, phase … » (jamais attribuées aux membres prévus) ; restent 9 tâches (vidéo,
+  tests sur vrais téléphones, Lighthouse, v1.0, poste de soutenance, IPv6 optionnel) ; options non
+  réalisées : VLAN, IPv6, TLS simulé, OSPF, AR.
+- `docs/cahier-conceptuel.md` : besoins avec leur état, cas ajoutés (Mermaid), interface réalisée,
+  séquence du ping **relevée en exécutant le moteur**, diagramme d'états, diagrammes de classes
+  (simulation ; rendu, interface et VR) avec les noms de méthodes du code.
+- `docs/conception/cas-utilisation.md` : UC15 à UC21 (fiche, recommandations, construction,
+  configuration, jouer, enregistrer, vérification TLS), colonne « Réalisé ».
+- `docs/protocoles/*.md` : les 8 fiches passent de « conception S1 » à « implémenté et testé » :
+  séquence relevée sur le moteur, champs réels de l'inspecteur, simplifications réelles, fichiers,
+  fonctions et tests.
+- `ATTRIBUTION.md` : modèles GLB générés par script (Aziz, S2), icônes générées (phase 1), catalogue
+  fictif, captures finales, outils de test (IWER 2.8, Chrome piloté, OpenSSL, actions GitHub),
+  protocoles réécrits sans code tiers, déclaration de l'usage de Claude Code pour la refonte.
+- `docs/README.md` : index réorganisé (utilisateurs, organisation, technique, conception, protocoles).
+- Captures (`docs/captures/`) : `explorer-ping.jpg`, `inspecteur-paquet.jpg`, `fiche-debit.jpg`,
+  `recommandations.jpg`, `editeur.jpg`, `mobile.jpg`, `vr.jpg`, prises dans Chrome piloté (WebGPU
+  réel, VR avec IWER).
+- Non vérifié : le rendu des diagrammes Mermaid par GitHub (syntaxe relue, pas de rendu local).
+
