@@ -45,8 +45,8 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 | 4 | Moteur réel, équipements et protocoles | ✅ Terminé en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (commité, `1151dfd`) UDP, DNS, DHCP ; **4c ✅** (commité, `eaa4efc`) TCP, HTTP ; **4d ✅** (commité, `cafa1d3`) inspecteur de paquets, journal, explications en 2D, couleurs par protocole |
 | 5 | Caractéristiques des équipements, débit et bande passante | ✅ Terminé et commité (`81637a4`) |
 | 6 | Diagnostic et recommandations | ✅ Terminé et commité (`137faf9`) ; recommandations aussi en VR (demande de Ramy) |
-| 7 | Éditeur de topologie et choix du protocole | ✅ Terminé en trois sous-étapes (un commit chacune) : **7a ✅** (commité, `7b07bf7`) mode Construire, ajout, déplacement, renommage, suppression, câbles ; **7b ✅** (commité, `bd2edf2`) configuration (adresses, rôles) et choix du protocole ; **7c ✅** (13 nov, à commiter) enregistrement, import/export, finitions |
-| 8 | CI/CD et TLS | À faire |
+| 7 | Éditeur de topologie et choix du protocole | ✅ Terminé en trois sous-étapes (un commit chacune) : **7a ✅** (commité, `7b07bf7`) mode Construire, ajout, déplacement, renommage, suppression, câbles ; **7b ✅** (commité, `bd2edf2`) configuration (adresses, rôles) et choix du protocole ; **7c ✅** (commité, `3acc806`) enregistrement, import/export, finitions |
+| 8 | CI/CD et TLS | ✅ Terminé (13 nov), à commiter par Ramy |
 | 9 | Documentation et finition | À faire |
 
 Ordre suivi : 1, 3, puis 2, puis 4 à 9. La phase 3 a été faite avant la phase 2 parce que la
@@ -108,6 +108,9 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 13 nov | Explications générées : textes génériques par étape standard, avec les noms des équipements. | Pas d'écriture manuelle pour une topologie construite. |
 | 13 nov | Brouillon de l'éditeur gardé automatiquement dans le navigateur à chaque modification ; topologies nommées en plus ; export et import au format des scénarios. | Un rechargement de la page ne doit plus perdre la construction (remarque de Ramy en 7a). |
 | 13 nov | Stockage indisponible (navigation privée, quota) : message qui renvoie vers l'export JSON, aucune erreur. | L'application doit rester utilisable partout. |
+| 13 nov | Vérification HTTPS en script bash (`tools/verify-tls.sh`) appelé par la CI : lançable aussi à la main pour la démonstration. | Même sortie en CI et sur un poste ; `openssl s_client` comme demandé. |
+| 13 nov | Vérification hebdomadaire (lundi 6 h UTC) en plus de celle après chaque déploiement. | Un certificat Let's Encrypt dure 90 jours : surveiller son expiration entre deux déploiements. |
+| 13 nov | Valeurs TLS documentées uniquement d'après une mesure datée du vrai site. | Règle : ne rien inventer. |
 | 12 nov | Le bouton « Installer » est visible tant que l'application n'est pas installée. Sans invite du navigateur, le clic explique comment installer. | « Message clair si l'installation est indisponible » sans encombrer l'en-tête. |
 
 ## Journal des phases
@@ -390,3 +393,23 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
   (« Ce fichier n'est pas du JSON valide. ») ; export sans erreur ; **glisser au toucher** sur
   mobile (390 px, toucher émulé) : switch déplacé de (0, 0, 0) à (5, 0, 1,5) ; console vide.
 - **Phase 7 terminée.** La boucle de commutation, détectée en phase 6, bloque la lecture (7b).
+
+### Phase 8 — CI/CD et TLS (13 novembre)
+
+- Tests : 393 tests, 393 réussis, 0 échec.
+- `.github/workflows/ci.yml` : déclencheur hebdomadaire, `test` sauf le lundi, `deploy` (push et
+  manuel) avec l'adresse publiée en sortie, nouveau job `verify-tls` (après le déploiement, et
+  chaque semaine sur `https://<propriétaire>.github.io/<dépôt>/`).
+- `tools/verify-tls.sh` : réponse HTTPS (10 essais), `openssl s_client` (version, suite,
+  échange de clés, vérification), certificat (sujet, émetteur, dates, expiré → échec, moins de
+  14 jours → avertissement), TLS 1.2, redirection HTTP → HTTPS, HSTS, tableau dans
+  `$GITHUB_STEP_SUMMARY`.
+- `tests/ci.test.js` (structure du pipeline, versions des actions, syntaxe et refus d'une adresse
+  non HTTPS) ; `docs/ci-cd.md` (schéma Mermaid, rôle des étapes, section TLS) ; `docs/README.md`.
+- Vérifié : versions des actions existantes (API GitHub, 13 nov) ; script lancé sur le vrai site :
+  TLS 1.3, TLS_AES_128_GCM_SHA256, X25519, certificat `*.github.io` Let's Encrypt (YR1) valide
+  jusqu'au 29 décembre 2026, TLS 1.2 accepté, 301 vers HTTPS, HSTS d'un an, code de sortie 0 ;
+  adresse injoignable → code 1, adresse `http://` → code 2.
+- Non vérifié : la suite sous Node 22 (version de la CI) n'a pas pu être lancée sur ce poste
+  (téléchargement de Node 22 refusé par les permissions) ; aucune fonction récente dans le code.
+  Le job `verify-tls` lui-même ne s'exécutera qu'au premier déploiement depuis `main`.

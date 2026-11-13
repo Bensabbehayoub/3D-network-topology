@@ -8,6 +8,7 @@ Point d'entrée de la documentation du projet **3D Network Topology**. Le README
 | --- | --- | --- |
 | [`planning.md`](planning.md) | Sprints, jalons, 79 tâches (membre, fichiers, points, statut), charge par membre, bilan S1 | Équipe |
 | [`architecture.md`](architecture.md) | Principes, déploiement, démarrage, flux d'une simulation, patrons de conception, WebXR, tests | Khalil |
+| [`ci-cd.md`](ci-cd.md) | Pipeline GitHub Actions (tests, déploiement, vérification HTTPS) et TLS de GitHub Pages : valeurs observées, démonstration, limites | Phase 8 |
 | [`decision-renderer.md`](decision-renderer.md) | Rendu 100 % WebGPU (mode classique et VR), pont de l'émulateur : essais et justification | Ayoub, mis à jour en phase 2 |
 
 ## Conception (livrable « cahier conceptuel »)
