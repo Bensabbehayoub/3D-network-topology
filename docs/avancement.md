@@ -45,7 +45,7 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 | 4 | Moteur réel, équipements et protocoles | ✅ Terminé en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (commité, `1151dfd`) UDP, DNS, DHCP ; **4c ✅** (commité, `eaa4efc`) TCP, HTTP ; **4d ✅** (commité, `cafa1d3`) inspecteur de paquets, journal, explications en 2D, couleurs par protocole |
 | 5 | Caractéristiques des équipements, débit et bande passante | ✅ Terminé et commité (`81637a4`) |
 | 6 | Diagnostic et recommandations | ✅ Terminé et commité (`137faf9`) ; recommandations aussi en VR (demande de Ramy) |
-| 7 | Éditeur de topologie et choix du protocole | ⏳ En trois sous-étapes (un commit chacune) : **7a ✅** (commité, `7b07bf7`) mode Construire, ajout, déplacement, renommage, suppression, câbles ; **7b ✅** (13 nov, à commiter) configuration (adresses, rôles) et choix du protocole ; 7c enregistrement, import/export, finitions |
+| 7 | Éditeur de topologie et choix du protocole | ✅ Terminé en trois sous-étapes (un commit chacune) : **7a ✅** (commité, `7b07bf7`) mode Construire, ajout, déplacement, renommage, suppression, câbles ; **7b ✅** (commité, `bd2edf2`) configuration (adresses, rôles) et choix du protocole ; **7c ✅** (13 nov, à commiter) enregistrement, import/export, finitions |
 | 8 | CI/CD et TLS | À faire |
 | 9 | Documentation et finition | À faire |
 
@@ -106,6 +106,8 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 13 nov | Adresses proposées : réseau du segment, sinon nouveau 192.168.N.0/24 ; .1 pour un routeur, .10 et suivantes pour les hôtes. Passerelle proposée : le routeur du segment. | Un élève construit un réseau correct sans calcul ; la recommandation reste visible s'il se trompe. |
 | 13 nov | Erreurs bloquantes seulement si la lecture est impossible (équipement sans adresse, pas de serveur DHCP, nom invalide, boucle de commutation) ; le reste en avertissement (port fermé : RST ou ICMP montrés). | On doit pouvoir jouer un réseau imparfait pour voir l'échec. |
 | 13 nov | Explications générées : textes génériques par étape standard, avec les noms des équipements. | Pas d'écriture manuelle pour une topologie construite. |
+| 13 nov | Brouillon de l'éditeur gardé automatiquement dans le navigateur à chaque modification ; topologies nommées en plus ; export et import au format des scénarios. | Un rechargement de la page ne doit plus perdre la construction (remarque de Ramy en 7a). |
+| 13 nov | Stockage indisponible (navigation privée, quota) : message qui renvoie vers l'export JSON, aucune erreur. | L'application doit rester utilisable partout. |
 | 12 nov | Le bouton « Installer » est visible tant que l'application n'est pas installée. Sans invite du navigateur, le clic explique comment installer. | « Message clair si l'installation est indisponible » sans encombrer l'en-tête. |
 
 ## Journal des phases
@@ -373,3 +375,18 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 - Vérifié dans Chrome 157 piloté : copie du scénario Ping, adresse de PC 2 effacée puis proposée,
   protocole DHCP refusé avec deux messages clairs (bouton désactivé), ping « Tout est prêt »,
   « Jouer cette topologie » → Explorer sur « Ma topologie », lecture complète (10,3 s) ; console vide.
+
+### Phase 7c — enregistrer, ouvrir, exporter, importer (13 novembre)
+
+- Tests : 389 tests, 389 réussis, 0 échec.
+- Interface : `src/ui/storage.js` (+ test : brouillon, topologies nommées, import/export, stockage
+  indisponible), `src/ui/editor.js` (brouillon retrouvé, section « Enregistrer et ouvrir », export
+  par téléchargement, import par fichier ; correction : `apply()` renvoyait l'id de la topologie),
+  `styles.css`.
+- Tests : `src/ui/storage.test.js`, `src/ui/editor.test.js` (rechargement simulé, enregistrer,
+  rouvrir, exporter, importer).
+- Vérifié dans Chrome 157 piloté : topologie enregistrée « Salle 12 », page rechargée → topologie
+  retrouvée et liste conservée ; import de `ping.json` par le champ fichier ; fichier cassé refusé
+  (« Ce fichier n'est pas du JSON valide. ») ; export sans erreur ; **glisser au toucher** sur
+  mobile (390 px, toucher émulé) : switch déplacé de (0, 0, 0) à (5, 0, 1,5) ; console vide.
+- **Phase 7 terminée.** La boucle de commutation, détectée en phase 6, bloque la lecture (7b).

@@ -22,6 +22,8 @@ import {
   TYPE_NAMING, validateRun,
 } from '../../simulation.js';
 
+import { createTopologyStore, exportJson, fileName, parseImport } from './storage.js';
+
 export const DEFAULT_RUN = 'ping';
 
 export const DEFAULT_MODEL = 'pc-1g';
@@ -54,7 +56,7 @@ export function linkLabel(scenario, link) {
  * @param {object} app app.sim (load, getScenario, loadScenario)
  * @param {{ onChange?(view): void, selection?: { getSelection(): string | null, select(id): boolean, clear(): boolean } }} [options]
  */
-export function createEditorController(app, { onChange = () => {}, selection = null } = {}) {
+export function createEditorController(app, { onChange = () => {}, selection = null, store = createTopologyStore() } = {}) {
   const sim = app?.sim;
   let draft = null;
   let active = false;
@@ -130,6 +132,7 @@ export function createEditorController(app, { onChange = () => {}, selection = n
         config: configOf(selected),
       } : null,
       run: runView(),
+      saved: store.list(),
     };
   };
   const notify = () => onChange(view());
@@ -149,9 +152,11 @@ export function createEditorController(app, { onChange = () => {}, selection = n
     draft = next.scenario ?? next;
     error = null;
     notice = typeof message === 'function' ? message(next) : message;
+    store.saveDraft(draft); // retrouvé au prochain passage en Construire, même après un rechargement
     await sim.load(draft);
     notify();
-    return next.id ?? true;
+    // { scenario, id } (ajout, câble) : l'id créé ; scénario seul : true (pas son id « perso »).
+    return next.scenario ? next.id ?? true : true;
   };
 
   const api = {
@@ -164,9 +169,13 @@ export function createEditorController(app, { onChange = () => {}, selection = n
       active = true;
       const current = sim?.getScenario?.() ?? null;
       if (current) returnTo = current.id; // scénario fourni, ou « Ma topologie » déjà jouée
-      if (!draft) draft = current ? fromScenario(current) : newTopology();
       error = null;
       notice = null;
+      if (!draft) {
+        draft = store.loadDraft();
+        if (draft) notice = 'Topologie retrouvée : elle est enregistrée automatiquement dans ce navigateur.';
+        else draft = current ? fromScenario(current) : newTopology();
+      }
       await sim.load(draft);
       notify();
     },
@@ -205,6 +214,49 @@ export function createEditorController(app, { onChange = () => {}, selection = n
     removeService: (id, transport, port) => apply((s) => removeService(s, id, transport, port), 'Port fermé.'),
     addRecord: (id, name, value) => apply((s) => addRecord(s, id, { name, value }), 'Enregistrement DNS ajouté.'),
     removeRecord: (id, name) => apply((s) => removeRecord(s, id, name), 'Enregistrement DNS retiré.'),
+    // --- Enregistrer, ouvrir, exporter, importer (phase 7c) ---
+    /** Enregistre la topologie sous un nom (qui devient son titre). */
+    async saveAs(name) {
+      const result = store.save(name, draft);
+      if (!result.ok) {
+        error = result.error;
+        notice = null;
+        notify();
+        return false;
+      }
+      return apply((s) => ({ ...s, title: String(name).trim() }), result.replaced ? `« ${String(name).trim()} » mis à jour.` : `« ${String(name).trim()} » enregistré dans ce navigateur.`);
+    },
+    async openSaved(name) {
+      const result = store.open(name);
+      if (!result.ok) {
+        error = result.error;
+        notify();
+        return false;
+      }
+      selection?.clear?.();
+      return apply(() => result.scenario, `« ${name} » ouvert.`);
+    },
+    removeSaved(name) {
+      const result = store.remove(name);
+      error = result.ok ? null : result.error;
+      notice = result.ok ? `« ${name} » supprimé de ce navigateur.` : null;
+      notify();
+      return result.ok;
+    },
+    /** Fichier JSON de la topologie : { name, text }. */
+    exportFile: () => ({ name: fileName(draft?.title), text: exportJson(draft) }),
+    /** Remplace la topologie par celle d'un fichier JSON (validé). */
+    async importText(text) {
+      const result = parseImport(text);
+      if (!result.ok) {
+        error = result.errors.join(' ');
+        notice = null;
+        notify();
+        return false;
+      }
+      selection?.clear?.();
+      return apply(() => result.scenario, 'Fichier importé.');
+    },
     // --- Protocole à jouer (phase 7b) ---
     chooseRun(id) {
       runId = RUNS.some((run) => run.id === id) ? id : DEFAULT_RUN;
@@ -325,6 +377,19 @@ const TEMPLATE = `
       <button type="button" class="btn" data-action="copy">Copie du scénario</button>
     </div>
   </section>
+  <section class="editor-section" aria-labelledby="editor-save">
+    <h3 class="editor-heading" id="editor-save">Enregistrer et ouvrir</h3>
+    <p class="editor-hint">La topologie en cours est gardée automatiquement dans ce navigateur. Enregistrez-la sous un nom pour en garder plusieurs.</p>
+    <form class="editor-inline" data-role="save-form">
+      <label class="editor-field">Nom <input type="text" data-role="save-name" data-focus="save-name" maxlength="40"></label>
+      <button type="submit" class="btn" data-focus="save-submit">Enregistrer</button>
+    </form>
+    <ul class="editor-list editor-saved" data-role="saved"></ul>
+    <div class="editor-actions">
+      <button type="button" class="btn" data-action="export">Exporter en JSON</button>
+      <label class="btn editor-import">Importer un JSON<input type="file" accept="application/json,.json" data-role="import" class="sr-only"></label>
+    </div>
+  </section>
 `;
 
 /**
@@ -332,7 +397,7 @@ const TEMPLATE = `
  * @param {object} app objet partagé
  * @param {{ selection?: object }} [services]
  */
-export function mount(container, app, { selection = null, mode = null } = {}) {
+export function mount(container, app, { selection = null, mode = null, store = undefined } = {}) {
   container.innerHTML = TEMPLATE;
   const hasDom = typeof container.querySelector === 'function';
   const find = (selector) => (hasDom ? container.querySelector(selector) : null);
@@ -497,6 +562,30 @@ export function mount(container, app, { selection = null, mode = null } = {}) {
     return root;
   };
 
+  /** Topologies enregistrées (phase 7c). */
+  const renderSaved = (view) => {
+    const list = find('[data-role="saved"]');
+    const name = find('[data-role="save-name"]');
+    if (!list) return;
+    if (name && doc.activeElement !== name) name.value = view.title ?? '';
+    list.replaceChildren();
+    if (!view.saved.ok) {
+      list.append(el('li', 'editor-port-free', view.saved.error));
+      return;
+    }
+    if (view.saved.items.length === 0) list.append(el('li', 'editor-port-free', 'Aucune topologie enregistrée.'));
+    for (const item of view.saved.items) {
+      const row = el('li', '', `${item.name} (${item.devices} équip.) `);
+      const actions = el('span', 'editor-saved-actions');
+      actions.append(
+        smallButton('Ouvrir', `Ouvrir ${item.name}`, () => controller.openSaved(item.name), `open-${item.name}`),
+        smallButton('Supprimer', `Supprimer ${item.name} de ce navigateur`, () => controller.removeSaved(item.name), `del-${item.name}`),
+      );
+      row.append(actions);
+      list.append(row);
+    }
+  };
+
   /** Formulaire du protocole à jouer (phase 7b). */
   const renderRun = (run) => {
     const select = find('[data-role="run"]');
@@ -637,11 +726,12 @@ export function mount(container, app, { selection = null, mode = null } = {}) {
       parts.links.append(item);
     }
     renderRun(view.run);
+    renderSaved(view);
     // Le panneau est reconstruit : le focus clavier revient sur le même champ ou bouton.
     if (focused) container.querySelector(`[data-focus="${focused}"]`)?.focus();
   };
 
-  const controller = createEditorController(app, { onChange: render, selection });
+  const controller = createEditorController(app, { onChange: render, selection, ...(store ? { store } : {}) });
   const offSelection = selection?.onChange?.(() => render(controller.getView()));
 
   const listeners = [];
@@ -663,11 +753,37 @@ export function mount(container, app, { selection = null, mode = null } = {}) {
       if (action === 'empty') controller.restart(false);
       if (action === 'copy') controller.restart(true);
       if (action === 'play' && controller.play()) mode?.set?.('explore');
+      if (action === 'export') {
+        // Téléchargement d'un fichier JSON, sans serveur : lien temporaire vers un Blob.
+        const { name, text } = controller.exportFile();
+        const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+        const link = el('a');
+        link.href = url;
+        link.download = name;
+        doc.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
     });
     // Changer d'équipement A ou B recharge la liste de ses ports libres.
     for (const side of ['a', 'b']) on(parts[`${side}-device`], 'change', () => current && render(current));
     on(parts.cable, 'change', () => { parts.cable.dataset.chosen = 'oui'; });
     on(find('[data-role="run"]'), 'change', (event) => controller.chooseRun(event.target.value));
+    on(find('[data-role="save-form"]'), 'submit', (event) => {
+      event.preventDefault();
+      controller.saveAs(find('[data-role="save-name"]').value);
+    });
+    on(find('[data-role="import"]'), 'change', async (event) => {
+      const file = event.target.files?.[0];
+      event.target.value = ''; // le même fichier pourra être réimporté
+      if (!file) return;
+      if (file.size > 1024 * 1024) {
+        controller.importText('x'.repeat(1024 * 1024 + 1));
+        return;
+      }
+      controller.importText(await file.text());
+    });
     const scene = doc.getElementById?.('scene');
     on(scene, 'topology:ground-clicked', (event) => controller.place(event.detail.position));
     on(scene, 'topology:device-moved', (event) => {

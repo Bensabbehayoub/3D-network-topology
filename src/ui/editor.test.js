@@ -7,8 +7,15 @@ import { createSimulation, TOPICS } from '../../simulation.js';
 import { DEVICE_BEHAVIOURS } from '../sim/devices/index.js';
 import { createEditorController, freeSpot, linkLabel, mount } from './editor.js';
 import { createModeService } from './modeSwitch.js';
+import { createTopologyStore } from './storage.js';
 
-async function setup() {
+/** Faux localStorage en mémoire (défini ici : importer storage.test.js rejouerait ses tests). */
+function memoryStorage() {
+  const data = new Map();
+  return { getItem: (key) => (data.has(key) ? data.get(key) : null), setItem: (key, value) => data.set(key, String(value)), removeItem: (key) => data.delete(key) };
+}
+
+async function setup({ storage = memoryStorage() } = {}) {
   const ping = JSON.parse(await readFile(new URL('../../scenarios/ping.json', import.meta.url), 'utf8'));
   const sim = createSimulation({ devices: DEVICE_BEHAVIOURS, scheduler: { start: () => () => {} } });
   await sim.load(ping);
@@ -17,8 +24,9 @@ async function setup() {
   let selected = null;
   const selection = { getSelection: () => selected, select: (id) => { selected = id; return true; }, clear: () => { selected = null; return true; } };
   const views = [];
-  const editor = createEditorController(app, { onChange: (view) => views.push(view), selection });
-  return { app, sim, editor, views, selection };
+  const store = createTopologyStore(storage);
+  const editor = createEditorController(app, { onChange: (view) => views.push(view), selection, store });
+  return { app, sim, editor, views, selection, storage, store };
 }
 
 test('place libre : spirale autour du centre, sans chevauchement', () => {
@@ -157,4 +165,34 @@ test('7b : configurer, choisir le protocole, jouer « Ma topologie » puis reven
   await editor.leave();
   assert.equal(sim.getScenario().id, 'perso', 'Explorer affiche « Ma topologie »');
   assert.equal(sim.getScenario().protocol, 'icmp');
+});
+
+test('7c : brouillon retrouvé après un « rechargement », enregistrer, rouvrir, exporter, importer', async () => {
+  const storage = memoryStorage();
+  const first = await setup({ storage });
+  await first.editor.enter();
+  await first.editor.restart(false);
+  await first.editor.addAtCenter('pc-1g');
+  // Nouvelle page (nouveau contrôleur), même stockage : la topologie est retrouvée.
+  const second = await setup({ storage });
+  await second.editor.enter();
+  assert.deepEqual(second.sim.getScenario().devices.map((d) => d.id), ['pc1']);
+  assert.match(second.editor.getView().notice, /Topologie retrouvée/);
+  // Enregistrer sous un nom : il devient le titre, et la liste le montre.
+  await second.editor.saveAs('Salle 12');
+  assert.equal(second.sim.getScenario().title, 'Salle 12');
+  assert.deepEqual(second.editor.getView().saved.items.map((item) => item.name), ['Salle 12']);
+  await second.editor.addAtCenter('sw-24g');
+  await second.editor.openSaved('Salle 12');
+  assert.equal(second.sim.getScenario().devices.length, 1, 'version enregistrée rouverte');
+  // Export puis import.
+  const { name, text } = second.editor.exportFile();
+  assert.equal(name, 'topologie-salle-12.json');
+  await second.editor.restart(false);
+  assert.equal(await second.editor.importText(text), true);
+  assert.equal(second.sim.getScenario().title, 'Salle 12');
+  assert.equal(await second.editor.importText('{ cassé'), false);
+  assert.match(second.editor.getView().error, /JSON valide/);
+  assert.equal(second.editor.removeSaved('Salle 12'), true);
+  assert.deepEqual(second.editor.getView().saved.items, []);
 });

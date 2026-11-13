@@ -1026,6 +1026,29 @@ body[data-mode="build"] .scene {
 .editor-check-warning { border-left-color: #f7b538 !important; color: #ffe0a3; }
 .editor-check-ok { border-left-color: #06d6a0 !important; color: #8ff0cf; }
 
+/* ---------- Éditeur : enregistrer et ouvrir (phase 7c) ---------- */
+
+.editor-saved li {
+  font-family: inherit;
+}
+
+.editor-saved-actions {
+  display: inline-flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Le champ fichier est caché ; son libellé sert de bouton, et montre le focus clavier. */
+.editor-import {
+  position: relative;
+  cursor: pointer;
+}
+
+.editor-import:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 /* ---------- Onglets Explications | Recommandations (phase 6) ---------- */
 
 .panel-tablist {
