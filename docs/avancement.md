@@ -45,7 +45,7 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 | 4 | Moteur réel, équipements et protocoles | ✅ Terminé en quatre sous-étapes (un commit chacune) : **4a ✅** (commité, `ffba69f`) équipements, ARP, ICMP, routage statique, vrai moteur, choix du scénario ; **4b ✅** (commité, `1151dfd`) UDP, DNS, DHCP ; **4c ✅** (commité, `eaa4efc`) TCP, HTTP ; **4d ✅** (commité, `cafa1d3`) inspecteur de paquets, journal, explications en 2D, couleurs par protocole |
 | 5 | Caractéristiques des équipements, débit et bande passante | ✅ Terminé et commité (`81637a4`) |
 | 6 | Diagnostic et recommandations | ✅ Terminé et commité (`137faf9`) ; recommandations aussi en VR (demande de Ramy) |
-| 7 | Éditeur de topologie et choix du protocole | ⏳ En trois sous-étapes (un commit chacune) : **7a ✅** (13 nov, à commiter) mode Construire, ajout, déplacement, renommage, suppression, câbles ; 7b configuration (adresses, rôles) et choix du protocole ; 7c enregistrement, import/export, finitions |
+| 7 | Éditeur de topologie et choix du protocole | ⏳ En trois sous-étapes (un commit chacune) : **7a ✅** (commité, `7b07bf7`) mode Construire, ajout, déplacement, renommage, suppression, câbles ; **7b ✅** (13 nov, à commiter) configuration (adresses, rôles) et choix du protocole ; 7c enregistrement, import/export, finitions |
 | 8 | CI/CD et TLS | À faire |
 | 9 | Documentation et finition | À faire |
 
@@ -102,6 +102,10 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 13 nov | Un scénario peut avoir zéro équipement. | L'éditeur part d'une topologie vide. |
 | 13 nov | Un équipement ajouté reçoit toutes les interfaces de son modèle ; MAC « administrées localement » 02:00:00:00:xx:yy. | Ports libres immédiatement disponibles pour les câbles ; pas d'adresse de constructeur réel. |
 | 13 nov | La sélection survit à un rechargement de la même topologie. | Sinon, chaque modification de l'éditeur perdait l'équipement sélectionné. |
+| 13 nov | « Jouer cette topologie » : la topologie devient « Ma topologie » (id `perso`) en tête de la liste d'Explorer, qui l'affiche aussitôt. | Remarque de Ramy : en revenant en Explorer, on retombait sur le scénario de départ. |
+| 13 nov | Adresses proposées : réseau du segment, sinon nouveau 192.168.N.0/24 ; .1 pour un routeur, .10 et suivantes pour les hôtes. Passerelle proposée : le routeur du segment. | Un élève construit un réseau correct sans calcul ; la recommandation reste visible s'il se trompe. |
+| 13 nov | Erreurs bloquantes seulement si la lecture est impossible (équipement sans adresse, pas de serveur DHCP, nom invalide, boucle de commutation) ; le reste en avertissement (port fermé : RST ou ICMP montrés). | On doit pouvoir jouer un réseau imparfait pour voir l'échec. |
+| 13 nov | Explications générées : textes génériques par étape standard, avec les noms des équipements. | Pas d'écriture manuelle pour une topologie construite. |
 | 12 nov | Le bouton « Installer » est visible tant que l'application n'est pas installée. Sans invite du navigateur, le clic explique comment installer. | « Message clair si l'installation est indisponible » sans encombrer l'en-tête. |
 
 ## Journal des phases
@@ -351,3 +355,21 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
   390 px sans débordement, retour en Explorer sur le scénario précédent ; console vide.
 - Non vérifié automatiquement : le glisser au toucher (même code, évènements pointer) : à essayer
   sur téléphone.
+
+### Phase 7b — configuration et choix du protocole (13 novembre)
+
+- Tests : 382 tests, 382 réussis, 0 échec.
+- Moteur : `src/sim/config.js` (adresses, propositions, passerelle, DNS, routes, ports, rôles,
+  enregistrements DNS), `src/sim/runs.js` (protocoles, champs, valeurs proposées, validation,
+  scénario assemblé et explications génériques), `index.js` (`setCustomScenario`, « Ma topologie »
+  en tête de liste), `simulation.js`.
+- Interface : `src/ui/editor.js` (configuration de l'équipement sélectionné, section « Jouer cette
+  topologie », retour en Explorer sur « Ma topologie », focus clavier rendu après chaque
+  modification), `styles.css` (formulaires, cases à cocher, messages, éditeur plus haut en
+  mode Construire).
+- Tests : `tests/runs.test.js` (réseau construit de zéro avec les seules adresses proposées, sans
+  problème au diagnostic, puis les 9 protocoles joués de bout en bout ; messages d'erreur ; boucle
+  bloquante), `src/ui/editor.test.js`, `tests/mock.test.js`.
+- Vérifié dans Chrome 157 piloté : copie du scénario Ping, adresse de PC 2 effacée puis proposée,
+  protocole DHCP refusé avec deux messages clairs (bouton désactivé), ping « Tout est prêt »,
+  « Jouer cette topologie » → Explorer sur « Ma topologie », lecture complète (10,3 s) ; console vide.

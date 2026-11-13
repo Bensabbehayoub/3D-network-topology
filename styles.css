@@ -786,6 +786,11 @@ body[data-mode="build"] .panel-editor {
   display: flex;
 }
 
+/* L'éditeur est long : il prend 3/5 de la colonne, les recommandations 2/5. */
+body[data-mode="build"] .app-side {
+  grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
+}
+
 body[data-mode="build"] .panel-inspector,
 body[data-mode="build"] #scenario-picker,
 body[data-mode="build"] #controls {
@@ -915,6 +920,111 @@ body[data-mode="build"] .scene {
 .editor-link-label { grid-area: label; overflow-wrap: anywhere; }
 .editor-link-meta { grid-area: meta; font-size: 0.75rem; color: var(--text-muted); }
 .editor-link .btn { grid-area: button; }
+
+/* ---------- Éditeur : configuration et protocole (phase 7b) ---------- */
+
+.editor-config {
+  margin-top: 10px;
+}
+
+.editor-subheading {
+  margin: 14px 0 6px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--accent);
+}
+
+.editor-hint {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* Champ(s) et bouton sur une ligne ; passent à la ligne quand la colonne est étroite. */
+.editor-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px 8px;
+  margin-bottom: 6px;
+}
+
+.editor-inline .editor-field {
+  flex: 1 1 120px;
+  margin-bottom: 0;
+}
+
+.editor-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.editor-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--touch);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.editor-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.editor-list {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+}
+
+.editor-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+}
+
+.editor-fieldset {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.editor-fieldset legend {
+  padding: 0 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.editor-checks {
+  margin: 4px 0 10px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.editor-checks li {
+  margin-bottom: 4px;
+  padding-left: 8px;
+  border-left: 3px solid var(--border);
+}
+
+.editor-check-error { border-left-color: var(--danger) !important; color: #ffb3b3; }
+.editor-check-warning { border-left-color: #f7b538 !important; color: #ffe0a3; }
+.editor-check-ok { border-left-color: #06d6a0 !important; color: #8ff0cf; }
 
 /* ---------- Onglets Explications | Recommandations (phase 6) ---------- */
 

@@ -126,3 +126,35 @@ test('mount sous Node : gabarit fixe, aucun nom d\'équipement dans le HTML', as
   assert.equal(linkLabel({ devices: [{ id: 'a', label: 'A' }, { id: 'b' }] }, { a: 'a:x', b: 'b:y' }), 'A (x) ↔ b (y)');
   editor.dispose();
 });
+
+test('7b : configurer, choisir le protocole, jouer « Ma topologie » puis revenir en Explorer dessus', async () => {
+  const { sim, editor, app } = await setup();
+  let custom = null;
+  app.sim.setCustomScenario = (scenario) => { custom = scenario; return { id: 'perso' }; };
+  app.sim.loadScenario = async (id) => (id === 'perso' ? sim.load(custom) : false);
+  await editor.enter();
+  // Configuration : effacer puis proposer une adresse, passerelle proposée.
+  await editor.setAddress('pc2', 'eth0', '');
+  assert.equal(sim.getScenario().devices.find((d) => d.id === 'pc2').interfaces[0].ip, undefined);
+  await editor.proposeAddress('pc2', 'eth0');
+  assert.equal(sim.getScenario().devices.find((d) => d.id === 'pc2').interfaces[0].ip, '192.168.2.10/24');
+  await editor.setGateway('pc2', '');
+  await editor.proposeGateway('pc2');
+  assert.equal(sim.getScenario().devices.find((d) => d.id === 'pc2').gateway, '192.168.2.1');
+  assert.equal(await editor.setAddress('pc2', 'eth0', '999.1.1.1'), false);
+  assert.match(editor.getView().error, /n'est pas une adresse valide/);
+  // Protocole : DHCP impossible ici (erreurs), ping prêt.
+  editor.chooseRun('dhcp');
+  assert.ok(editor.getView().run.errors.length > 0);
+  assert.equal(editor.play(), false);
+  editor.chooseRun('ping');
+  editor.setRunValue('count', 1);
+  assert.deepEqual(editor.getView().run.errors, []);
+  assert.equal(editor.getView().run.fields.find((f) => f.key === 'count').value, 1);
+  assert.equal(editor.play(), true);
+  assert.equal(custom.protocol, 'icmp');
+  assert.equal(custom.params.count, 1);
+  await editor.leave();
+  assert.equal(sim.getScenario().id, 'perso', 'Explorer affiche « Ma topologie »');
+  assert.equal(sim.getScenario().protocol, 'icmp');
+});

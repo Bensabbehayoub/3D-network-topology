@@ -194,3 +194,14 @@ test('un nouveau chargement repart d\'un historique vide', async () => {
   await sim.load(DEMO_SCENARIO, { target: 'pc1', source: 'pc2' });
   assert.deepEqual(sim.getHistory(), [], 'un nouveau chargement repart d\'un historique vide');
 });
+
+test('« Ma topologie » (phase 7b) : en tête de la liste, chargeable, refusée si invalide', async () => {
+  const sim = await init({}, { library: diskLibrary(), options: { scheduler: manual } });
+  const ping = JSON.parse(await readFile(new URL('../scenarios/ping.json', import.meta.url), 'utf8'));
+  const summary = sim.setCustomScenario({ ...ping, id: 'autre', title: 'Mon réseau' });
+  assert.equal(summary.id, 'perso');
+  assert.deepEqual(sim.listScenarios()[0], { id: 'perso', title: 'Ma topologie : Mon réseau', protocol: 'icmp', description: ping.description });
+  assert.equal(await sim.loadScenario('perso'), true);
+  assert.equal(sim.getScenario().id, 'perso');
+  assert.throws(() => sim.setCustomScenario({ id: 'x' }), /invalide/);
+});

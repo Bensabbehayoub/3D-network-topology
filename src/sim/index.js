@@ -13,6 +13,7 @@
 import { createSimulation } from './commands.js';
 import { DEVICE_BEHAVIOURS } from './devices/index.js';
 import { createScenarioLibrary, summarize } from './library.js';
+import { assertScenario } from './scenario.js';
 import { createMockSimulation, DEMO_SCENARIO } from './mock.js';
 import { TOPICS } from './events.js';
 import { createTrafficMeter, SLOWDOWN, transmissionModel } from './traffic.js';
@@ -44,12 +45,14 @@ export async function init(app = {}, { library = createScenarioLibrary(), option
   sim.on(TOPICS.NETWORK, (event) => meter.add(event));
   sim.on(TOPICS.RESET, () => meter.reset());
   const byId = new Map(scenarios.map((scenario) => [scenario.id, scenario]));
+  /** Topologie construite dans l'éditeur et prête à jouer (phase 7b), ou null. */
+  let custom = null;
   await sim.load(scenarios[0]);
 
   return Object.freeze({
     ...sim,
     /** Scénarios proposés, dans l'ordre de scenarios/index.json : [{ id, title, protocol, description }]. */
-    listScenarios: () => scenarios.map(summarize),
+    listScenarios: () => [...(custom ? [{ ...summarize(custom), title: `Ma topologie : ${custom.title}` }] : []), ...scenarios.map(summarize)],
     /**
      * Charge un scénario de la liste (état « prêt », temps à 0).
      * @param {string} id
@@ -57,7 +60,7 @@ export async function init(app = {}, { library = createScenarioLibrary(), option
      * @returns {Promise<boolean>} false si l'id est inconnu
      */
     async loadScenario(id, params = {}) {
-      const scenario = byId.get(id);
+      const scenario = id === custom?.id ? custom : byId.get(id);
       if (!scenario) return false;
       return sim.load(scenario, params);
     },
@@ -66,6 +69,15 @@ export async function init(app = {}, { library = createScenarioLibrary(), option
      * lien (sens a→b et b→a), par port et par équipement. Débits en Mb/s de temps réseau
      * (1 s de simulation = 1 ms de réseau, voir traffic.js).
      */
+    /**
+     * Ajoute (ou remplace) la topologie construite dans l'éditeur en tête de la liste des
+     * scénarios, sous l'id 'perso' (phase 7b). Lève une erreur si elle est invalide.
+     */
+    setCustomScenario(scenario) {
+      custom = structuredClone(assertScenario(scenario));
+      custom.id = 'perso';
+      return summarize(custom);
+    },
     getTraffic: () => meter.snapshot(sim.getScenario(), sim.getState().time),
     /** Facteur de ralenti : 1 ms de simulation = 1/SLOWDOWN ms de réseau. */
     timeScale: SLOWDOWN,

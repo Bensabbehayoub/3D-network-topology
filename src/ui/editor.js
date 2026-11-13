@@ -16,9 +16,13 @@
 // Les noms viennent de l'utilisateur ou des scénarios : textContent uniquement.
 
 import {
-  addDevice, BuilderError, CABLES, connect, disconnect, formatSpeed, freePorts, fromScenario, linkBandwidth, MAX_LABEL,
-  moveDevice, newTopology, palette, parseEndpoint, removeDevice, renameDevice, TYPE_NAMING,
+  addDevice, addRecord, addRoute, addService, assembleRun, BuilderError, CABLES, connect, defaultValues, disconnect, formatSpeed, freePorts,
+  fromScenario, linkBandwidth, MAX_LABEL, moveDevice, newTopology, palette, parseEndpoint, proposeAddress, proposeGateway, removeDevice,
+  removeRecord, removeRoute, removeService, renameDevice, ROLES, rolesOf, RUNS, runFields, setAddress, setDns, setGateway, setRole,
+  TYPE_NAMING, validateRun,
 } from '../../simulation.js';
+
+export const DEFAULT_RUN = 'ping';
 
 export const DEFAULT_MODEL = 'pc-1g';
 export const DEFAULT_CABLE = 'cuivre-cat6';
@@ -58,6 +62,42 @@ export function createEditorController(app, { onChange = () => {}, selection = n
   let error = null;
   let notice = null;
   let returnTo = null; // scénario affiché avant d'entrer en construction
+  let launch = false; // « Jouer cette topologie » : en sortant, on charge « Ma topologie »
+  let runId = DEFAULT_RUN;
+  let runValues = {};
+
+  /** Valeurs du formulaire du protocole : celles saisies, complétées par les valeurs proposées. */
+  const currentValues = () => ({ ...(draft ? defaultValues(draft, runId) : {}), ...runValues });
+
+  /** Configuration de l'équipement sélectionné (adresses, passerelle, DNS, routes, rôles, ports). */
+  const configOf = (device) => {
+    const linked = (itf) => draft.links.some((link) => link.a === `${device.id}:${itf.name}` || link.b === `${device.id}:${itf.name}`);
+    const addressable = device.type === 'switch' ? [] : device.interfaces.filter((itf) => linked(itf) || itf.ip);
+    return {
+      interfaces: addressable.map((itf) => ({ name: itf.name, ip: itf.ip ?? '' })),
+      host: device.type === 'host' || device.type === 'server',
+      router: device.type === 'router',
+      gateway: device.gateway ?? '',
+      dns: device.dns ?? '',
+      routes: (device.routes ?? []).map((route) => ({ ...route })),
+      roles: Object.entries(ROLES).map(([id, role]) => ({ id, label: role.label, active: rolesOf(device).includes(id) })),
+      services: (device.services ?? []).map((service) => ({ ...service })),
+      records: device.records ? device.records.map((record) => ({ name: record.name, value: record.value })) : null,
+    };
+  };
+
+  const runView = () => {
+    if (!draft) return null;
+    const values = currentValues();
+    const check = validateRun(draft, runId, values);
+    return {
+      runs: RUNS.map((run) => ({ id: run.id, label: run.label })),
+      runId,
+      fields: runFields(draft, runId).map((field) => ({ ...field, value: values[field.key] })),
+      errors: check.errors,
+      warnings: check.warnings,
+    };
+  };
 
   const view = () => {
     const selectedId = selection?.getSelection?.() ?? null;
@@ -87,7 +127,9 @@ export function createEditorController(app, { onChange = () => {}, selection = n
           const peer = link ? parseEndpoint(link.a === key ? link.b : link.a) : null;
           return { name: itf.name, peer: peer ? `${nameOf(draft, peer.device)} (${peer.interface})` : null };
         }),
+        config: configOf(selected),
       } : null,
+      run: runView(),
     };
   };
   const notify = () => onChange(view());
@@ -121,20 +163,77 @@ export function createEditorController(app, { onChange = () => {}, selection = n
       if (active) return;
       active = true;
       const current = sim?.getScenario?.() ?? null;
-      if (current && current.id !== 'perso') returnTo = current.id;
+      if (current) returnTo = current.id; // scénario fourni, ou « Ma topologie » déjà jouée
       if (!draft) draft = current ? fromScenario(current) : newTopology();
       error = null;
       notice = null;
       await sim.load(draft);
       notify();
     },
-    /** Revient au mode Explorer : le scénario affiché avant la construction est rechargé. */
+    /**
+     * Revient au mode Explorer : « Ma topologie » si l'on vient de demander à la jouer, sinon le
+     * scénario affiché avant la construction.
+     */
     async leave() {
       if (!active) return;
       active = false;
       armed = null;
-      if (returnTo && typeof sim?.loadScenario === 'function') await sim.loadScenario(returnTo);
+      const target = launch ? 'perso' : returnTo;
+      launch = false;
+      if (target && typeof sim?.loadScenario === 'function') await sim.loadScenario(target);
       notify();
+    },
+    // --- Configuration (phase 7b) ---
+    setAddress: (id, itf, value) => apply((s) => setAddress(s, id, itf, value),
+      String(value ?? '').trim() ? 'Adresse enregistrée.' : "Adresse effacée (l'équipement pourra la demander par DHCP)."),
+    proposeAddress: (id, itf) => apply((s) => {
+      const proposal = proposeAddress(s, id, itf);
+      if (!proposal) throw new BuilderError("Pas d'adresse à proposer pour cette interface.");
+      return setAddress(s, id, itf, proposal);
+    }, 'Adresse proposée enregistrée.'),
+    setGateway: (id, ip) => apply((s) => setGateway(s, id, ip), 'Passerelle enregistrée.'),
+    proposeGateway: (id) => apply((s) => {
+      const proposal = proposeGateway(s, id);
+      if (!proposal) throw new BuilderError("Aucun routeur de son réseau n'a d'adresse : configurez d'abord l'interface du routeur reliée à ce réseau.");
+      return setGateway(s, id, proposal);
+    }, 'Passerelle proposée enregistrée.'),
+    setDns: (id, ip) => apply((s) => setDns(s, id, ip), 'Serveur DNS enregistré.'),
+    addRoute: (id, network, via) => apply((s) => addRoute(s, id, { network, via }), 'Route ajoutée.'),
+    removeRoute: (id, network) => apply((s) => removeRoute(s, id, network), 'Route retirée.'),
+    setRole: (id, role, on) => apply((s) => setRole(s, id, role, on), `${ROLES[role]?.label ?? role} ${on ? 'activé' : 'retiré'}.`),
+    addService: (id, transport, port) => apply((s) => addService(s, id, { transport, port: Number(port) }), 'Port ouvert.'),
+    removeService: (id, transport, port) => apply((s) => removeService(s, id, transport, port), 'Port fermé.'),
+    addRecord: (id, name, value) => apply((s) => addRecord(s, id, { name, value }), 'Enregistrement DNS ajouté.'),
+    removeRecord: (id, name) => apply((s) => removeRecord(s, id, name), 'Enregistrement DNS retiré.'),
+    // --- Protocole à jouer (phase 7b) ---
+    chooseRun(id) {
+      runId = RUNS.some((run) => run.id === id) ? id : DEFAULT_RUN;
+      runValues = {};
+      error = null;
+      notify();
+    },
+    setRunValue(key, value) {
+      runValues = { ...runValues, [key]: value };
+      notify();
+    },
+    /**
+     * Valide le protocole et ses paramètres, puis prépare « Ma topologie » dans la liste des
+     * scénarios. Renvoie true si la topologie est prête : l'appelant revient alors en Explorer.
+     */
+    play() {
+      const check = validateRun(draft, runId, currentValues());
+      if (check.errors.length) {
+        error = check.errors[0];
+        notice = null;
+        notify();
+        return false;
+      }
+      sim.setCustomScenario(assembleRun(draft, runId, check.params));
+      launch = true;
+      error = null;
+      notice = 'Topologie prête : elle se joue en mode Explorer (« Ma topologie »).';
+      notify();
+      return true;
     },
     /** Arme le placement : le prochain toucher du sol ajoute ce modèle. */
     arm(model) {
@@ -212,6 +311,13 @@ const TEMPLATE = `
     <h3 class="editor-heading" id="editor-links">Câbles</h3>
     <ul class="editor-links" data-role="links"></ul>
   </section>
+  <section class="editor-section editor-run" aria-labelledby="editor-run">
+    <h3 class="editor-heading" id="editor-run">Jouer cette topologie</h3>
+    <label class="editor-field">Protocole <select data-role="run" data-focus="run"></select></label>
+    <div data-role="run-fields"></div>
+    <ul class="editor-checks" data-role="run-messages" aria-live="polite"></ul>
+    <button type="button" class="btn btn-primary" data-action="play" data-focus="play">Jouer cette topologie</button>
+  </section>
   <section class="editor-section" aria-labelledby="editor-restart">
     <h3 class="editor-heading" id="editor-restart">Repartir de</h3>
     <div class="editor-actions">
@@ -226,7 +332,7 @@ const TEMPLATE = `
  * @param {object} app objet partagé
  * @param {{ selection?: object }} [services]
  */
-export function mount(container, app, { selection = null } = {}) {
+export function mount(container, app, { selection = null, mode = null } = {}) {
   container.innerHTML = TEMPLATE;
   const hasDom = typeof container.querySelector === 'function';
   const find = (selector) => (hasDom ? container.querySelector(selector) : null);
@@ -269,9 +375,204 @@ export function mount(container, app, { selection = null } = {}) {
   };
 
   let current = null;
+  /** Petit formulaire « champ + bouton » ; onSubmit reçoit les valeurs des champs. */
+  const inlineForm = (fields, buttonLabel, onSubmit, focusKey) => {
+    const form = el('form', 'editor-inline');
+    const inputs = fields.map(({ label, value = '', placeholder = '', type = 'text', options = null, key }) => {
+      const wrap = el('label', 'editor-field', `${label} `);
+      let input;
+      if (options) {
+        input = el('select');
+        for (const option of options) {
+          const node = el('option', '', option.label);
+          node.value = option.value;
+          input.append(node);
+        }
+      } else {
+        input = el('input');
+        input.type = type;
+        input.placeholder = placeholder;
+      }
+      input.value = value;
+      input.dataset.focus = `${focusKey}-${key}`;
+      wrap.append(input);
+      form.append(wrap);
+      return input;
+    });
+    const submit = el('button', 'btn', buttonLabel);
+    submit.type = 'submit';
+    submit.dataset.focus = `${focusKey}-submit`;
+    form.append(submit);
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      onSubmit(inputs.map((input) => input.value));
+    });
+    return form;
+  };
+  const smallButton = (label, ariaLabel, onClick, focusKey) => {
+    const button = el('button', 'btn btn-small', label);
+    button.type = 'button';
+    if (ariaLabel) button.setAttribute('aria-label', ariaLabel);
+    if (focusKey) button.dataset.focus = focusKey;
+    button.addEventListener('click', onClick);
+    return button;
+  };
+
+  /** Configuration de l'équipement sélectionné (phase 7b). */
+  const configBlock = (selected) => {
+    const { config } = selected;
+    const root = el('div', 'editor-config');
+    const sub = (title) => root.appendChild(el('h4', 'editor-subheading', title));
+    if (config.interfaces.length) {
+      sub('Adresses IP');
+      if (config.host) root.append(el('p', 'editor-hint', 'Laissez vide pour un client DHCP. « Proposer » choisit une adresse libre du réseau.'));
+      for (const itf of config.interfaces) {
+        const form = inlineForm([{ label: itf.name, value: itf.ip, placeholder: '192.168.1.10/24', key: 'ip' }], 'Appliquer',
+          ([value]) => controller.setAddress(selected.id, itf.name, value), `ip-${itf.name}`);
+        form.append(smallButton('Proposer', `Proposer une adresse pour ${itf.name}`, () => controller.proposeAddress(selected.id, itf.name), `propose-${itf.name}`));
+        root.append(form);
+      }
+    } else if (!config.host && !config.router) {
+      root.append(el('p', 'editor-hint', 'Un switch travaille au niveau 2 : il n’a pas d’adresse IP à configurer.'));
+    } else {
+      root.append(el('p', 'editor-hint', 'Reliez d’abord un câble : on configure les interfaces utilisées.'));
+    }
+    if (config.host) {
+      sub('Passerelle et DNS');
+      const gateway = inlineForm([{ label: 'Passerelle', value: config.gateway, placeholder: '192.168.1.1', key: 'gw' }], 'Appliquer',
+        ([value]) => controller.setGateway(selected.id, value), 'gateway');
+      gateway.append(smallButton('Proposer', 'Proposer la passerelle', () => controller.proposeGateway(selected.id), 'propose-gateway'));
+      root.append(gateway, inlineForm([{ label: 'Serveur DNS', value: config.dns, placeholder: '192.168.2.53', key: 'dns' }], 'Appliquer',
+        ([value]) => controller.setDns(selected.id, value), 'dns'));
+      sub('Rôles de serveur');
+      const roles = el('div', 'editor-roles');
+      for (const role of config.roles) {
+        const label = el('label', 'editor-check');
+        const box = el('input');
+        box.type = 'checkbox';
+        box.checked = role.active;
+        box.dataset.focus = `role-${role.id}`;
+        box.addEventListener('change', () => controller.setRole(selected.id, role.id, box.checked));
+        label.append(box, doc.createTextNode(` ${role.label}`));
+        roles.append(label);
+      }
+      root.append(roles);
+      if (config.records) {
+        sub('Enregistrements DNS');
+        const list = el('ul', 'editor-list');
+        for (const record of config.records) {
+          const item = el('li', '', `${record.name} → ${record.value} `);
+          item.append(smallButton('Retirer', `Retirer ${record.name}`, () => controller.removeRecord(selected.id, record.name)));
+          list.append(item);
+        }
+        root.append(list, inlineForm([{ label: 'Nom', placeholder: 'intranet.ecole.test', key: 'name' }, { label: 'Adresse', placeholder: '192.168.2.80', key: 'value' }],
+          'Ajouter', ([name, value]) => controller.addRecord(selected.id, name, value), 'record'));
+      }
+      sub('Ports ouverts');
+      const services = el('ul', 'editor-list');
+      if (config.services.length === 0) services.append(el('li', 'editor-port-free', 'Aucun : cet équipement refuse toute connexion entrante.'));
+      for (const service of config.services) {
+        const item = el('li', '', `${service.transport.toUpperCase()} ${service.port} (${service.name}) `);
+        item.append(smallButton('Fermer', `Fermer le port ${service.transport.toUpperCase()} ${service.port}`, () => controller.removeService(selected.id, service.transport, service.port)));
+        services.append(item);
+      }
+      root.append(services, inlineForm([
+        { label: 'Transport', key: 'transport', value: 'tcp', options: [{ value: 'tcp', label: 'TCP' }, { value: 'udp', label: 'UDP' }] },
+        { label: 'Port', key: 'port', type: 'number', placeholder: '9000' },
+      ], 'Ouvrir', ([transport, port]) => controller.addService(selected.id, transport, port), 'service'));
+    }
+    if (config.router) {
+      sub('Routes statiques');
+      root.append(el('p', 'editor-hint', 'Les réseaux reliés au routeur sont connus d’office. Ajoutez une route pour les réseaux plus lointains (0.0.0.0/0 : route par défaut).'));
+      const list = el('ul', 'editor-list');
+      if (config.routes.length === 0) list.append(el('li', 'editor-port-free', 'Aucune route statique.'));
+      for (const route of config.routes) {
+        const item = el('li', '', `${route.network} via ${route.via} `);
+        item.append(smallButton('Retirer', `Retirer la route vers ${route.network}`, () => controller.removeRoute(selected.id, route.network)));
+        list.append(item);
+      }
+      root.append(list, inlineForm([{ label: 'Réseau', placeholder: '192.168.3.0/24', key: 'net' }, { label: 'Via', placeholder: '10.0.0.2', key: 'via' }],
+        'Ajouter', ([network, via]) => controller.addRoute(selected.id, network, via), 'route'));
+    }
+    return root;
+  };
+
+  /** Formulaire du protocole à jouer (phase 7b). */
+  const renderRun = (run) => {
+    const select = find('[data-role="run"]');
+    const fieldsBox = find('[data-role="run-fields"]');
+    const messages = find('[data-role="run-messages"]');
+    const play = find('[data-action="play"]');
+    if (!select || !run) return;
+    fill(select, run.runs.map((item) => ({ value: item.id, label: item.label })));
+    select.value = run.runId;
+    fieldsBox.replaceChildren();
+    for (const field of run.fields) {
+      const key = `run-${field.key}`;
+      if (field.kind === 'devices') {
+        const set = el('fieldset', 'editor-fieldset');
+        set.append(el('legend', '', field.label));
+        if (field.options.length === 0) set.append(el('p', 'editor-hint', 'Aucun équipement ne convient.'));
+        for (const option of field.options) {
+          const label = el('label', 'editor-check');
+          const box = el('input');
+          box.type = 'checkbox';
+          box.value = option.value;
+          box.checked = (field.value ?? []).includes(option.value);
+          box.dataset.focus = `${key}-${option.value}`;
+          box.addEventListener('change', () => {
+            const chosen = [...set.querySelectorAll('input:checked')].map((input) => input.value);
+            controller.setRunValue(field.key, chosen);
+          });
+          label.append(box, doc.createTextNode(` ${option.label}`));
+          set.append(label);
+        }
+        fieldsBox.append(set);
+        continue;
+      }
+      if (field.kind === 'bool') {
+        const label = el('label', 'editor-check');
+        const box = el('input');
+        box.type = 'checkbox';
+        box.checked = Boolean(field.value);
+        box.dataset.focus = key;
+        box.addEventListener('change', () => controller.setRunValue(field.key, box.checked));
+        label.append(box, doc.createTextNode(` ${field.label}`));
+        fieldsBox.append(label);
+        continue;
+      }
+      const label = el('label', 'editor-field', `${field.label} `);
+      let input;
+      if (field.kind === 'device') {
+        input = el('select');
+        fill(input, field.options, { placeholder: 'Choisir…' });
+        input.value = field.value ?? '';
+      } else {
+        input = el('input');
+        input.type = field.kind === 'number' ? 'number' : 'text';
+        if (field.kind === 'number') {
+          input.min = String(field.min);
+          input.max = String(field.max);
+        }
+        input.value = field.value ?? '';
+      }
+      input.dataset.focus = key;
+      input.addEventListener('change', () => controller.setRunValue(field.key, field.kind === 'number' ? Number(input.value) : input.value));
+      label.append(input);
+      if (field.hint) label.append(el('span', 'editor-hint', field.hint));
+      fieldsBox.append(label);
+    }
+    messages.replaceChildren();
+    for (const message of run.errors) messages.append(el('li', 'editor-check-error', message));
+    for (const message of run.warnings) messages.append(el('li', 'editor-check-warning', message));
+    if (!run.errors.length && !run.warnings.length) messages.append(el('li', 'editor-check-ok', 'Tout est prêt.'));
+    play.disabled = run.errors.length > 0;
+  };
+
   const render = (view) => {
     current = view;
     if (!hasDom) return;
+    const focused = doc.activeElement?.dataset?.focus ?? null;
     fill(parts.model, view.palette.map((group) => ({ group: group.label, items: group.models.map((model) => ({ value: model.id, label: `${model.name} (${model.reference})` })) })));
     parts.notice.textContent = view.notice ?? '';
     parts.error.hidden = !view.error;
@@ -308,7 +609,7 @@ export function mount(container, app, { selection = null } = {}) {
       for (const port of shown) ports.append(el('li', port.peer ? '' : 'editor-port-free', port.peer ? `${port.name} → ${port.peer}` : `${port.name} : libre`));
       const hidden = selected.ports.length - shown.length;
       if (hidden > 0) ports.append(el('li', 'editor-port-free', `… et ${hidden} autre(s) port(s) libre(s)`));
-      box.append(form, remove, ports);
+      box.append(form, remove, ports, configBlock(selected));
     }
 
     // Relier : seuls les équipements qui ont un port libre, puis leurs ports libres.
@@ -335,6 +636,9 @@ export function mount(container, app, { selection = null } = {}) {
       item.append(button);
       parts.links.append(item);
     }
+    renderRun(view.run);
+    // Le panneau est reconstruit : le focus clavier revient sur le même champ ou bouton.
+    if (focused) container.querySelector(`[data-focus="${focused}"]`)?.focus();
   };
 
   const controller = createEditorController(app, { onChange: render, selection });
@@ -358,10 +662,12 @@ export function mount(container, app, { selection = null } = {}) {
       }
       if (action === 'empty') controller.restart(false);
       if (action === 'copy') controller.restart(true);
+      if (action === 'play' && controller.play()) mode?.set?.('explore');
     });
     // Changer d'équipement A ou B recharge la liste de ses ports libres.
     for (const side of ['a', 'b']) on(parts[`${side}-device`], 'change', () => current && render(current));
     on(parts.cable, 'change', () => { parts.cable.dataset.chosen = 'oui'; });
+    on(find('[data-role="run"]'), 'change', (event) => controller.chooseRun(event.target.value));
     const scene = doc.getElementById?.('scene');
     on(scene, 'topology:ground-clicked', (event) => controller.place(event.detail.position));
     on(scene, 'topology:device-moved', (event) => {

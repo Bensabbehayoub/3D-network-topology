@@ -33,3 +33,8 @@ export { diagnose, countBySeverity, SEVERITIES, SEVERITY_LABELS, SATURATION } fr
 export {
   BuilderError, MAX_LABEL, TYPE_NAMING, addDevice, connect, disconnect, freePorts, fromScenario, moveDevice, newTopology, palette, removeDevice, renameDevice,
 } from './src/sim/builder.js';
+export {
+  ROLES, addRecord, addRoute, addService, proposeAddress, proposeGateway, removeRecord, removeRoute, removeService, rolesOf, setAddress, setDns,
+  setGateway, setRole,
+} from './src/sim/config.js';
+export { RUNS, assembleRun, defaultValues, runFields, validateRun } from './src/sim/runs.js';
