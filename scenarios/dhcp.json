@@ -19,9 +19,9 @@
       "label": "PC 1",
       "model": "pc-1g",
       "position": [
-        -4,
+        -5,
         0,
-        -2
+        -2.5
       ],
       "interfaces": [
         {
@@ -36,9 +36,9 @@
       "label": "PC 2",
       "model": "pc-1g",
       "position": [
-        -4,
+        -5,
         0,
-        2
+        2.5
       ],
       "interfaces": [
         {
@@ -78,9 +78,9 @@
       "label": "Serveur DHCP",
       "model": "srv-1g",
       "position": [
-        4,
+        5,
         0,
-        2
+        2.5
       ],
       "interfaces": [
         {
@@ -111,9 +111,9 @@
       "label": "Routeur",
       "model": "rt-4g",
       "position": [
-        4,
+        5,
         0,
-        -2
+        -2.5
       ],
       "interfaces": [
         {

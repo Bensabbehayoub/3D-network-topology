@@ -18,7 +18,7 @@
       "label": "PC 1",
       "model": "pc-1g",
       "position": [
-        -6,
+        -9,
         0,
         0
       ],
@@ -37,7 +37,7 @@
       "label": "Switch 1",
       "model": "sw-24g",
       "position": [
-        -3,
+        -4.5,
         0,
         0
       ],
@@ -79,7 +79,7 @@
       "label": "Switch 2",
       "model": "sw-24g",
       "position": [
-        3,
+        4.5,
         0,
         0
       ],
@@ -98,7 +98,7 @@
       "label": "PC 2",
       "model": "pc-1g",
       "position": [
-        6,
+        9,
         0,
         0
       ],

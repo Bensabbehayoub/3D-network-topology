@@ -19,7 +19,7 @@
       "label": "PC 1",
       "model": "pc-1g",
       "position": [
-        -4,
+        -5,
         0,
         0
       ],
@@ -56,7 +56,7 @@
       "label": "Serveur de journaux",
       "model": "srv-1g",
       "position": [
-        4,
+        5,
         0,
         0
       ],
