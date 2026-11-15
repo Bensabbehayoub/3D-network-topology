@@ -1,5 +1,5 @@
 // Pôle sim : HTTP. Un navigateur charge des pages d'un site : il traduit le nom du site par DNS
-// (protocols/dns.js), ouvre une connexion TCP vers le port 80 (protocols/tcp.js), envoie une
+// (protocols/dns.mjs), ouvre une connexion TCP vers le port 80 (protocols/tcp.mjs), envoie une
 // requête GET par page sur la même connexion (HTTP/1.1, connexion persistante), reçoit chaque
 // réponse (200 OK, ou 404 si la page n'existe pas), puis ferme la connexion.
 // Le serveur web décrit ses pages dans le champ "pages" du scénario.
@@ -12,10 +12,10 @@
 // http-connect, http-request[-<n>], http-response[-<code>], http-received[-<n>], http-not-found[-<n>],
 // http-close, http-failed, http-summary ; plus celles de DNS et TCP (dns-*, tcp-*).
 
-import { describeHeaders } from '../protocol.js';
-import { explainOnce } from '../stack.js';
-import { handleDns, resolveName } from './dns.js';
-import { connect, handleTcp, tcpFields } from './tcp.js';
+import { describeHeaders } from '../protocol.mjs';
+import { explainOnce } from '../stack.mjs';
+import { handleDns, resolveName } from './dns.mjs';
+import { connect, handleTcp, tcpFields } from './tcp.mjs';
 
 export const HTTP_PORT = 80;
 /** Taille des en-têtes HTTP (octets), ajoutée au corps de chaque message. */

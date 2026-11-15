@@ -2,7 +2,7 @@
 
 | Prévu (planning) | Réalisé | Couche | Fichiers |
 | --- | --- | --- | --- |
-| Aziz, S4 | Refonte, phase 4b | Couche 7 (application), sur UDP port 53 | `src/sim/protocols/dns.js`, `scenarios/dns.json`, `tests/dns.test.js` |
+| Aziz, S4 | Refonte, phase 4b | Couche 7 (application), sur UDP port 53 | `src/sim/protocols/dns.mjs`, `scenarios/dns.json`, `tests/dns.test.mjs` |
 
 > Statut : **implémenté et testé.** HTTP réutilise `resolveName` avant d'ouvrir sa connexion.
 
@@ -37,7 +37,7 @@ Ethernet, IP, ports UDP, identifiant de requête, question (nom, type), code de 
 
 ## Implémentation
 
-- `protocols/dns.js` : `resolveName(ctx, client, name, { onResolved, onFailed })` (cache, requête par `sendUdp`, temporisation), `handleDns(ctx, device, packet)` côté serveur (enregistrements `records` du scénario).
+- `protocols/dns.mjs` : `resolveName(ctx, client, name, { onResolved, onFailed })` (cache, requête par `sendUdp`, temporisation), `handleDns(ctx, device, packet)` côté serveur (enregistrements `records` du scénario).
 - Configuration : serveur DNS de chaque hôte (`dns`), ou obtenu par DHCP pendant l'exécution.
 - Le diagnostic signale un client sans serveur DNS ou un serveur DNS introuvable.
-- Tests (`tests/dns.test.js`) : scénario (requête, réponse, cache, NXDOMAIN) ; TTL 0 (pas de cache) ; hôte sans serveur DNS (échec immédiat) ; serveur injoignable (délai écoulé) ; champs de l'inspecteur.
+- Tests (`tests/dns.test.mjs`) : scénario (requête, réponse, cache, NXDOMAIN) ; TTL 0 (pas de cache) ; hôte sans serveur DNS (échec immédiat) ; serveur injoignable (délai écoulé) ; champs de l'inspecteur.

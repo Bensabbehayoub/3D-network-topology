@@ -6,9 +6,9 @@
 //   elle est filtrée (le destinataire l'a déjà reçue sur ce segment).
 // Le switch ne lit ni IP ni TTL. Il traite toujours la trame : renvoie true.
 
-import { linkAt } from '../scenario.js';
-import { BROADCAST_MAC } from '../net.js';
-import { explainOnce, netMemory } from '../stack.js';
+import { linkAt } from '../scenario.mjs';
+import { BROADCAST_MAC } from '../net.mjs';
+import { explainOnce, netMemory } from '../stack.mjs';
 
 export default {
   type: 'switch',

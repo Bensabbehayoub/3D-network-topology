@@ -16,8 +16,8 @@
 // dns-answer[-<eq>], dns-answer-nxdomain, dns-response[-<n>], dns-cache-hit[-<n>],
 // dns-nxdomain[-<n>], dns-timeout, dns-no-server, dns-summary.
 
-import { describeHeaders } from '../protocol.js';
-import { explainOnce, runtimeDevice, sendUdp } from '../stack.js';
+import { describeHeaders } from '../protocol.mjs';
+import { explainOnce, runtimeDevice, sendUdp } from '../stack.mjs';
 
 export const DNS_PORT = 53;
 export const DEFAULTS = Object.freeze({ interval: 5000, timeout: 10000, ttl: 300 });

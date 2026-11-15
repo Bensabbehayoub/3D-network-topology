@@ -11,7 +11,7 @@
 // ou équipement sélectionné par app.ui.select(id), qui met à jour la fiche en 2D comme en VR.
 
 import * as THREE from '../../vendor/three/build/three.webgpu.js';
-import { RAY_LENGTH, rayFromPose, resolveTarget } from './panelLayout.js';
+import { RAY_LENGTH, rayFromPose, resolveTarget } from './panelLayout.mjs';
 
 const IDLE_COLOR = 0x9fb0c0;
 const TARGET_COLOR = 0xffd166;

@@ -64,16 +64,16 @@ Phases de la refonte et commits :
 |---|---|---|---|---|---|
 | 1 | Ramy | Maquette de l'interface | `docs/conception/` | 2 | ✅ Ramy (`b80b74f`) |
 | 2 | Ramy | Page `index.html` et feuille de style, zones réservées aux autres pôles | `index.html`, `styles.css` | 2 | ✅ Ramy (`13bb4c4`) |
-| 3 | Ramy | `ui/index.js`, qui démarre les modules de l'interface | `src/ui/index.js` | 1 | ✅ Ramy (`17bb913`) |
+| 3 | Ramy | `ui/index.mjs`, qui démarre les modules de l'interface | `src/ui/index.mjs` | 1 | ✅ Ramy (`17bb913`) |
 | 4 | Ramy | Diagramme de cas d'utilisation | `docs/conception/` | 2 | ✅ Ramy (`40e8bfb`) |
 | 5 | Aziz | Scène 3D : caméra, lumière, rotation et zoom | `src/render/` | 3 | ✅ Aziz (`4579e33`) |
 | 6 | Aziz | Three.js copié dans le dépôt | `vendor/three/` | 1 | ✅ Aziz (`4579e33`) ; passé en r187 en phase 2 |
 | 7 | Aziz | Topologie lue depuis un JSON | `src/render/` | 2 | ✅ Aziz (`4579e33`) |
 | 8 | Aziz | API de rendu et mock | `src/render/` | 1 | ✅ Aziz (`4579e33`) |
 | 9 | Khalil | Format des scénarios JSON | `src/sim/`, `docs/` | 2 | ✅ Khalil (`2df8a5f`) |
-| 10 | Khalil | Format d'un évènement réseau et interface protocole | `src/sim/events.js` | 2 | ✅ Khalil (`edff3df`) |
+| 10 | Khalil | Format d'un évènement réseau et interface protocole | `src/sim/events.mjs` | 2 | ✅ Khalil (`edff3df`) |
 | 11 | Khalil | Commandes et faux moteur | `src/sim/` | 1 | ✅ Khalil (`52a9604`) |
-| 12 | Khalil | Squelette du moteur et premiers tests | `simulation.js`, `src/sim/`, `tests/` | 2 | ✅ Khalil (`35c5741`) |
+| 12 | Khalil | Squelette du moteur et premiers tests | `simulation.mjs`, `src/sim/`, `tests/` | 2 | ✅ Khalil (`35c5741`) |
 | 13 | Ayoub | Dépôt GitHub, CODEOWNERS, protection de `main` | `.github/` | 2 | ✅ Ayoub (`dd54127`, `be96740`) |
 | 14 | Ayoub | GitHub Pages en HTTPS et CI | `.github/` | 2 | ✅ Ayoub (`dd54127`) |
 | 15 | Ayoub | `main.js`, `manifest.json`, `sw.js` minimal | `main.js`, `manifest.json`, `sw.js` | 1 | ✅ Ayoub (`dd54127`) |
@@ -83,33 +83,33 @@ Phases de la refonte et commits :
 
 | N° | Membre prévu | Tâche | Fichiers | Pts | Statut |
 |---|---|---|---|---|---|
-| 17 | Ramy | Barre Lecture, Pause, Pas à pas, Vitesse, Réinitialiser | `src/ui/controls.js` | 3 | ✅ Ramy (`7e66bc9`) |
-| 18 | Ramy | Sélection d'un objet 3D au clic ou au toucher | `src/ui/selection.js` | 3 | ✅ Ramy (`12eca33`) |
+| 17 | Ramy | Barre Lecture, Pause, Pas à pas, Vitesse, Réinitialiser | `src/ui/controls.mjs` | 3 | ✅ Ramy (`7e66bc9`) |
+| 18 | Ramy | Sélection d'un objet 3D au clic ou au toucher | `src/ui/selection.mjs` | 3 | ✅ Ramy (`12eca33`) |
 | 19 | Ramy | Panneau d'infos de l'équipement sélectionné | `src/ui/` | 2 | ✅ Ramy (`d9dea3f`) |
 | 20 | Aziz | Modèles 3D légers (routeur, switch, PC) en GLB | `assets/models/` | 3 | ✅ Aziz (`5b23e0d`), générés par script |
-| 21 | Aziz | `factory.js` : le bon modèle pour chaque équipement | `src/render/factory.js` | 2 | ✅ Aziz (`5b23e0d`) |
-| 22 | Aziz | Câbles et étiquettes | `src/render/links.js`, `labels.js` | 3 | ✅ Aziz (`5b23e0d`) |
-| 23 | Khalil | Moteur : file d'évènements et horloge simulée | `src/sim/engine.js` | 3 | ✅ Khalil (`bd2cc37`) |
-| 24 | Khalil | États et commandes | `src/sim/state.js`, `commands.js` | 3 | ✅ Khalil (`fb548f2`) |
+| 21 | Aziz | `factory.mjs` : le bon modèle pour chaque équipement | `src/render/factory.mjs` | 2 | ✅ Aziz (`5b23e0d`) |
+| 22 | Aziz | Câbles et étiquettes | `src/render/links.mjs`, `labels.mjs` | 3 | ✅ Aziz (`5b23e0d`) |
+| 23 | Khalil | Moteur : file d'évènements et horloge simulée | `src/sim/engine.mjs` | 3 | ✅ Khalil (`bd2cc37`) |
+| 24 | Khalil | États et commandes | `src/sim/state.mjs`, `commands.mjs` | 3 | ✅ Khalil (`fb548f2`) |
 | 25 | Khalil | Bus d'évènements (Observer) et tests | `src/sim/`, `tests/` | 2 | ✅ Khalil (`624ade8`) |
-| 26 | Ayoub | Animation des paquets au rythme de l'horloge simulée | `src/render/packetAnimator.js` | 5 | ✅ Ayoub (`cf10a5a`, `2655360`) |
+| 26 | Ayoub | Animation des paquets au rythme de l'horloge simulée | `src/render/packetAnimator.mjs` | 5 | ✅ Ayoub (`cf10a5a`, `2655360`) |
 | 27 | Ayoub | Génération de la liste de précache par la CI | `tools/`, `.github/` | 2 | ✅ Ayoub (`2a8d905`) |
 
 ### S3 — ARP, ICMP et inspection (16–22 nov)
 
 | N° | Membre prévu | Tâche | Fichiers | Pts | Statut |
 |---|---|---|---|---|---|
-| 28 | Ramy | Inspecteur de paquet | `src/ui/inspector.js` | 3 | ✅ Refonte, phase 4d |
-| 29 | Ramy | Explication de chaque étape | `src/ui/explanations.js` | 2 | ✅ Refonte, phase 4d |
+| 28 | Ramy | Inspecteur de paquet | `src/ui/inspector.mjs` | 3 | ✅ Refonte, phase 4d |
+| 29 | Ramy | Explication de chaque étape | `src/ui/explanations.mjs` | 2 | ✅ Refonte, phase 4d |
 | 30 | Ramy | Journal des messages | `src/ui/` | 2 | ✅ Refonte, phase 4d |
-| 31 | Aziz | ICMP (ping) et tests | `protocols/icmp.js`, `tests/icmp.test.js` | 3 | ✅ Refonte, phase 4a |
-| 32 | Aziz | Couleurs des protocoles, aspect broadcast/unicast | `src/render/packetStyles.js` | 3 | ✅ Refonte, phase 4d |
+| 31 | Aziz | ICMP (ping) et tests | `protocols/icmp.mjs`, `tests/icmp.test.mjs` | 3 | ✅ Refonte, phase 4a |
+| 32 | Aziz | Couleurs des protocoles, aspect broadcast/unicast | `src/render/packetStyles.mjs` | 3 | ✅ Refonte, phase 4d |
 | 33 | Aziz | Premier jet du diagramme de séquence du ping | `docs/` | 1 | ✅ Refonte, phase 9a ([`cahier-conceptuel.md`](cahier-conceptuel.md)) |
-| 34 | Khalil | ARP (requête, réponse, cache) | `protocols/arp.js` | 3 | ✅ Refonte, phase 4a |
-| 35 | Khalil | Comportement d'un PC et d'un routeur | `devices/host.js`, `router.js` | 3 | ✅ Refonte, phase 4a |
-| 36 | Khalil | Tests d'ARP | `tests/arp.test.js` | 1 | ✅ Refonte, phase 4a |
-| 37 | Ayoub | Switch : apprentissage MAC, inondation | `devices/switch.js` | 3 | ✅ Refonte, phase 4a |
-| 38 | Ayoub | Tests du switch | `tests/switch.test.js` | 1 | ✅ Refonte, phase 4a |
+| 34 | Khalil | ARP (requête, réponse, cache) | `protocols/arp.mjs` | 3 | ✅ Refonte, phase 4a |
+| 35 | Khalil | Comportement d'un PC et d'un routeur | `devices/host.mjs`, `router.mjs` | 3 | ✅ Refonte, phase 4a |
+| 36 | Khalil | Tests d'ARP | `tests/arp.test.mjs` | 1 | ✅ Refonte, phase 4a |
+| 37 | Ayoub | Switch : apprentissage MAC, inondation | `devices/switch.mjs` | 3 | ✅ Refonte, phase 4a |
+| 38 | Ayoub | Tests du switch | `tests/switch.test.mjs` | 1 | ✅ Refonte, phase 4a |
 | 39 | Ayoub | Scénario `ping.json` | `scenarios/ping.json` | 2 | ✅ Refonte, phase 4a |
 | 40 | Ayoub | Diagramme de déploiement | `docs/` | 1 | ✅ Première version S1 ([`architecture.md`](architecture.md), `07d4cb8`) ; version finale en 9a |
 
@@ -117,29 +117,29 @@ Phases de la refonte et commits :
 
 | N° | Membre prévu | Tâche | Fichiers | Pts | Statut |
 |---|---|---|---|---|---|
-| 41 | Ramy | DHCP (4 messages) | `protocols/dhcp.js` | 3 | ✅ Refonte, phase 4b |
+| 41 | Ramy | DHCP (4 messages) | `protocols/dhcp.mjs` | 3 | ✅ Refonte, phase 4b |
 | 42 | Ramy | Scénario DHCP, tests et explications | `scenarios/dhcp.json`, `tests/` | 2 | ✅ Refonte, phase 4b |
-| 43 | Ramy | Liste de choix du scénario | `src/ui/scenarioPicker.js` | 2 | ✅ Refonte, phase 4a |
-| 44 | Aziz | UDP | `protocols/udp.js` | 2 | ✅ Refonte, phase 4b |
-| 45 | Aziz | DNS sur UDP | `protocols/dns.js` | 3 | ✅ Refonte, phase 4b |
+| 43 | Ramy | Liste de choix du scénario | `src/ui/scenarioPicker.mjs` | 2 | ✅ Refonte, phase 4a |
+| 44 | Aziz | UDP | `protocols/udp.mjs` | 2 | ✅ Refonte, phase 4b |
+| 45 | Aziz | DNS sur UDP | `protocols/dns.mjs` | 3 | ✅ Refonte, phase 4b |
 | 46 | Aziz | Scénarios UDP et DNS, tests et explications | `scenarios/`, `tests/` | 2 | ✅ Refonte, phase 4b |
-| 47 | Khalil | TCP : connexion, données, fermeture | `protocols/tcp.js` | 5 | ✅ Refonte, phase 4c |
+| 47 | Khalil | TCP : connexion, données, fermeture | `protocols/tcp.mjs` | 5 | ✅ Refonte, phase 4c |
 | 48 | Khalil | Scénario TCP, tests et explications | `scenarios/tcp.json`, `tests/` | 2 | ✅ Refonte, phase 4c |
-| 49 | Ayoub | Bouton « Entrer en VR », entrée et sortie | `src/xr/session.js` | 3 | ✅ Correctif S1 (`5d2f177`), terminé en phase 3 |
-| 50 | Ayoub | Panneau de contrôle 3D en VR | `src/xr/vrPanel.js` | 4 | ✅ Refonte, phase 3 |
+| 49 | Ayoub | Bouton « Entrer en VR », entrée et sortie | `src/xr/session.mjs` | 3 | ✅ Correctif S1 (`5d2f177`), terminé en phase 3 |
+| 50 | Ayoub | Panneau de contrôle 3D en VR | `src/xr/vrPanel.mjs` | 4 | ✅ Refonte, phase 3 |
 
 ### S5 — VR, PWA et extensions (30 nov–6 déc)
 
 | N° | Membre prévu | Tâche | Fichiers | Pts | Statut |
 |---|---|---|---|---|---|
-| 51 | Ramy | HTTP après DNS et TCP | `protocols/http.js` | 3 | ✅ Refonte, phase 4c |
+| 51 | Ramy | HTTP après DNS et TCP | `protocols/http.mjs` | 3 | ✅ Refonte, phase 4c |
 | 52 | Ramy | Scénario HTTP, tests et explications | `scenarios/http.json`, `tests/` | 1 | ✅ Refonte, phase 4c |
-| 53 | Ramy | Bouton « Installer l'application » | `src/ui/install.js` | 2 | ✅ Refonte, phase 1 |
+| 53 | Ramy | Bouton « Installer l'application » | `src/ui/install.mjs` | 2 | ✅ Refonte, phase 1 |
 | 54 | Aziz | Fluidité sur mobile | `src/render/` | 3 | En partie (géométries partagées, S2) ; mesures en 9b |
-| 55 | Aziz | Scène lisible en VR (taille, étiquettes) | `src/render/` | 3 | ✅ Refonte, phase 3 (`vrLayout.js`) |
-| 56 | Khalil | Routage statique, TTL, deux routeurs | `devices/router.js` | 4 | ✅ Refonte, phase 4a |
+| 55 | Aziz | Scène lisible en VR (taille, étiquettes) | `src/render/` | 3 | ✅ Refonte, phase 3 (`vrLayout.mjs`) |
+| 56 | Khalil | Routage statique, TTL, deux routeurs | `devices/router.mjs` | 4 | ✅ Refonte, phase 4a |
 | 57 | Khalil | Scénario de routage, tests et explications | `scenarios/`, `tests/` | 2 | ✅ Refonte, phase 4a (`routage.json`, `ttl.json`) |
-| 58 | Ayoub | Sélection aux manettes VR | `src/xr/controllers.js` | 3 | ✅ Lancer de rayon par Aziz (S2, `5b23e0d`), manettes en phase 3 |
+| 58 | Ayoub | Sélection aux manettes VR | `src/xr/controllers.mjs` | 3 | ✅ Lancer de rayon par Aziz (S2, `5b23e0d`), manettes en phase 3 |
 | 59 | Ayoub | Mode normal si la VR est indisponible | `src/xr/` | 1 | ✅ Refonte, phases 2 et 3 |
 | 60 | Ayoub | Icônes, manifest, HTTPS | `assets/icons/`, `manifest.json` | 2 | ✅ Refonte, phase 1 |
 
@@ -168,7 +168,7 @@ Phases de la refonte et commits :
 | 74 | Aziz | Filmer la démo sur PC, mobile et VR émulée | (hors dépôt) | 2 | À faire |
 | 75 | Aziz | Monter la vidéo (5 minutes maximum) | (hors dépôt) | 2 | À faire |
 | 76 | Khalil | Documentation d'architecture | `docs/architecture.md` | 3 | ✅ Refonte, phase 9a |
-| 77 | Khalil | Optionnel : IPv6 simplifié (F09) | `protocols/ipv6.js` | 1 | Non réalisé (option) |
+| 77 | Khalil | Optionnel : IPv6 simplifié (F09) | `protocols/ipv6.mjs` | 1 | Non réalisé (option) |
 | 78 | Ayoub | Publier la version finale v1.0 | `.github/` | 1 | À faire : fusion de `feature/refonte-prof` dans `main`, puis étiquette `v1.0` |
 | 79 | Ayoub | Poste de soutenance et plan B | (hors dépôt) | 3 | À faire ; script de démonstration en 9b (`docs/demo.md`) |
 

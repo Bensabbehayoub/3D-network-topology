@@ -1,11 +1,11 @@
-// Tests du protocole ARP (src/sim/protocols/arp.js, pile src/sim/stack.js) avec le vrai moteur.
+// Tests du protocole ARP (src/sim/protocols/arp.mjs, pile src/sim/stack.mjs) avec le vrai moteur.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { validateScenario } from '../simulation.js';
-import arp from '../src/sim/protocols/arp.js';
-import { transmissionTime } from '../src/sim/traffic.js';
-import { play, readScenario, variant } from './netRun.js';
+import { validateScenario } from '../simulation.mjs';
+import arp from '../src/sim/protocols/arp.mjs';
+import { transmissionTime } from '../src/sim/traffic.mjs';
+import { play, readScenario, variant } from './netRun.mjs';
 
 test('scenarios/arp.json : requête diffusée, inondation, réponse directe, cache', async () => {
   const scenario = await readScenario('arp');

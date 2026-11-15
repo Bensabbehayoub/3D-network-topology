@@ -9,9 +9,9 @@
 //                                         génériques (étapes standard, voir contrats.md)
 // Une boucle de commutation bloque toujours la lecture (une tempête de diffusion ne finirait pas).
 
-import { diagnose } from './diagnostics.js';
-import { addressedInterfaces, inNetwork, primaryIp } from './net.js';
-import { isHostname } from './scenario.js';
+import { diagnose } from './diagnostics.mjs';
+import { addressedInterfaces, inNetwork, primaryIp } from './net.mjs';
+import { isHostname } from './scenario.mjs';
 
 const nameOf = (scenario, id) => scenario.devices.find((device) => device.id === id)?.label ?? id;
 const hasIp = (device) => Boolean(primaryIp(device));

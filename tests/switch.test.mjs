@@ -1,9 +1,9 @@
-// Tests du switch (src/sim/devices/switch.js) : apprentissage, inondation, transmission, filtrage.
+// Tests du switch (src/sim/devices/switch.mjs) : apprentissage, inondation, transmission, filtrage.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import switchBehaviour, { macTable } from '../src/sim/devices/switch.js';
-import { fakeCtx, frame, LAN } from './fakeCtx.js';
+import switchBehaviour, { macTable } from '../src/sim/devices/switch.mjs';
+import { fakeCtx, frame, LAN } from './fakeCtx.mjs';
 
 const sw = LAN.devices.find((d) => d.id === 'sw1');
 const PC1 = '02:00:00:00:00:01';

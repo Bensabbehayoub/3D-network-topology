@@ -2,13 +2,13 @@
 // l'inspecteur. Fonctions pures et petit état, sans DOM : testés sous Node.
 //
 // Un paquet se sélectionne par l'id de son évènement d'envoi (event.id) : depuis le journal
-// (explanations.js) ou par un clic sur un paquet en vol dans la scène (évènement
+// (explanations.mjs) ou par un clic sur un paquet en vol dans la scène (évènement
 // 'topology:packet-selected' du pôle render). L'inspecteur affiche alors son trajet et ses champs,
 // fournis par le protocole lui-même (app.sim.describe(packet)), et la scène le met en avant
 // (app.render.highlightPacket).
 
-import { TOPICS } from '../../simulation.js';
-import { formatTime } from './controls.js';
+import { TOPICS } from '../../simulation.mjs';
+import { formatTime } from './controls.mjs';
 
 export const PACKET_SELECTED_EVENT = 'topology:packet-selected';
 

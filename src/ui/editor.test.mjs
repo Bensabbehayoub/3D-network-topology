@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { createSimulation, TOPICS } from '../../simulation.js';
-import { DEVICE_BEHAVIOURS } from '../sim/devices/index.js';
-import { createEditorController, freeSpot, linkLabel, mount } from './editor.js';
-import { createModeService } from './modeSwitch.js';
-import { createTopologyStore } from './storage.js';
+import { createSimulation, TOPICS } from '../../simulation.mjs';
+import { DEVICE_BEHAVIOURS } from '../sim/devices/index.mjs';
+import { createEditorController, freeSpot, linkLabel, mount } from './editor.mjs';
+import { createModeService } from './modeSwitch.mjs';
+import { createTopologyStore } from './storage.mjs';
 
-/** Faux localStorage en mémoire (défini ici : importer storage.test.js rejouerait ses tests). */
+/** Faux localStorage en mémoire (défini ici : importer storage.test.mjs rejouerait ses tests). */
 function memoryStorage() {
   const data = new Map();
   return { getItem: (key) => (data.has(key) ? data.get(key) : null), setItem: (key, value) => data.set(key, String(value)), removeItem: (key) => data.delete(key) };
@@ -19,7 +19,7 @@ async function setup({ storage = memoryStorage() } = {}) {
   const ping = JSON.parse(await readFile(new URL('../../scenarios/ping.json', import.meta.url), 'utf8'));
   const sim = createSimulation({ devices: DEVICE_BEHAVIOURS, scheduler: { start: () => () => {} } });
   await sim.load(ping);
-  // Comme src/sim/index.js : recharger un scénario fourni par son id.
+  // Comme src/sim/index.mjs : recharger un scénario fourni par son id.
   const app = { sim: { ...sim, loadScenario: async (id) => (id === 'ping' ? sim.load(ping) : false), listScenarios: () => [{ id: 'ping' }] } };
   let selected = null;
   const selection = { getSelection: () => selected, select: (id) => { selected = id; return true; }, clear: () => { selected = null; return true; } };

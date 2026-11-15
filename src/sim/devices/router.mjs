@@ -8,8 +8,8 @@
 //   route la plus précise (réseaux connectés, routes statiques "routes", route par défaut),
 //   ARP du saut suivant, nouvel en-tête Ethernet. Sans route : perte et « destination inaccessible ».
 
-import { ownsIp } from '../net.js';
-import { acceptsFrame, deliverLocal, forwardIp, handleArp, LIMITED_BROADCAST } from '../stack.js';
+import { ownsIp } from '../net.mjs';
+import { acceptsFrame, deliverLocal, forwardIp, handleArp, LIMITED_BROADCAST } from '../stack.mjs';
 
 export default {
   type: 'router',

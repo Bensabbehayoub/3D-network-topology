@@ -1,12 +1,12 @@
-// Tests du catalogue d'équipements et de câbles (src/sim/catalog.js), et de sa validation.
+// Tests du catalogue d'équipements et de câbles (src/sim/catalog.mjs), et de sa validation.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
   CABLES, DEFAULT_SPEED, formatSpeed, forwardingRateMpps, MODELS, modelOf, modelPorts, modelSheet, portConnector, portSpeed, SPEEDS,
-} from '../src/sim/catalog.js';
-import { DEVICE_TYPES, validateScenario } from '../src/sim/scenario.js';
-import { DEMO_SCENARIO } from '../src/sim/mock.js';
+} from '../src/sim/catalog.mjs';
+import { DEVICE_TYPES, validateScenario } from '../src/sim/scenario.mjs';
+import { DEMO_SCENARIO } from '../src/sim/mock.mjs';
 
 test('chaque modèle est cohérent : type connu, ports à des vitesses acceptées, fiche complète', () => {
   for (const [id, model] of Object.entries(MODELS)) {

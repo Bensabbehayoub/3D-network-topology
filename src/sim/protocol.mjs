@@ -2,7 +2,7 @@
 //
 // CONTRAT D'ÉQUIPE, figé en S1. Documentation : docs/simulation/contrats.md
 //
-// Un protocole = un fichier src/sim/protocols/<nom>.js dont l'export par défaut est :
+// Un protocole = un fichier src/sim/protocols/<nom>.mjs dont l'export par défaut est :
 //
 //   export default {
 //     name: 'icmp',                         // = nom du fichier = champ "protocol" du scénario
@@ -25,12 +25,12 @@
  * @property {(id: string) => object} device l'équipement du scénario (erreur s'il n'existe pas)
  * @property {(deviceId: string) => Record<string, any>} memory mémoire propre à un équipement pour ce
  *   protocole (cache ARP, table de baux DHCP...) ; vidée à chaque réinitialisation
- * @property {(deviceId: string, packet: import('./events.js').Packet,
+ * @property {(deviceId: string, packet: import('./events.mjs').Packet,
  *   options?: { interface?: string, step?: string, delay?: number }) => void} send
  *   émet un paquet par une interface de l'équipement (par défaut sa seule interface reliée).
  *   Le moteur publie l'envoi, puis la réception à l'autre bout du lien après sa latence.
  *   `delay` retarde l'émission (ms simulées) ; `step` relie le message à une étape du scénario.
- * @property {(deviceId: string, packet: import('./events.js').Packet, reason: string,
+ * @property {(deviceId: string, packet: import('./events.mjs').Packet, reason: string,
  *   options?: { step?: string }) => void} drop publie la perte d'un paquet sur un équipement
  * @property {(stepId: string) => void} explain affiche l'explication d'une étape (scenario.steps)
  * @property {(delay: number, action: () => void) => (() => boolean)} schedule exécute une action plus tard
@@ -63,12 +63,12 @@ export function checkProtocol(protocol) {
 }
 
 /**
- * Charge dynamiquement src/sim/protocols/<name>.js (aucun registre commun à modifier).
+ * Charge dynamiquement src/sim/protocols/<name>.mjs (aucun registre commun à modifier).
  * @param {string} name valeur du champ "protocol" du scénario
  */
 export async function loadProtocol(name) {
   if (typeof name !== 'string' || !NAME.test(name)) throw new Error(`nom de protocole invalide : "${name}"`);
-  const module = await import(new URL(`./protocols/${name}.js`, import.meta.url).href);
+  const module = await import(new URL(`./protocols/${name}.mjs`, import.meta.url).href);
   const protocol = module.default;
   const errors = checkProtocol(protocol);
   if (errors.length) throw new Error(`protocole "${name}" non conforme : ${errors.join(' ; ')}`);
@@ -84,7 +84,7 @@ export async function loadProtocol(name) {
  *     return [...describeHeaders(packet), { layer: 'ARP', field: 'Opération', value: 'requête' }];
  *   }
  *
- * @param {import('./events.js').Packet} packet
+ * @param {import('./events.mjs').Packet} packet
  * @returns {PacketField[]}
  */
 export function describeHeaders(packet) {

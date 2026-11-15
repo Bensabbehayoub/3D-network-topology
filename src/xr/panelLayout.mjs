@@ -15,7 +15,7 @@ export const RAY_LENGTH = 2.5;
 
 /**
  * Panneau de commandes : taille réelle (m), taille du canvas (px) et zones en pixels du canvas
- * (origine en haut à gauche). `control` est le nom attendu par le contrôleur de src/ui/controls.js.
+ * (origine en haut à gauche). `control` est le nom attendu par le contrôleur de src/ui/controls.mjs.
  */
 export const CONTROL_PANEL = Object.freeze({
   width: 0.84,

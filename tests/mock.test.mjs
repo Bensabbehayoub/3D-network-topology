@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { init } from '../src/sim/index.js';
-import { createScenarioLibrary } from '../src/sim/library.js';
-import { createMockSimulation, DEMO_PROTOCOL, DEMO_SCENARIO } from '../src/sim/mock.js';
-import { STATUS, TOPICS } from '../simulation.js';
+import { init } from '../src/sim/index.mjs';
+import { createScenarioLibrary } from '../src/sim/library.mjs';
+import { createMockSimulation, DEMO_PROTOCOL, DEMO_SCENARIO } from '../src/sim/mock.mjs';
+import { STATUS, TOPICS } from '../simulation.mjs';
 
 const manual = { start: () => () => {} };
 
@@ -108,7 +108,7 @@ test('le faux moteur joue n\'importe quel scénario valide, avec ses propres exp
 
 // --- S2 : contrat du bus vu par le rendu et l'interface ---
 
-import { createSimulation } from '../src/sim/commands.js';
+import { createSimulation } from '../src/sim/commands.mjs';
 
 /** Horloge manuelle : frame(ms) joue une image. */
 function manualScheduler() {

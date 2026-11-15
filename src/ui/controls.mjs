@@ -10,8 +10,8 @@
 //   createControlsController() commandes, abonnements au bus et raccourcis clavier, sans DOM
 //   mount()                    écrit la barre dans #controls et la relie au contrôleur
 
-import { COMMANDS, MAX_SPEED, MIN_SPEED, STATUS, TOPICS } from '../../simulation.js';
-import { isEditable, isSpace } from './keyboard.js';
+import { COMMANDS, MAX_SPEED, MIN_SPEED, STATUS, TOPICS } from '../../simulation.mjs';
+import { isEditable, isSpace } from './keyboard.mjs';
 
 /** Pas du curseur de vitesse. */
 export const SPEED_STEP = 0.25;

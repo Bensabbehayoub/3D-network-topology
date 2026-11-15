@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createEngine, MAX_ACTIONS_PER_ADVANCE } from '../src/sim/engine.js';
+import { createEngine, MAX_ACTIONS_PER_ADVANCE } from '../src/sim/engine.mjs';
 
 test('l\'horloge démarre à 0 et la file est vide', () => {
   const engine = createEngine();

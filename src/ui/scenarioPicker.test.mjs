@@ -2,13 +2,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createSimulation, DEMO_PROTOCOL, DEMO_SCENARIO } from '../../simulation.js';
-import { canPick, createPickerController, EMPTY_LABEL, mount, pickerView } from './scenarioPicker.js';
+import { createSimulation, DEMO_PROTOCOL, DEMO_SCENARIO } from '../../simulation.mjs';
+import { canPick, createPickerController, EMPTY_LABEL, mount, pickerView } from './scenarioPicker.mjs';
 
 const noClock = { start: () => () => {} };
 const scenarioB = { ...structuredClone(DEMO_SCENARIO), id: 'b', title: 'Scénario <b>B</b>', description: 'Deuxième' };
 
-/** Moteur réel avec un protocole de démonstration, et la même API de choix que src/sim/index.js. */
+/** Moteur réel avec un protocole de démonstration, et la même API de choix que src/sim/index.mjs. */
 async function simWithChoice({ failOn = null } = {}) {
   const sim = createSimulation({ protocol: DEMO_PROTOCOL, scheduler: noClock });
   const scenarios = [DEMO_SCENARIO, scenarioB];

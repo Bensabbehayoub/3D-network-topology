@@ -1,13 +1,13 @@
 import * as THREE from '../../vendor/three/build/three.webgpu.js';
 import { OrbitControls } from '../../vendor/three/examples/jsm/controls/OrbitControls.js';
-import { createDeviceFactory, createGenerationTracker } from './factory.js';
-import { createLinkLayer } from './links.js';
-import { createLabelLayer } from './labels.js';
-import { nearestOnRay, normalizePickRay } from './picking.js';
-import { BACKEND, createRenderer, extraSessionFeatures } from './renderers.js';
-import { prepareXRSession } from './xrBridge.js';
-import { normalizeTopology } from './topology.js';
-import { frameDelta, topologyBounds, vrPlacement } from './vrLayout.js';
+import { createDeviceFactory, createGenerationTracker } from './factory.mjs';
+import { createLinkLayer } from './links.mjs';
+import { createLabelLayer } from './labels.mjs';
+import { nearestOnRay, normalizePickRay } from './picking.mjs';
+import { BACKEND, createRenderer, extraSessionFeatures } from './renderers.mjs';
+import { prepareXRSession } from './xrBridge.mjs';
+import { normalizeTopology } from './topology.mjs';
+import { frameDelta, topologyBounds, vrPlacement } from './vrLayout.mjs';
 
 const VALID_HIGHLIGHTS=new Set(['selected','active','error','normal']);
 
@@ -38,7 +38,7 @@ export function pickDeviceFromObjects(raycaster,objects,origin,direction,boundar
 
 /**
  * Crée la scène 3D dans `container` (asynchrone : WebGPURenderer s'initialise avant le premier rendu).
- * Rendu 100 % WebGPU, en mode classique comme en VR (voir renderers.js et xrBridge.js).
+ * Rendu 100 % WebGPU, en mode classique comme en VR (voir renderers.mjs et xrBridge.mjs).
  * Lève WebGPUUnavailableError si le navigateur ne fournit pas WebGPU.
  * GLBs upgrade immediate fallbacks asynchronously.
  */
@@ -65,7 +65,7 @@ export async function initScene(container,{onDeviceClick=()=>{},onPacketClick=()
  controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=3;controls.maxDistance=80;
  controls.maxPolarAngle=Math.PI*.49;
 
- // --- VR : la topologie devient une maquette posée devant l'utilisateur (voir vrLayout.js) ---
+ // --- VR : la topologie devient une maquette posée devant l'utilisateur (voir vrLayout.mjs) ---
  let vrAnchor=null,eyeHeightKnown=false;
  // Pendant la session, Three.js recopie la pose du casque dans la caméra : on garde la vue
  // classique (position, orientation, cible des contrôles) pour la rendre à la sortie.
@@ -106,7 +106,7 @@ export async function initScene(container,{onDeviceClick=()=>{},onPacketClick=()
  // (celui de la fenêtre est alors suspendu). `time` est l'horodatage de l'image (ms) et
  // `xrFrame` l'objet XRFrame de la session, absent en mode classique.
  // Les abonnés (onFrame) reçoivent la durée écoulée : c'est ainsi que l'horloge de la simulation
- // (app.sim.tick, branché dans index.js) avance aussi en VR, et que le pôle xr lit les poses.
+ // (app.sim.tick, branché dans index.mjs) avance aussi en VR, et que le pôle xr lit les poses.
  const frameListeners=new Set();let lastFrameTime=null;
  const frame=(time,xrFrame)=>{
   if(disposed)return;
@@ -153,7 +153,7 @@ export async function initScene(container,{onDeviceClick=()=>{},onPacketClick=()
  const click=e=>{
   if(endDrag(e))return;
   if(disposed||!downPoint||Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)>6)return;if(!aim(e))return;
-  // Un paquet en vol devant un équipement est prioritaire (groupe « packets » de packetAnimator.js).
+  // Un paquet en vol devant un équipement est prioritaire (groupe « packets » de packetAnimator.mjs).
   const packets=world.getObjectByName('packets');const packetHit=packets?raycaster.intersectObjects(packets.children,false)[0]:null;
   if(Number.isInteger(packetHit?.object.userData?.eventId)){onPacketClick(packetHit.object.userData.eventId,packetHit.object.userData);return;}
   const hit=raycaster.intersectObjects([...deviceMeshes.values()],true).find(item=>!item.object.userData?.isHighlight);const id=hit&&resolveDeviceId(hit.object,content);if(id)onDeviceClick(id,model.devices.find(device=>device.id===id));
@@ -220,7 +220,7 @@ export async function initScene(container,{onDeviceClick=()=>{},onPacketClick=()
   xrSessionFeatures(){return extraSessionFeatures();},
   /**
    * Démarre l'affichage dans une session WebXR déjà ouverte (pôle xr), toujours en WebGPU :
-   * XRGPUBinding du navigateur, ou pont de l'émulateur (xrBridge.js). Lève une erreur si le
+   * XRGPUBinding du navigateur, ou pont de l'émulateur (xrBridge.mjs). Lève une erreur si le
    * navigateur ne permet pas la VR en WebGPU.
    */
   async startXR(session){

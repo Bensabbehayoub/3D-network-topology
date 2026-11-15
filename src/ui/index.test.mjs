@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { init, MOUNT_POINTS } from './index.js';
+import { init, MOUNT_POINTS } from './index.mjs';
 
 const read = (path) => readFile(new URL(`../../${path}`, import.meta.url), 'utf8');
 
@@ -73,16 +73,16 @@ test('index.html déclare chaque point de montage une seule fois', async () => {
 
 test('index.html charge main.js, le manifest et les styles par des chemins relatifs', async () => {
   const html = await read('index.html');
-  assert.match(html, /<script type="module" src="main\.js"><\/script>/);
+  assert.match(html, /<script type="module" src="main.js"><\/script>/);
   assert.match(html, /<link rel="manifest" href="manifest\.json">/);
   assert.match(html, /<link rel="stylesheet" href="styles\.css">/);
 });
 
 test('aucune ressource externe dans l\'interface : le hors ligne doit rester possible', async () => {
-  const files = ['index.html', 'styles.css', 'src/ui/index.js', 'src/ui/controls.js',
-    'src/ui/inspector.js', 'src/ui/explanations.js', 'src/ui/scenarioPicker.js',
-    'src/ui/selection.js', 'src/ui/keyboard.js', 'src/ui/install.js', 'src/ui/recommendations.js', 'src/ui/tabs.js',
-    'src/ui/packets.js', 'src/ui/datasheet.js', 'src/ui/editor.js', 'src/ui/modeSwitch.js'];
+  const files = ['index.html', 'styles.css', 'src/ui/index.mjs', 'src/ui/controls.mjs',
+    'src/ui/inspector.mjs', 'src/ui/explanations.mjs', 'src/ui/scenarioPicker.mjs',
+    'src/ui/selection.mjs', 'src/ui/keyboard.mjs', 'src/ui/install.mjs', 'src/ui/recommendations.mjs', 'src/ui/tabs.mjs',
+    'src/ui/packets.mjs', 'src/ui/datasheet.mjs', 'src/ui/editor.mjs', 'src/ui/modeSwitch.mjs'];
   for (const path of files) {
     assert.doesNotMatch(await read(path), /(https?:)?\/\/[a-z0-9-]+\.[a-z]/i, path);
   }

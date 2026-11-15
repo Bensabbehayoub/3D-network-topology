@@ -11,8 +11,8 @@
 //   createSelection()  état de la sélection et abonnés (pur, aucune dépendance)
 //   attachSelection()  branchements : clic dans la scène, touche Échap, changement de scénario
 
-import { TOPICS } from '../../simulation.js';
-import { isEditable } from './keyboard.js';
+import { TOPICS } from '../../simulation.mjs';
+import { isEditable } from './keyboard.mjs';
 
 /** Évènement émis par le pôle render sur #scene quand on clique sur un équipement. */
 export const DEVICE_SELECTED_EVENT = 'topology:device-selected';

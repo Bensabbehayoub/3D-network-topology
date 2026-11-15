@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { createSimulation, createTrafficMeter, diagnose, transmissionModel, TOPICS } from '../../simulation.js';
-import { DEVICE_BEHAVIOURS } from '../sim/devices/index.js';
-import { createRecommendationsController, EMPTY_TEXT, mount, recommendationsView, UNAVAILABLE_TEXT } from './recommendations.js';
-import { nextTabIndex } from './tabs.js';
+import { createSimulation, createTrafficMeter, diagnose, transmissionModel, TOPICS } from '../../simulation.mjs';
+import { DEVICE_BEHAVIOURS } from '../sim/devices/index.mjs';
+import { createRecommendationsController, EMPTY_TEXT, mount, recommendationsView, UNAVAILABLE_TEXT } from './recommendations.mjs';
+import { nextTabIndex } from './tabs.mjs';
 
-/** Comme src/sim/index.js : moteur, compteur de trafic et diagnose(). */
+/** Comme src/sim/index.mjs : moteur, compteur de trafic et diagnose(). */
 async function simFor(id) {
   const scenario = JSON.parse(await readFile(new URL(`../../scenarios/${id}.json`, import.meta.url), 'utf8'));
   const sim = createSimulation({ devices: DEVICE_BEHAVIOURS, transmission: transmissionModel, scheduler: { start: () => () => {} } });

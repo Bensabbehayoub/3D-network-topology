@@ -1,12 +1,12 @@
 // Tests de la sélection (Ramy, tâche 18). Sans DOM : EventTarget et CustomEvent de Node
-// remplacent document et #scene ; le faux rendu d'Aziz (src/render/mock.js) émet le clic.
+// remplacent document et #scene ; le faux rendu d'Aziz (src/render/mock.mjs) émet le clic.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createMockRenderer } from '../render/mock.js';
-import { createMockSimulation, DEMO_SCENARIO } from '../../simulation.js';
-import { init } from './index.js';
-import { attachSelection, createSelection, DEVICE_SELECTED_EVENT, deviceExists } from './selection.js';
+import { createMockRenderer } from '../render/mock.mjs';
+import { createMockSimulation, DEMO_SCENARIO } from '../../simulation.mjs';
+import { init } from './index.mjs';
+import { attachSelection, createSelection, DEVICE_SELECTED_EVENT, deviceExists } from './selection.mjs';
 
 const silentScheduler = { start: () => () => {} };
 

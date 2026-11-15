@@ -1,11 +1,11 @@
-// Tests du diagnostic (src/sim/diagnostics.js) : une faute injectée par test, sur des scénarios réels.
+// Tests du diagnostic (src/sim/diagnostics.mjs) : une faute injectée par test, sur des scénarios réels.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { countBySeverity, diagnose, RULES, segments, SEVERITIES, traceRoute } from '../src/sim/diagnostics.js';
-import { createTrafficMeter } from '../src/sim/traffic.js';
-import { TOPICS } from '../simulation.js';
-import { play, readScenario, variant } from './netRun.js';
+import { countBySeverity, diagnose, RULES, segments, SEVERITIES, traceRoute } from '../src/sim/diagnostics.mjs';
+import { createTrafficMeter } from '../src/sim/traffic.mjs';
+import { TOPICS } from '../simulation.mjs';
+import { play, readScenario, variant } from './netRun.mjs';
 
 const rules = (findings) => findings.map((finding) => `${finding.rule}:${finding.target.id}`);
 const only = (findings, rule) => findings.filter((finding) => finding.rule === rule);

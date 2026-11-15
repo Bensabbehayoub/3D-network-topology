@@ -1,9 +1,9 @@
 // Khalil (S1) : API de commandes de la simulation (patron Command) et son implémentation.
 //
-// CONTRAT D'ÉQUIPE, figé en S1. Consommateurs : controls.js (Ramy), vrPanel.js (Ayoub).
+// CONTRAT D'ÉQUIPE, figé en S1. Consommateurs : controls.mjs (Ramy), vrPanel.mjs (Ayoub).
 // Documentation : docs/simulation/contrats.md
 //
-// En S1, app.sim est le faux moteur (mock.js) : même API, trafic de démonstration.
+// En S1, app.sim est le faux moteur (mock.mjs) : même API, trafic de démonstration.
 // En S2/S3, il sera remplacé par createSimulation() avec les vrais protocoles, sans
 // changer une ligne côté interface.
 //
@@ -18,18 +18,18 @@
 //   getPacketsInFlight()            paquets en cours de trajet et leur avancement 0..1 (S2, animateur)
 //   isAllowed(command)              la commande est-elle permise maintenant ? (activer les boutons)
 //   tick(realDeltaMs)               avance la lecture d'une image, depuis la boucle de rendu (VR comprise)
-//   on(topic, listener) / once(...) abonnement au bus (TOPICS de events.js) → désabonnement
+//   on(topic, listener) / once(...) abonnement au bus (TOPICS de events.mjs) → désabonnement
 //
 // Les commandes renvoient true si elles ont été exécutées, false si l'état ne les permet pas
 // (aucune exception : un bouton cliqué au mauvais moment ne doit rien casser).
 
-import { createBus, createEvent, EVENT_TYPES, TOPICS, assertPacket } from './events.js';
-import { createEngine } from './engine.js';
-import { checkProtocol, describeHeaders, loadProtocol as defaultLoadProtocol } from './protocol.js';
-import { assertScenario, DEFAULT_LATENCY, findDevice, linkAt } from './scenario.js';
-import { COMMANDS, STATUS, isAllowed, nextStatus } from './state.js';
+import { createBus, createEvent, EVENT_TYPES, TOPICS, assertPacket } from './events.mjs';
+import { createEngine } from './engine.mjs';
+import { checkProtocol, describeHeaders, loadProtocol as defaultLoadProtocol } from './protocol.mjs';
+import { assertScenario, DEFAULT_LATENCY, findDevice, linkAt } from './scenario.mjs';
+import { COMMANDS, STATUS, isAllowed, nextStatus } from './state.mjs';
 
-export { COMMANDS } from './state.js';
+export { COMMANDS } from './state.mjs';
 
 export const MIN_SPEED = 0.25;
 export const MAX_SPEED = 4;
@@ -92,11 +92,11 @@ function deepFreeze(value) {
  * @param {(name: string) => Promise<object>} [options.loadProtocol] chargeur de protocoles (dynamique par défaut)
  * @param {Scheduler} [options.scheduler] horloge temps réel de la lecture continue
  * @param {Record<string, { onReceive(device, packet, ctx, meta): boolean }>} [options.devices]
- *   comportements d'équipements par type (S3 : switch.js, host.js, router.js). Appelé avant le
+ *   comportements d'équipements par type (S3 : switch.mjs, host.mjs, router.mjs). Appelé avant le
  *   protocole à chaque réception ; s'il renvoie true, le paquet est traité et le protocole n'est pas appelé.
  * @param {number} [options.speed] vitesse initiale (1 par défaut)
  * @param {(scenario: object, link: object, packet: object) => { bytes: number, duration: number }} [options.transmission]
- *   taille de la trame et durée d'émission sur le lien (phase 5, voir traffic.js). Sans elle, une
+ *   taille de la trame et durée d'émission sur le lien (phase 5, voir traffic.mjs). Sans elle, une
  *   trame part et arrive comme avant (durée nulle, aucune file d'attente).
  */
 export function createSimulation(options = {}) {
@@ -184,7 +184,7 @@ export function createSimulation(options = {}) {
     }
   }
 
-  // --- Contexte donné au protocole (voir ProtocolContext dans protocol.js) ---
+  // --- Contexte donné au protocole (voir ProtocolContext dans protocol.mjs) ---
 
   function publish(type, fields) {
     const event = createEvent({ id: ++run.eventId, time: engine.now(), type, ...fields });
@@ -358,7 +358,7 @@ export function createSimulation(options = {}) {
     isAllowed: (command) => isAllowed(command, status),
 
     /**
-     * @param {object} newScenario objet scénario (voir scenario.js)
+     * @param {object} newScenario objet scénario (voir scenario.mjs)
      * @param {Record<string, any>} [newParams] remplace une partie de scenario.params (ex. hôtes choisis)
      */
     async load(newScenario, newParams = {}) {
@@ -431,7 +431,7 @@ export function createSimulation(options = {}) {
     /**
      * Évènements réseau publiés depuis la dernière réinitialisation, dans l'ordre.
      * Permet à un module monté en retard (journal, inspecteur) de se remettre à jour.
-     * @returns {ReadonlyArray<import('./events.js').NetworkEvent>}
+     * @returns {ReadonlyArray<import('./events.mjs').NetworkEvent>}
      */
     getHistory() {
       return Object.freeze([...(run?.history ?? [])]);
@@ -442,7 +442,7 @@ export function createSimulation(options = {}) {
      * progress = (maintenant − départ) / (arrivée − départ), entre 0 et 1.
      * L'animateur (Ayoub) peut redessiner toute la scène à partir de cette seule fonction,
      * par exemple après une pause, un pas à pas ou un changement de vitesse.
-     * @returns {Array<{ event: import('./events.js').NetworkEvent, progress: number }>}
+     * @returns {Array<{ event: import('./events.mjs').NetworkEvent, progress: number }>}
      */
     getPacketsInFlight() {
       if (!run) return [];
@@ -456,7 +456,7 @@ export function createSimulation(options = {}) {
 
     /**
      * Champs d'un paquet pour l'inspecteur, quel que soit son protocole.
-     * @returns {import('./protocol.js').PacketField[]}
+     * @returns {import('./protocol.mjs').PacketField[]}
      */
     describe(packet) {
       const owner = protocols.get(packet?.protocol);

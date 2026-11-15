@@ -1,11 +1,11 @@
-// Tests du ping (src/sim/protocols/icmp.js) avec le vrai moteur et les vrais équipements.
+// Tests du ping (src/sim/protocols/icmp.mjs) avec le vrai moteur et les vrais équipements.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { validateScenario } from '../simulation.js';
-import icmp from '../src/sim/protocols/icmp.js';
-import { frameSize, transmissionTime } from '../src/sim/traffic.js';
-import { play, readScenario, variant } from './netRun.js';
+import { validateScenario } from '../simulation.mjs';
+import icmp from '../src/sim/protocols/icmp.mjs';
+import { frameSize, transmissionTime } from '../src/sim/traffic.mjs';
+import { play, readScenario, variant } from './netRun.mjs';
 
 const ofType = (run, type) => run.events.filter((e) => e.type === 'send' && e.packet.type === type);
 

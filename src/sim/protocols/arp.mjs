@@ -1,13 +1,13 @@
 // Pôle sim : scénario ARP. L'hôte source cherche l'adresse MAC de la cible (ou de sa passerelle
 // si la cible est dans un autre réseau). Tout le mécanisme (diffusion, réponse, cache, switch)
-// est dans la pile commune (stack.js) et les équipements : ce fichier lance la résolution et
+// est dans la pile commune (stack.mjs) et les équipements : ce fichier lance la résolution et
 // décrit les trames ARP pour l'inspecteur.
 //
 // Paramètres (scenario.params) : source (id d'hôte), target (id d'équipement) ou targetIp.
 
-import { describeHeaders } from '../protocol.js';
-import { lookupRoute, primaryIp } from '../net.js';
-import { explainOnce, resolveMac } from '../stack.js';
+import { describeHeaders } from '../protocol.mjs';
+import { lookupRoute, primaryIp } from '../net.mjs';
+import { explainOnce, resolveMac } from '../stack.mjs';
 
 const OPERATIONS = { request: 'requête (qui a cette adresse IP ?)', reply: 'réponse (cette IP est à cette MAC)' };
 

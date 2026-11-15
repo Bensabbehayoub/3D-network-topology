@@ -19,7 +19,7 @@ export const TOPICS = Object.freeze({
   STEP: 'step',
   /** L'horloge simulée a avancé. Charge utile : { time }. */
   TICK: 'tick',
-  /** L'état de la simulation a changé. Charge utile : SimulationState (voir commands.js). */
+  /** L'état de la simulation a changé. Charge utile : SimulationState (voir commands.mjs). */
   STATE: 'state',
   /** La simulation repart de zéro : effacer paquets, journal et explications. Charge utile : { time: 0 }. */
   RESET: 'reset',

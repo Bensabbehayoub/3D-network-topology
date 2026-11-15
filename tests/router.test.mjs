@@ -1,10 +1,10 @@
-// Tests du routeur (src/sim/devices/router.js) avec un faux ctx : ARP, TTL, routes, erreurs ICMP.
+// Tests du routeur (src/sim/devices/router.mjs) avec un faux ctx : ARP, TTL, routes, erreurs ICMP.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import router from '../src/sim/devices/router.js';
-import { arpCache } from '../src/sim/stack.js';
-import { fakeCtx, frame, LAN } from './fakeCtx.js';
+import router from '../src/sim/devices/router.mjs';
+import { arpCache } from '../src/sim/stack.mjs';
+import { fakeCtx, frame, LAN } from './fakeCtx.mjs';
 
 const r1 = LAN.devices.find((d) => d.id === 'r1');
 const PC1 = '02:00:00:00:00:01';

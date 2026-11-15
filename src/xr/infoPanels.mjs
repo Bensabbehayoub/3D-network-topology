@@ -1,15 +1,15 @@
 // Pôle xr : panneaux d'information de la session VR.
-// - fiche de l'équipement sélectionné : mêmes données que l'inspecteur HTML (src/ui/inspector.js) ;
+// - fiche de l'équipement sélectionné : mêmes données que l'inspecteur HTML (src/ui/inspector.mjs) ;
 // - explication de l'étape en cours : textes publiés par le moteur (TOPICS.STEP).
 //
 // Les modèles (ce qu'il faut écrire) sont calculés par des fonctions pures testées sous Node ;
 // le dessin sur canvas est séparé. Les textes des scénarios sont dessinés avec fillText :
 // ils ne sont jamais interprétés comme du HTML.
 
-import { TOPICS } from '../../simulation.js';
-import { describeSelection } from '../ui/inspector.js';
-import { createCanvasPanel, drawBackground, FONT, MONO, PALETTE } from './canvasPanel.js';
-import { DEVICE_PANEL, panelPlane, STEP_PANEL, wrapText } from './panelLayout.js';
+import { TOPICS } from '../../simulation.mjs';
+import { describeSelection } from '../ui/inspector.mjs';
+import { createCanvasPanel, drawBackground, FONT, MONO, PALETTE } from './canvasPanel.mjs';
+import { DEVICE_PANEL, panelPlane, STEP_PANEL, wrapText } from './panelLayout.mjs';
 
 export const DEVICE_HINT = 'Visez un équipement avec le rayon d\'une manette, puis appuyez sur la gâchette pour afficher sa fiche.';
 export const STEP_HINT = 'Lancez la simulation avec le panneau de commandes : chaque étape sera expliquée ici.';
@@ -24,7 +24,7 @@ export function deviceSheet(view) {
   const base = { heading: 'ÉQUIPEMENT', title: null, hint: null, props: [], interfaces: [], model: null, ports: [], totals: null };
   if (!view) return { ...base, hint: DEVICE_HINT };
   if (!view.found) return { ...base, title: view.id, hint: 'Équipement introuvable dans le scénario.' };
-  // Phase 5 : modèle, ports reliés avec leur débit et leur charge, débit global (fiche de src/ui/datasheet.js).
+  // Phase 5 : modèle, ports reliés avec leur débit et leur charge, débit global (fiche de src/ui/datasheet.mjs).
   const sheet = view.sheet ?? null;
   return {
     ...base,

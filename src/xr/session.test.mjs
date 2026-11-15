@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { capabilityRows, describeStatus, detectCapabilities } from './session.js';
+import { capabilityRows, describeStatus, detectCapabilities } from './session.mjs';
 
 const fakeEnv = ({ secure = true, xr = null, gpu = false, binding = undefined } = {}) => ({
   isSecureContext: secure,
@@ -84,7 +84,7 @@ test('le détail suit le rendu : session VR native ou par le pont, WebGPU absent
 });
 
 test('options de session : « webgpu » ajouté quand le rendu le demande, sans doublon', async () => {
-  const { sessionOptions, SESSION_OPTIONS } = await import('./session.js');
+  const { sessionOptions, SESSION_OPTIONS } = await import('./session.mjs');
   assert.deepEqual(sessionOptions(), { optionalFeatures: [...SESSION_OPTIONS.optionalFeatures] });
   assert.deepEqual(sessionOptions(['webgpu', 'local-floor']).optionalFeatures, ['local-floor', 'bounded-floor', 'webgpu']);
   assert.deepEqual(sessionOptions('pas un tableau').optionalFeatures, [...SESSION_OPTIONS.optionalFeatures]);

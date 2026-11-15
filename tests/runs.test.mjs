@@ -1,16 +1,16 @@
-// Tests de la configuration (src/sim/config.js) et du choix du protocole (src/sim/runs.js) :
+// Tests de la configuration (src/sim/config.mjs) et du choix du protocole (src/sim/runs.mjs) :
 // un réseau construit de zéro avec les fonctions de l'éditeur, puis chaque protocole joué dessus.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { addDevice, BuilderError, connect, newTopology } from '../src/sim/builder.js';
+import { addDevice, BuilderError, connect, newTopology } from '../src/sim/builder.mjs';
 import {
   addRecord, addRoute, addService, proposeAddress, proposeGateway, removeRoute, rolesOf, setAddress, setDns, setGateway, setRole,
-} from '../src/sim/config.js';
-import { assembleRun, defaultValues, RUNS, runFields, validateRun } from '../src/sim/runs.js';
-import { validateScenario } from '../src/sim/scenario.js';
-import { diagnose } from '../src/sim/diagnostics.js';
-import { play } from './netRun.js';
+} from '../src/sim/config.mjs';
+import { assembleRun, defaultValues, RUNS, runFields, validateRun } from '../src/sim/runs.mjs';
+import { validateScenario } from '../src/sim/scenario.mjs';
+import { diagnose } from '../src/sim/diagnostics.mjs';
+import { play } from './netRun.mjs';
 
 const ipOf = (s, id) => s.devices.find((d) => d.id === id).interfaces.find((i) => i.ip)?.ip.split('/')[0];
 

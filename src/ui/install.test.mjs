@@ -1,9 +1,9 @@
-// Tests de l'installation PWA et de l'indicateur hors ligne (src/ui/install.js). Sans DOM :
+// Tests de l'installation PWA et de l'indicateur hors ligne (src/ui/install.mjs). Sans DOM :
 // la fenêtre du navigateur est remplacée par un EventTarget de Node.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createInstallController, installView, isStandalone, manualInstallHint, MESSAGES, mount } from './install.js';
+import { createInstallController, installView, isStandalone, manualInstallHint, MESSAGES, mount } from './install.mjs';
 
 /** Fausse fenêtre : EventTarget + navigator + matchMedia. */
 function fakeWindow({ standalone = false, onLine = true, userAgent = 'Chrome', secure = true, promptSupport = true } = {}) {

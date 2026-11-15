@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { BROADCAST_MAC, createBus, createEvent, EVENT_TYPES, isBroadcast, TOPICS } from '../src/sim/events.js';
+import { BROADCAST_MAC, createBus, createEvent, EVENT_TYPES, isBroadcast, TOPICS } from '../src/sim/events.mjs';
 
 const packet = { id: 'p1', protocol: 'arp', type: 'request', eth: { src: '02:00:00:00:00:01', dst: BROADCAST_MAC } };
 

@@ -5,11 +5,11 @@
 // en mètres), et non au groupe « monde » qui porte la topologie réduite à l'échelle d'une maquette.
 
 import * as THREE from '../../vendor/three/build/three.webgpu.js';
-import { createControllers } from './controllers.js';
-import { createVrDevicePanel, createVrStepPanel } from './infoPanels.js';
-import { panelPoses } from './panelLayout.js';
-import { createVrRecoPanel } from './recoPanel.js';
-import { createVrControlPanel } from './vrPanel.js';
+import { createControllers } from './controllers.mjs';
+import { createVrDevicePanel, createVrStepPanel } from './infoPanels.mjs';
+import { panelPoses } from './panelLayout.mjs';
+import { createVrRecoPanel } from './recoPanel.mjs';
+import { createVrControlPanel } from './vrPanel.mjs';
 
 /** Le rendu fournit-il ce qu'il faut pour l'interface VR ? */
 export function canMountRig(app) {

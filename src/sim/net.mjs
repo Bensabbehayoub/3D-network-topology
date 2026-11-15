@@ -1,14 +1,14 @@
 // Pôle sim : adressage IPv4 et tables de routage (fonctions pures, sans ctx ni état).
 //
-// Utilisé par la pile réseau (stack.js) et par les équipements (devices/*.js) :
+// Utilisé par la pile réseau (stack.mjs) et par les équipements (devices/*.mjs) :
 // - adresses : conversion, appartenance à un réseau ;
 // - interfaces d'un équipement, avec leur réseau ;
 // - table de routage d'un équipement : réseaux directement connectés (adresses des interfaces),
 //   routes statiques (champ "routes" du scénario), route par défaut (champ "gateway") ;
 // - recherche de la route la plus précise (plus long préfixe).
 
-import { BROADCAST_MAC } from './events.js';
-import { parseCidr, isIpv4 } from './scenario.js';
+import { BROADCAST_MAC } from './events.mjs';
+import { parseCidr, isIpv4 } from './scenario.mjs';
 
 export { BROADCAST_MAC };
 export const UNKNOWN_MAC = '00:00:00:00:00:00';

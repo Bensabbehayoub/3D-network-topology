@@ -1,23 +1,23 @@
 // Pôle sim : point d'entrée appelé par main.js.
 //
-// init(app) renvoie l'API de la simulation, rangée dans app.sim (voir commands.js), plus le choix
+// init(app) renvoie l'API de la simulation, rangée dans app.sim (voir commands.mjs), plus le choix
 // du scénario : listScenarios() et loadScenario(id).
 // Les pôles render, ui et xr sont initialisés APRÈS : ils trouvent un scénario déjà chargé
 // (app.sim.getScenario()) et s'abonnent au bus pour la suite (app.sim.on(TOPICS.X, ...)).
 //
 // Depuis la phase 4 : vrai moteur (createSimulation), comportements d'équipements
-// (devices/*.js), protocoles de src/sim/protocols/ et scénarios de scenarios/index.json.
+// (devices/*.mjs), protocoles de src/sim/protocols/ et scénarios de scenarios/index.json.
 // Si aucun scénario ne peut être lu (fichiers absents, hors ligne sans cache), on se rabat sur
 // le faux moteur et sa démonstration : l'application reste utilisable.
 
-import { createSimulation } from './commands.js';
-import { DEVICE_BEHAVIOURS } from './devices/index.js';
-import { createScenarioLibrary, summarize } from './library.js';
-import { assertScenario } from './scenario.js';
-import { createMockSimulation, DEMO_SCENARIO } from './mock.js';
-import { TOPICS } from './events.js';
-import { createTrafficMeter, SLOWDOWN, transmissionModel } from './traffic.js';
-import { diagnose } from './diagnostics.js';
+import { createSimulation } from './commands.mjs';
+import { DEVICE_BEHAVIOURS } from './devices/index.mjs';
+import { createScenarioLibrary, summarize } from './library.mjs';
+import { assertScenario } from './scenario.mjs';
+import { createMockSimulation, DEMO_SCENARIO } from './mock.mjs';
+import { TOPICS } from './events.mjs';
+import { createTrafficMeter, SLOWDOWN, transmissionModel } from './traffic.mjs';
+import { diagnose } from './diagnostics.mjs';
 
 /**
  * @param {object} [app] objet partagé rempli par main.js
@@ -67,7 +67,7 @@ export async function init(app = {}, { library = createScenarioLibrary(), option
     /**
      * Trafic mesuré à l'instant courant (phase 5) : débits instantané et moyen, utilisation, par
      * lien (sens a→b et b→a), par port et par équipement. Débits en Mb/s de temps réseau
-     * (1 s de simulation = 1 ms de réseau, voir traffic.js).
+     * (1 s de simulation = 1 ms de réseau, voir traffic.mjs).
      */
     /**
      * Ajoute (ou remplace) la topologie construite dans l'éditeur en tête de la liste des
@@ -83,7 +83,7 @@ export async function init(app = {}, { library = createScenarioLibrary(), option
     timeScale: SLOWDOWN,
     /**
      * Diagnostic de la topologie chargée (phase 6) : configuration et trafic mesuré à l'instant
-     * courant. Liste triée par gravité (voir src/sim/diagnostics.js).
+     * courant. Liste triée par gravité (voir src/sim/diagnostics.mjs).
      */
     diagnose: () => diagnose(sim.getScenario(), { traffic: meter.snapshot(sim.getScenario(), sim.getState().time) }),
   });

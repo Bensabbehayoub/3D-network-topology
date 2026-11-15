@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { allowedCommands, COMMANDS, isAllowed, nextStatus, STATUS } from '../src/sim/state.js';
+import { allowedCommands, COMMANDS, isAllowed, nextStatus, STATUS } from '../src/sim/state.mjs';
 
 const { IDLE, READY, PLAYING, PAUSED, FINISHED } = STATUS;
 const { LOAD, PLAY, PAUSE, STEP, SET_SPEED, RESET } = COMMANDS;

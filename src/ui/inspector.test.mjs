@@ -4,10 +4,10 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { createMockRenderer } from '../render/mock.js';
-import { createMockSimulation, DEMO_SCENARIO } from '../../simulation.js';
-import { describeSelection, deviceInfo, findDevice, mount, PACKET_HINT, renderDeviceInfo, renderPacketInfo } from './inspector.js';
-import { createSelection } from './selection.js';
+import { createMockRenderer } from '../render/mock.mjs';
+import { createMockSimulation, DEMO_SCENARIO } from '../../simulation.mjs';
+import { describeSelection, deviceInfo, findDevice, mount, PACKET_HINT, renderDeviceInfo, renderPacketInfo } from './inspector.mjs';
+import { createSelection } from './selection.mjs';
 
 const silentScheduler = { start: () => () => {} };
 
@@ -151,7 +151,7 @@ test('un label piégé reste du texte (textContent), jamais du HTML', async () =
   assert.equal(node.findAll('img').length, 0);
 
   // innerHTML n'est utilisé qu'une fois, pour le gabarit statique.
-  const source = await readFile(new URL('./inspector.js', import.meta.url), 'utf8');
+  const source = await readFile(new URL('./inspector.mjs', import.meta.url), 'utf8');
   const uses = source.match(/\.innerHTML\s*=/g) ?? [];
   assert.deepEqual(uses.length, 1);
   assert.match(source, /container\.innerHTML = TEMPLATE;/);

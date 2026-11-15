@@ -9,7 +9,7 @@
 //   "schema": 1,
 //   "id": "arp",                              // unique ; en général = nom du fichier
 //   "title": "ARP : trouver l'adresse MAC d'un voisin",
-//   "protocol": "arp",                        // charge src/sim/protocols/arp.js
+//   "protocol": "arp",                        // charge src/sim/protocols/arp.mjs
 //   "description": "Rôle du protocole en 2-3 phrases.",
 //   "params": { "source": "pc1", "target": "pc2" },   // paramètres de lancement par défaut
 //   "devices": [
@@ -33,7 +33,7 @@ export const DEFAULT_LATENCY = 400;
 const ID = /^[A-Za-z][A-Za-z0-9_-]*$/;
 const PROTOCOL = /^[a-z][a-z0-9-]*$/;
 const MAC = /^[0-9a-f]{2}(:[0-9a-f]{2}){5}$/i;
-import { CABLES, MODELS, SPEEDS } from './catalog.js';
+import { CABLES, MODELS, SPEEDS } from './catalog.mjs';
 
 const HOSTNAME = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]$/i;
 const IPV4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
@@ -124,7 +124,7 @@ export function validateScenario(scenario) {
       }
       if (device.model !== undefined) {
         const model = MODELS[device.model];
-        if (!model) error(`${name}.model : modèle inconnu "${device.model}" (voir src/sim/catalog.js)`);
+        if (!model) error(`${name}.model : modèle inconnu "${device.model}" (voir src/sim/catalog.mjs)`);
         else {
           if (model.type !== device.type) error(`${name}.model : "${device.model}" est un modèle de type ${model.type}, pas ${device.type}`);
           const count = model.ports.reduce((sum, group) => sum + group.count, 0);

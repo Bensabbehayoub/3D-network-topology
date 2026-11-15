@@ -2,7 +2,7 @@
 // du scénario à chaque réception (voir createSimulation, option devices).
 //
 // - la carte réseau ne garde que les trames pour sa MAC ou la diffusion ;
-// - ARP est traité par la pile (stack.js) ;
+// - ARP est traité par la pile (stack.mjs) ;
 // - un paquet IP pour une autre adresse est rejeté (un hôte ne route pas) ; la diffusion
 //   limitée 255.255.255.255 est acceptée (DHCP) ;
 // - UDP/TCP vers un port fermé : rejet, puis « port inaccessible » (ICMP) pour UDP en unicast,
@@ -13,11 +13,11 @@
 // L'équipement est pris tel qu'il est pendant l'exécution (adresse obtenue par DHCP comprise).
 // Renvoie true si le paquet est traité ici, false pour le laisser au protocole.
 
-import { ownsIp } from '../net.js';
+import { ownsIp } from '../net.mjs';
 import {
   acceptsFrame, deliverLocal, explainOnce, handleArp, isPortOpen, LIMITED_BROADCAST, runtimeDevice,
   sendIcmpError, sendIp, transportOf,
-} from '../stack.js';
+} from '../stack.mjs';
 
 /** TCP vers un port fermé : segment RST (« connexion refusée »), jamais en réponse à un RST. */
 function sendReset(ctx, device, packet, step) {

@@ -5,12 +5,12 @@
 // - le repli WebGL 2 de WebGPURenderer n'est jamais déclenché : sans WebGPU (pas de navigator.gpu
 //   ou pas d'adaptateur), on refuse de créer le renderer et la page affiche « WebGPU requis » ;
 // - en VR, Three.js rend chaque œil en WebGPU par XRGPUBinding : celui du navigateur sur un vrai
-//   casque, ou le pont de xrBridge.js dans Immersive Web Emulator.
+//   casque, ou le pont de xrBridge.mjs dans Immersive Web Emulator.
 //
 // Les règles sont des fonctions pures (testées sous Node) ; createRenderer touche au navigateur.
 
 import { SRGBColorSpace, WebGPURenderer } from '../../vendor/three/build/three.webgpu.js';
-import { installXRGPUBridge } from './xrBridge.js';
+import { installXRGPUBridge } from './xrBridge.mjs';
 
 export const BACKEND = 'WebGPU';
 

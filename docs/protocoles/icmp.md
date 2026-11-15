@@ -2,7 +2,7 @@
 
 | Prévu (planning) | Réalisé | Couche | Fichiers |
 | --- | --- | --- | --- |
-| Aziz, S3 | Refonte, phase 4a | Couche 3 (transporté par IP) | `src/sim/protocols/icmp.js`, `src/sim/stack.js` (réponse au ping, erreurs ICMP), `scenarios/ping.json`, `scenarios/ttl.json`, `tests/icmp.test.js` |
+| Aziz, S3 | Refonte, phase 4a | Couche 3 (transporté par IP) | `src/sim/protocols/icmp.mjs`, `src/sim/stack.mjs` (réponse au ping, erreurs ICMP), `scenarios/ping.json`, `scenarios/ttl.json`, `tests/icmp.test.mjs` |
 
 > Statut : **implémenté et testé.**
 
@@ -37,7 +37,7 @@ Ethernet, IP (source, destination, TTL), type ICMP, identifiant et numéro de s�
 
 ## Implémentation
 
-- `protocols/icmp.js` : `start` programme les demandes (`sendIp`), `onReceive` reconnaît la réponse correspondante, annule la temporisation et explique ; à la fin, résumé (`icmp-summary`, ou `icmp-summary-loss` s'il y a eu des pertes).
-- La réponse aux pings est faite par la pile (`host.js`, `router.js`) : tout équipement répond, dans tous les scénarios.
+- `protocols/icmp.mjs` : `start` programme les demandes (`sendIp`), `onReceive` reconnaît la réponse correspondante, annule la temporisation et explique ; à la fin, résumé (`icmp-summary`, ou `icmp-summary-loss` s'il y a eu des pertes).
+- La réponse aux pings est faite par la pile (`host.mjs`, `router.mjs`) : tout équipement répond, dans tous les scénarios.
 - Les erreurs (`time-exceeded`, `unreachable`) sont créées par le routeur ou l'hôte et renvoyées à l'émetteur ; une erreur n'en provoque jamais une autre.
-- Tests (`tests/icmp.test.js`) : ping entre deux réseaux (ARP des deux côtés, deux échanges) ; TTL 1 ; cible inexistante (ARP sans réponse, délai écoulé) ; hôte sans passerelle (« aucune route ») ; champs de l'inspecteur.
+- Tests (`tests/icmp.test.mjs`) : ping entre deux réseaux (ARP des deux côtés, deux échanges) ; TTL 1 ; cible inexistante (ARP sans réponse, délai écoulé) ; hôte sans passerelle (« aucune route ») ; champs de l'inspecteur.

@@ -1,20 +1,20 @@
 // Khalil (S1) : faux moteur (mock) pour que les autres pôles avancent sans attendre ARP/ICMP.
 //
-// C'est le VRAI contrôleur (commands.js) avec un faux protocole « demo » : même API, mêmes
+// C'est le VRAI contrôleur (commands.mjs) avec un faux protocole « demo » : même API, mêmes
 // évènements sur le bus, même horloge simulée. Il fait faire un aller-retour à un paquet entre
 // params.source et params.target (par défaut le premier et le dernier hôte) en suivant le plus
 // court chemin, quelle que soit la topologie, et affiche les étapes du scénario dans l'ordre.
 //
 // Utilisation :
-//   import { createMockSimulation, DEMO_SCENARIO } from './mock.js';
+//   import { createMockSimulation, DEMO_SCENARIO } from './mock.mjs';
 //   const sim = createMockSimulation();
 //   await sim.load(DEMO_SCENARIO);       // ou n'importe quel scénario valide, ex. scenarios/arp.json
 //   sim.on(TOPICS.NETWORK, (event) => console.log(event.type, event.source, '→', event.destination));
 //   sim.play();
 
-import { createSimulation } from './commands.js';
-import { describeHeaders } from './protocol.js';
-import { findDevice, findPath, parseCidr } from './scenario.js';
+import { createSimulation } from './commands.mjs';
+import { describeHeaders } from './protocol.mjs';
+import { findDevice, findPath, parseCidr } from './scenario.mjs';
 
 /** Topologie de démonstration : deux réseaux locaux reliés par un routeur. */
 export const DEMO_SCENARIO = Object.freeze({
@@ -58,7 +58,7 @@ const firstIp = (device) => {
 };
 const firstMac = (device) => device?.interfaces.find((itf) => itf.mac)?.mac ?? '00:00:00:00:00:00';
 
-/** Faux protocole : respecte l'interface protocole de protocol.js. */
+/** Faux protocole : respecte l'interface protocole de protocol.mjs. */
 export const DEMO_PROTOCOL = Object.freeze({
   name: 'demo',
 
@@ -151,7 +151,7 @@ function nextExplanation(ctx, demo) {
 }
 
 /**
- * Faux moteur, même API que createSimulation (voir commands.js).
+ * Faux moteur, même API que createSimulation (voir commands.mjs).
  * @param {Parameters<typeof createSimulation>[0]} [options]
  */
 export function createMockSimulation(options = {}) {

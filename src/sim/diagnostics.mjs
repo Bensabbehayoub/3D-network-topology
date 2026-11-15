@@ -11,10 +11,10 @@
 // route manquante ou boucle de routage, serveur DHCP ou DNS manquant, point de défaillance unique,
 // boucle de commutation, goulot d'étranglement (structurel et mesuré).
 
-import { CABLES, formatSpeed, portSpeed } from './catalog.js';
-import { addressedInterfaces, inNetwork, lookupRoute, ownsIp, primaryIp } from './net.js';
-import { linkBandwidth } from './traffic.js';
-import { parseEndpoint } from './scenario.js';
+import { CABLES, formatSpeed, portSpeed } from './catalog.mjs';
+import { addressedInterfaces, inNetwork, lookupRoute, ownsIp, primaryIp } from './net.mjs';
+import { linkBandwidth } from './traffic.mjs';
+import { parseEndpoint } from './scenario.mjs';
 
 export const SEVERITIES = Object.freeze(['critique', 'avertissement', 'conseil']);
 export const SEVERITY_LABELS = Object.freeze({ critique: 'Critique', avertissement: 'Avertissement', conseil: 'Conseil' });
@@ -115,7 +115,7 @@ export function traceRoute(scenario, source, destinationIp, segmentOf) {
 /**
  * Diagnostic complet.
  * @param {object} scenario scénario (valide)
- * @param {{ traffic?: ReturnType<ReturnType<import('./traffic.js').createTrafficMeter>['snapshot']> | null }} [options]
+ * @param {{ traffic?: ReturnType<ReturnType<import('./traffic.mjs').createTrafficMeter>['snapshot']> | null }} [options]
  */
 export function diagnose(scenario, { traffic = null } = {}) {
   if (!scenario?.devices) return [];

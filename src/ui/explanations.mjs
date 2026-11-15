@@ -13,9 +13,9 @@
 //   createLogModel()    lignes du journal tenues à jour depuis le bus, sans DOM
 //   mount()             affichage
 
-import { TOPICS } from '../../simulation.js';
-import { formatTime } from './controls.js';
-import { logEntry } from './packets.js';
+import { TOPICS } from '../../simulation.mjs';
+import { formatTime } from './controls.mjs';
+import { logEntry } from './packets.mjs';
 
 export const HINT = 'Lancez la simulation : chaque étape sera expliquée ici.';
 export const EMPTY_LOG = 'Aucun message pour l\'instant.';
@@ -79,7 +79,7 @@ const TEMPLATE = `
 /**
  * @param {object} container élément #explanations (sous Node : un faux conteneur { innerHTML })
  * @param {object} app objet partagé (app.sim, app.render)
- * @param {{ packets?: ReturnType<import('./packets.js').createPacketSelection> }} [services]
+ * @param {{ packets?: ReturnType<import('./packets.mjs').createPacketSelection> }} [services]
  * @returns {{ getView(): object, getLog(): object[], dispose(): void }}
  */
 export function mount(container, app, { packets } = {}) {

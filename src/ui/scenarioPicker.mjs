@@ -12,7 +12,7 @@
 //
 // Titres et descriptions viennent des scénarios : écrits avec textContent, jamais innerHTML.
 
-import { TOPICS } from '../../simulation.js';
+import { TOPICS } from '../../simulation.mjs';
 
 export const EMPTY_LABEL = 'Aucun scénario disponible';
 

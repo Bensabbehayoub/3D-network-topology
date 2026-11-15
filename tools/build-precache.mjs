@@ -1,6 +1,6 @@
 // Ayoub (S2) : génère la liste des fichiers à mettre en cache pour le mode hors ligne.
 //
-//   node tools/build-precache.js            écrit precache-manifest.js à la racine
+//   node tools/build-precache.mjs            écrit precache-manifest.js à la racine
 //
 // Lancé par la CI à chaque pull request (vérification) et avant chaque déploiement : personne
 // ne maintient la liste à la main, et personne n'édite sw.js pour ajouter un fichier.
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 export const OUTPUT = 'precache-manifest.js';
 
 /** Fichiers isolés nécessaires au démarrage de l'application. */
-const ROOT_FILES = ['index.html', 'styles.css', 'main.js', 'simulation.js', 'manifest.json'];
+const ROOT_FILES = ['index.html', 'styles.css', 'main.js', 'simulation.mjs', 'manifest.json'];
 
 /** Dossiers parcourus récursivement. Docs, tests, outils et CI n'en font pas partie. */
 const FOLDERS = ['src', 'scenarios', 'assets', 'vendor/three/build', 'vendor/three/examples'];
@@ -91,7 +91,7 @@ export async function buildManifest(root) {
 /** Contenu du fichier généré, chargeable par importScripts() dans le Service Worker. */
 export function render({ version, files }) {
   return (
-    '// Fichier généré par tools/build-precache.js : ne pas modifier à la main.\n' +
+    '// Fichier généré par tools/build-precache.mjs : ne pas modifier à la main.\n' +
     `self.PRECACHE_MANIFEST = ${JSON.stringify({ version, files }, null, 2)};\n`
   );
 }

@@ -1,4 +1,4 @@
-// Tests de tools/build-precache.js (Ayoub). Placés dans tools/ et non dans tests/ (dossier de Khalil) ;
+// Tests de tools/build-precache.mjs (Ayoub). Placés dans tools/ et non dans tests/ (dossier de Khalil) ;
 // `node --test` les trouve quand même.
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { buildManifest, listFiles, render } from './build-precache.js';
+import { buildManifest, listFiles, render } from './build-precache.mjs';
 
 const repo = fileURLToPath(new URL('..', import.meta.url));
 
@@ -24,11 +24,11 @@ async function fakeRepo(t, files) {
 test('le vrai dépôt : la page, les quatre pôles, Three.js et les scénarios sont listés', async () => {
   const files = await listFiles(repo);
   for (const url of [
-    './', './index.html', './styles.css', './main.js', './simulation.js', './manifest.json',
-    './src/sim/index.js', './src/render/index.js', './src/ui/index.js', './src/xr/index.js',
+    './', './index.html', './styles.css', './main.js', './simulation.mjs', './manifest.json',
+    './src/sim/index.mjs', './src/render/index.mjs', './src/ui/index.mjs', './src/xr/index.mjs',
     './vendor/three/build/three.webgpu.js', './vendor/three/examples/jsm/controls/OrbitControls.js',
     './scenarios/arp.json', './assets/icons/icon-192.png', './assets/icons/icon-512.png',
-    './assets/icons/icon-maskable-512.png', './src/ui/install.js',
+    './assets/icons/icon-maskable-512.png', './src/ui/install.mjs',
   ]) {
     assert.ok(files.includes(url), `${url} manquant`);
   }

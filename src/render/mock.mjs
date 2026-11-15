@@ -1,6 +1,6 @@
-import {normalizeTopology} from './topology.js';
-import {normalizePickRay} from './picking.js';
-import {packetStyle} from './packetStyles.js';
+import {normalizeTopology} from './topology.mjs';
+import {normalizePickRay} from './picking.mjs';
+import {packetStyle} from './packetStyles.mjs';
 /** Deterministic, headless API-compatible mock used by team modules and unit tests. */
 export function createMockRenderer({onDeviceClick=()=>{}}={}){
  let data={devices:[],links:[]},disposed=false;

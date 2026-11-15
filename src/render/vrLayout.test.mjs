@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import * as THREE from '../../vendor/three/build/three.webgpu.js';
-import { createMockSimulation, DEMO_SCENARIO } from '../../simulation.js';
-import { createMockRenderer } from './mock.js';
-import { pickHitFromObjects } from './scene.js';
+import { createMockSimulation, DEMO_SCENARIO } from '../../simulation.mjs';
+import { createMockRenderer } from './mock.mjs';
+import { pickHitFromObjects } from './scene.mjs';
 import {
   DEFAULT_EYE_HEIGHT, frameDelta, topologyBounds, VR_DISTANCE, VR_EYE_DROP, VR_MAX_SCALE,
   VR_MIN_SCALE, VR_TARGET_SIZE, vrPlacement,
-} from './vrLayout.js';
+} from './vrLayout.mjs';
 
 const at = (x, z) => ({ position: { x, y: 0, z } });
 const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-9, message ?? `${actual} ≠ ${expected}`);
@@ -80,11 +80,11 @@ test('faux rendu : pickDeviceHit, onFrame et getVRAnchor suivent le contrat de l
   assert.deepEqual(frames, [16]);
 });
 
-test('la boucle de rendu fait avancer la simulation (branchement de src/render/index.js)', async () => {
+test('la boucle de rendu fait avancer la simulation (branchement de src/render/index.mjs)', async () => {
   const sim = createMockSimulation({ scheduler: { start: () => () => {} } });
   await sim.load(DEMO_SCENARIO);
   const render = createMockRenderer();
-  render.onFrame(({ delta }) => sim.tick(delta)); // même branchement que dans index.js
+  render.onFrame(({ delta }) => sim.tick(delta)); // même branchement que dans index.mjs
 
   sim.play();
   render.emitFrame({ delta: 50, presenting: true }); // image d'une session VR
@@ -96,7 +96,7 @@ test('la boucle de rendu fait avancer la simulation (branchement de src/render/i
 });
 
 test('nearestOnRay : cible la plus proche du rayon dans la tolérance, jamais derrière la manette', async () => {
-  const { nearestOnRay } = await import('./picking.js');
+  const { nearestOnRay } = await import('./picking.mjs');
   const ray = { origin: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 0, z: -1 } };
   const points = [
     { id: 'loin', x: 0.5, y: 0, z: -3 },

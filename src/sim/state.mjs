@@ -16,7 +16,7 @@ export const STATUS = Object.freeze({
   FINISHED: 'finished',
 });
 
-/** Noms des commandes de l'API (voir commands.js). */
+/** Noms des commandes de l'API (voir commands.mjs). */
 export const COMMANDS = Object.freeze({
   LOAD: 'load',
   PLAY: 'play',

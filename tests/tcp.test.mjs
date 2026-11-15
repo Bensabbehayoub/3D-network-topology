@@ -1,11 +1,11 @@
-// Tests de TCP (src/sim/protocols/tcp.js, RST de l'hôte) avec le vrai moteur.
+// Tests de TCP (src/sim/protocols/tcp.mjs, RST de l'hôte) avec le vrai moteur.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { validateScenario } from '../simulation.js';
-import tcp from '../src/sim/protocols/tcp.js';
-import { transmissionTime } from '../src/sim/traffic.js';
-import { play, readScenario, variant } from './netRun.js';
+import { validateScenario } from '../simulation.mjs';
+import tcp from '../src/sim/protocols/tcp.mjs';
+import { transmissionTime } from '../src/sim/traffic.mjs';
+import { play, readScenario, variant } from './netRun.mjs';
 
 /** Segments TCP émis par les deux bouts (sans les recopies du switch), au format « source TYPE seq/ack/len ». */
 const segments = (run, kinds = ['send', 'drop']) => run.events

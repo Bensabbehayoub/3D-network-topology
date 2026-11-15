@@ -14,9 +14,9 @@
 // Étapes standard : udp-start, udp-send[-<n>], udp-delivered[-<n>], udp-port-closed[-<eq>]
 // (pile), udp-icmp-received, udp-summary.
 
-import { describeHeaders } from '../protocol.js';
-import { primaryIp } from '../net.js';
-import { explainOnce, sendUdp } from '../stack.js';
+import { describeHeaders } from '../protocol.mjs';
+import { primaryIp } from '../net.mjs';
+import { explainOnce, sendUdp } from '../stack.mjs';
 
 export const DEFAULTS = Object.freeze({ port: 514, count: 3, interval: 600 });
 

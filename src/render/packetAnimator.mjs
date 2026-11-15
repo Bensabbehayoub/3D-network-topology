@@ -9,13 +9,17 @@
 // Le calcul des positions (computeFrame) est séparé de l'affichage Three.js : il se teste sous Node.
 
 import * as THREE from '../../vendor/three/build/three.webgpu.js';
-import { isBroadcast, TOPICS } from '../../simulation.js';
-import { colorNumber, packetStyle } from './packetStyles.js';
+import { isBroadcast, TOPICS } from '../../simulation.mjs';
+import { colorNumber, packetStyle } from './packetStyles.mjs';
 
-/** Hauteur du paquet : au-dessus des équipements, pour qu'ils ne le cachent pas. */
+/** Hauteur du repli en ligne droite (aucun câble dessiné) : au-dessus des équipements. */
 export const PACKET_HEIGHT = 1.6;
 
-// Couleur par protocole et taille selon la diffusion : packetStyles.js (phase 4d).
+// Couleur par protocole : packetStyles.mjs (phase 4d). Taille : la même pour tous les paquets,
+// diffusion comprise (la couleur suffit à les distinguer et un gros paquet masquait le câble).
+
+/** Rayon de tous les paquets (seul le paquet sélectionné dans l'inspecteur est agrandi). */
+export const PACKET_RADIUS = 0.3;
 
 /** Point à la fraction `progress` du segment from → to (progress borné entre 0 et 1). */
 export function packetPosition(from, to, progress, height = PACKET_HEIGHT) {
@@ -28,20 +32,81 @@ export function packetPosition(from, to, progress, height = PACKET_HEIGHT) {
 }
 
 /**
+ * Point à la fraction `progress` d'une ligne brisée (les points du câble), mesurée en longueur :
+ * le paquet garde la même vitesse sur chaque morceau du câble.
+ * @param {Array<{ x: number, y: number, z: number }>} points au moins deux points, de la source vers la destination
+ */
+export function pathPoint(points, progress) {
+  const t = Math.min(1, Math.max(0, progress));
+  const lengths = [];
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    const length = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+    lengths.push(length);
+    total += length;
+  }
+  if (total === 0) return { ...points[0] };
+  let remaining = t * total;
+  for (let i = 0; i < lengths.length; i++) {
+    if (remaining <= lengths[i] || i === lengths.length - 1) {
+      const a = points[i];
+      const b = points[i + 1];
+      const f = lengths[i] === 0 ? 0 : Math.min(1, remaining / lengths[i]);
+      return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, z: a.z + (b.z - a.z) * f };
+    }
+    remaining -= lengths[i];
+  }
+  return { ...points[points.length - 1] };
+}
+
+/**
+ * Tracé d'un câble dessiné dans la scène, exprimé dans le repère de `space` et orienté de
+ * `event.source` vers `event.destination`. Le câble est retrouvé par son id (`event.link`),
+ * sinon par ses deux extrémités.
+ * @param {THREE.Object3D} space groupe qui contient les câbles (et les paquets)
+ * @param {{ link?: string | null, source: string, destination: string }} event évènement d'envoi
+ * @returns {Array<{ x: number, y: number, z: number }> | null} null si aucun câble ne correspond
+ */
+export function cablePath(space, event) {
+  const layer = space?.getObjectByName?.('Network links');
+  if (!layer) return null;
+  const lines = layer.children.filter((line) => line.userData);
+  const line = lines.find((item) => event.link && item.userData.linkId === event.link)
+    ?? lines.find(({ userData: u }) => (u.from === event.source && u.to === event.destination)
+      || (u.from === event.destination && u.to === event.source));
+  const attribute = line?.geometry?.getAttribute?.('position');
+  if (!attribute || attribute.count < 2) return null;
+  line.updateWorldMatrix(true, false);
+  space.updateWorldMatrix(true, false);
+  const points = [];
+  for (let i = 0; i < attribute.count; i++) {
+    const v = space.worldToLocal(line.localToWorld(new THREE.Vector3().fromBufferAttribute(attribute, i)));
+    points.push({ x: v.x, y: v.y, z: v.z });
+  }
+  // Le câble est dessiné de link.from vers link.to : on l'inverse si le paquet va dans l'autre sens.
+  return line.userData.from === event.source ? points : points.reverse();
+}
+
+/**
  * Calcule ce qu'il faut afficher maintenant.
  * @param {Array<{ event: object, progress: number }>} inFlight résultat de app.sim.getPacketsInFlight()
  * @param {(deviceId: string) => { x: number, y: number, z: number } | null} getPosition position d'un équipement
+ * @param {(event: object) => Array<{ x: number, y: number, z: number }> | null} [getPath] tracé du câble
+ *   emprunté, de la source vers la destination ; sans tracé, le paquet va en ligne droite en l'air
  * @returns {Array<{ key: number, packetId: string, protocol: string, type: string, broadcast: boolean,
  *   progress: number, position: { x: number, y: number, z: number } }>}
  *   `key` est l'id de l'évènement d'envoi : un même paquet diffusé sur plusieurs câbles à la fois
  *   (inondation par un switch) donne un objet par câble.
  */
-export function computeFrame(inFlight, getPosition) {
+export function computeFrame(inFlight, getPosition, getPath = null) {
   const frame = [];
   for (const { event, progress } of inFlight ?? []) {
     const from = getPosition(event.source);
     const to = getPosition(event.destination);
     if (!from || !to) continue; // équipement absent du rendu : on n'invente pas de trajet
+    const path = getPath?.(event);
     frame.push({
       key: event.id,
       packetId: event.packet.id,
@@ -49,7 +114,7 @@ export function computeFrame(inFlight, getPosition) {
       type: event.packet.type,
       broadcast: isBroadcast(event.packet),
       progress,
-      position: packetPosition(from, to, progress),
+      position: path?.length >= 2 ? pathPoint(path, progress) : packetPosition(from, to, progress),
     });
   }
   return frame;
@@ -61,10 +126,11 @@ export function computeFrame(inFlight, getPosition) {
  *   sim: { on: Function, getPacketsInFlight: Function },
  *   parent: THREE.Object3D,
  *   getPosition: (deviceId: string) => { x: number, y: number, z: number } | null,
+ *   getPath?: (event: object) => Array<{ x: number, y: number, z: number }> | null,
  * }} options
  * @returns {{ update(): void, count(): number, getFrame(): ReturnType<typeof computeFrame>, dispose(): void }}
  */
-export function createPacketAnimator({ sim, parent, getPosition }) {
+export function createPacketAnimator({ sim, parent, getPosition, getPath = null }) {
   if (typeof sim?.getPacketsInFlight !== 'function') throw new TypeError('sim.getPacketsInFlight() est requis (contrat S2)');
   if (!parent || typeof parent.add !== 'function') throw new TypeError('un groupe Three.js (parent) est requis');
 
@@ -94,7 +160,7 @@ export function createPacketAnimator({ sim, parent, getPosition }) {
 
   function update() {
     if (disposed) return;
-    frame = computeFrame(sim.getPacketsInFlight(), getPosition);
+    frame = computeFrame(sim.getPacketsInFlight(), getPosition, getPath);
     const seen = new Set();
     for (const item of frame) {
       seen.add(item.key);
@@ -103,7 +169,7 @@ export function createPacketAnimator({ sim, parent, getPosition }) {
         const style = packetStyle(item.protocol, item.broadcast);
         mesh = new THREE.Mesh(geometry, materialFor(style.color));
         mesh.name = `packet-${item.packetId}`;
-        mesh.userData = { packetId: item.packetId, protocol: item.protocol, type: item.type, eventId: item.key, radius: style.radius };
+        mesh.userData = { packetId: item.packetId, protocol: item.protocol, type: item.type, eventId: item.key, radius: PACKET_RADIUS };
         group.add(mesh);
         meshes.set(item.key, mesh);
       }
@@ -146,7 +212,7 @@ export function createPacketAnimator({ sim, parent, getPosition }) {
 }
 
 /**
- * Branche l'animateur sur l'application (à appeler depuis src/render/index.js, après la scène).
+ * Branche l'animateur sur l'application (à appeler depuis src/render/index.mjs, après la scène).
  * Demande au rendu d'exposer `world` (le groupe qui contient la topologie, mis à l'échelle en VR)
  * et `getDevice(id)` (position de chaque équipement).
  * @param {{ sim?: object, render?: object }} app
@@ -162,5 +228,6 @@ export function mountPacketAnimator(app) {
     sim,
     parent: render.world,
     getPosition: (id) => render.getDevice(id)?.position ?? null,
+    getPath: (event) => cablePath(render.world, event),
   });
 }

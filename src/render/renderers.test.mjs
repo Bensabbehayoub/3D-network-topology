@@ -1,10 +1,10 @@
-// Tests du renderer (src/render/renderers.js) : rendu 100 % WebGPU, sans navigateur.
+// Tests du renderer (src/render/renderers.mjs) : rendu 100 % WebGPU, sans navigateur.
 // La création réelle est vérifiée dans Chrome (docs/decision-renderer.md).
 import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { assertWebGPU, BACKEND, extraSessionFeatures, isWebGPU, WEBGPU_REQUIRED_MESSAGE, WebGPUUnavailableError, webgpuMissingReason } from './renderers.js';
+import { assertWebGPU, BACKEND, extraSessionFeatures, isWebGPU, WEBGPU_REQUIRED_MESSAGE, WebGPUUnavailableError, webgpuMissingReason } from './renderers.mjs';
 
 const root = new URL('../../', import.meta.url);
 
@@ -50,7 +50,7 @@ test('Three.js r187 embarqué : build WebGPU seulement, sans import « three » 
 
 /** Fichiers JavaScript chargés par le navigateur (hors tests, hors outils de vérification, hors Three.js). */
 async function appSources() {
-  const files = ['main.js', 'simulation.js', 'sw.js'];
+  const files = ['main.js', 'simulation.mjs', 'sw.js'];
   const walk = async (dir) => {
     for (const entry of await readdir(new URL(dir, root), { withFileTypes: true })) {
       const path = `${dir}${entry.name}`;

@@ -14,9 +14,9 @@
 // dhcp-offer[-<eq>], dhcp-request[-<eq>], dhcp-ack[-<eq>], dhcp-configured[-<eq>],
 // dhcp-verify[-<eq>], dhcp-verified[-<eq>], dhcp-pool-empty, dhcp-summary.
 
-import { describeHeaders } from '../protocol.js';
-import { addressedInterfaces, intToIp, ipToInt, maskOf } from '../net.js';
-import { configureDevice, explainOnce, LIMITED_BROADCAST, runtimeDevice, sendIp, sendUdp } from '../stack.js';
+import { describeHeaders } from '../protocol.mjs';
+import { addressedInterfaces, intToIp, ipToInt, maskOf } from '../net.mjs';
+import { configureDevice, explainOnce, LIMITED_BROADCAST, runtimeDevice, sendIp, sendUdp } from '../stack.mjs';
 
 export const CLIENT_PORT = 68;
 export const SERVER_PORT = 67;

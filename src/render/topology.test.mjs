@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {normalizeTopology} from './topology.js';
-import {createMockRenderer} from './mock.js';
+import {normalizeTopology} from './topology.mjs';
+import {createMockRenderer} from './mock.mjs';
 const sample=()=>({devices:[{id:'p1',type:'pc'},{id:'s1',type:'switch',position:[1,0,1]}],links:[{from:'p1',to:'s1'}]});
 test('valid topology is normalized',()=>{const v=normalizeTopology(sample());assert.equal(v.devices.length,2);assert.equal(v.links[0].id,'link-0');assert.equal(v.devices[0].label,'p1');});
 test('rejects duplicates',()=>{const s=sample();s.devices.push({id:'p1',type:'pc'});assert.throws(()=>normalizeTopology(s),/Duplicate/);});

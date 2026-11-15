@@ -1,12 +1,12 @@
-// Tests de la mesure du trafic (src/sim/traffic.js) et de la file d'attente des ports (commands.js).
+// Tests de la mesure du trafic (src/sim/traffic.mjs) et de la file d'attente des ports (commands.mjs).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createSimulation, TOPICS } from '../simulation.js';
+import { createSimulation, TOPICS } from '../simulation.mjs';
 import {
   createTrafficMeter, frameSize, linkBandwidth, payloadSize, throughput, transmissionModel, transmissionTime, WINDOW,
-} from '../src/sim/traffic.js';
-import { play, readScenario } from './netRun.js';
+} from '../src/sim/traffic.mjs';
+import { play, readScenario } from './netRun.mjs';
 
 test('taille des trames : en-têtes réels, 64 octets au minimum', () => {
   assert.equal(frameSize({ protocol: 'arp', eth: {} }), 64, 'ARP : 28 octets, complété à 64');

@@ -2,7 +2,7 @@
 
 | Prévu (planning) | Réalisé | Couche | Fichiers |
 | --- | --- | --- | --- |
-| Aziz, S4 | Refonte, phase 4b | Couche 4 (transport) | `src/sim/protocols/udp.js`, `src/sim/stack.js` (`sendUdp`, ports), `scenarios/udp.json`, `tests/udp.test.js` |
+| Aziz, S4 | Refonte, phase 4b | Couche 4 (transport) | `src/sim/protocols/udp.mjs`, `src/sim/stack.mjs` (`sendUdp`, ports), `scenarios/udp.json`, `tests/udp.test.mjs` |
 
 > Statut : **implémenté et testé.** `sendUdp` sert aussi à DNS et DHCP.
 
@@ -32,6 +32,6 @@ Ethernet, IP, protocole de transport, ports source et destination, longueur, con
 
 ## Implémentation
 
-- `stack.js` : ports ouverts déclarés par le scénario (`services`) ; `sendUdp` ouvre le port source éphémère puis passe par `sendIp` ; un hôte qui reçoit un datagramme pour un port fermé le jette et renvoie ICMP « port inaccessible » (sauf pour une diffusion).
-- `protocols/udp.js` : envoie les datagrammes programmés et explique leur livraison (`udp-send`, `udp-delivered`, `udp-send-closed`, `udp-icmp-received`, `udp-summary`).
-- Tests (`tests/udp.test.js`) : scénario complet (livrés sans réponse, port fermé → ICMP) ; sans service déclaré, même le port 514 est fermé ; champs de l'inspecteur.
+- `stack.mjs` : ports ouverts déclarés par le scénario (`services`) ; `sendUdp` ouvre le port source éphémère puis passe par `sendIp` ; un hôte qui reçoit un datagramme pour un port fermé le jette et renvoie ICMP « port inaccessible » (sauf pour une diffusion).
+- `protocols/udp.mjs` : envoie les datagrammes programmés et explique leur livraison (`udp-send`, `udp-delivered`, `udp-send-closed`, `udp-icmp-received`, `udp-summary`).
+- Tests (`tests/udp.test.mjs`) : scénario complet (livrés sans réponse, port fermé → ICMP) ; sans service déclaré, même le port 514 est fermé ; champs de l'inspecteur.

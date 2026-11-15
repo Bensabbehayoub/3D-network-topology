@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { DEMO_SCENARIO } from '../src/sim/mock.js';
+import { DEMO_SCENARIO } from '../src/sim/mock.mjs';
 import {
   assertScenario, findPath, linkAt, neighbours, parseCidr, parseEndpoint, validateScenario,
-} from '../src/sim/scenario.js';
+} from '../src/sim/scenario.mjs';
 
 const readScenario = async (name) =>
   JSON.parse(await readFile(new URL(`../scenarios/${name}.json`, import.meta.url), 'utf8'));

@@ -1,5 +1,5 @@
 import * as THREE from '../../vendor/three/build/three.webgpu.js';
-import { colorNumber, LOAD_COLORS, loadLevel } from './packetStyles.js';
+import { colorNumber, LOAD_COLORS, loadLevel } from './packetStyles.mjs';
 
 export function resolveLinkEndpoints(link,devices){
  const from=devices.get(link.from),to=devices.get(link.to);return from&&to?{from,to}:null;

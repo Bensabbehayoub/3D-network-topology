@@ -1,12 +1,12 @@
-// Tests de la construction de topologie (src/sim/builder.js) : opérations pures et scénarios valides.
+// Tests de la construction de topologie (src/sim/builder.mjs) : opérations pures et scénarios valides.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
   addDevice, BuilderError, connect, disconnect, freePorts, fromScenario, moveDevice, newTopology, palette, removeDevice, renameDevice,
-} from '../src/sim/builder.js';
-import { validateScenario } from '../src/sim/scenario.js';
-import { readScenario } from './netRun.js';
+} from '../src/sim/builder.mjs';
+import { validateScenario } from '../src/sim/scenario.mjs';
+import { readScenario } from './netRun.mjs';
 
 /** Petit réseau : 2 PC, un switch. */
 function smallNetwork() {

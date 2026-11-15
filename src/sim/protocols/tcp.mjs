@@ -18,9 +18,9 @@
 // Paramètres du scénario « tcp » : client, server (id) ou serverIp, port (9000), size (3000 octets),
 // loseSegment (numéro du segment de données perdu une fois, aucun par défaut), closedPort.
 
-import { describeHeaders } from '../protocol.js';
-import { primaryIp } from '../net.js';
-import { explainOnce, openPort, runtimeDevice, sendIp } from '../stack.js';
+import { describeHeaders } from '../protocol.mjs';
+import { primaryIp } from '../net.mjs';
+import { explainOnce, openPort, runtimeDevice, sendIp } from '../stack.mjs';
 
 export const MSS = 1000;
 export const WINDOW = 8000;

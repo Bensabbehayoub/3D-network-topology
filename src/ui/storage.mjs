@@ -10,7 +10,7 @@
 // être indisponible (navigation privée, stockage plein ou bloqué) : chaque fonction renvoie alors
 // un message clair au lieu d'échouer.
 
-import { fromScenario, validateScenario } from '../../simulation.js';
+import { fromScenario, validateScenario } from '../../simulation.mjs';
 
 export const DRAFT_KEY = 'topologie3d.brouillon';
 export const LIBRARY_KEY = 'topologie3d.topologies';

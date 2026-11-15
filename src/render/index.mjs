@@ -3,13 +3,13 @@
 // Appelé par main.js après le pôle sim : la topologie affichée est celle du scénario chargé
 // par le moteur (app.sim.getScenario()), puis chaque nouveau scénario (TOPICS.SCENARIO).
 // La topologie de secours ne sert que si le pôle sim n'a pas pu se charger.
-import { TOPICS } from '../../simulation.js';
-import { initScene } from './scene.js';
-import { WEBGPU_REQUIRED_MESSAGE } from './renderers.js';
-import { packetStyle } from './packetStyles.js';
-export { initScene } from './scene.js';
-export { createMockRenderer } from './mock.js';
-export { normalizeTopology } from './topology.js';
+import { TOPICS } from '../../simulation.mjs';
+import { initScene } from './scene.mjs';
+import { WEBGPU_REQUIRED_MESSAGE } from './renderers.mjs';
+import { packetStyle } from './packetStyles.mjs';
+export { initScene } from './scene.mjs';
+export { createMockRenderer } from './mock.mjs';
+export { normalizeTopology } from './topology.mjs';
 
 const FALLBACK_TOPOLOGY = {
   devices: [
@@ -86,7 +86,7 @@ export async function init(app = {}) {
   // en mode classique comme en session VR (où le requestAnimationFrame de la fenêtre est suspendu).
   if (typeof sim?.tick === 'function') handle.onFrame(({ delta }) => sim.tick(delta));
 
-  const { mountPacketAnimator } = await import('./packetAnimator.js');
+  const { mountPacketAnimator } = await import('./packetAnimator.mjs');
   const animator = mountPacketAnimator({ sim: app.sim, render: handle });
   /** Couleur et taille d'un paquet (le journal de l'interface utilise les mêmes couleurs). */
   handle.packetStyle = packetStyle;

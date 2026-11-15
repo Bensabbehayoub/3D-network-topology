@@ -2,9 +2,9 @@
 // et le vrai protocole, jusqu'à la fin, et rend ce qui s'est passé. Pas un fichier de test.
 import { readFile } from 'node:fs/promises';
 
-import { createSimulation, TOPICS } from '../simulation.js';
-import { DEVICE_BEHAVIOURS } from '../src/sim/devices/index.js';
-import { transmissionModel } from '../src/sim/traffic.js';
+import { createSimulation, TOPICS } from '../simulation.mjs';
+import { DEVICE_BEHAVIOURS } from '../src/sim/devices/index.mjs';
+import { transmissionModel } from '../src/sim/traffic.mjs';
 
 export const noClock = { start: () => () => {} };
 

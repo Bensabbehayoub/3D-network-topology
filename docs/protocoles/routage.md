@@ -2,7 +2,7 @@
 
 | Prévu (planning) | Réalisé | Couche | Fichiers |
 | --- | --- | --- | --- |
-| Khalil, S5 | Refonte, phase 4a | Couche 3 (réseau) | `src/sim/devices/router.js`, `src/sim/net.js` (tables, plus long préfixe), `src/sim/stack.js`, `scenarios/routage.json`, `scenarios/ttl.json`, `tests/routage.test.js`, `tests/router.test.js`, `tests/net.test.js` |
+| Khalil, S5 | Refonte, phase 4a | Couche 3 (réseau) | `src/sim/devices/router.mjs`, `src/sim/net.mjs` (tables, plus long préfixe), `src/sim/stack.mjs`, `scenarios/routage.json`, `scenarios/ttl.json`, `tests/routage.test.mjs`, `tests/router.test.mjs`, `tests/net.test.mjs` |
 
 > Statut : **implémenté et testé.** Le routage est un comportement d'équipement : il sert dans tous les scénarios à plusieurs réseaux.
 
@@ -37,8 +37,8 @@ Ethernet (MAC réécrites à chaque saut), IP source et destination, TTL ; le tr
 
 ## Implémentation
 
-- `net.js` : adresses, masques, `routingTable(device)` (réseaux directement connectés + routes statiques), `lookupRoute(device, ip)` (plus long préfixe).
-- `devices/router.js` : appelé avant le protocole ; répond à l'ARP et au ping pour ses adresses ; fait suivre les autres paquets (TTL − 1, ARP du saut suivant, nouvel en-tête Ethernet) ; perte et erreur ICMP à TTL 0 ou sans route.
-- Côté hôte, `stack.js` décide : même réseau (`route-direct`) ou passerelle (`route-gateway`), sinon `no-route`.
+- `net.mjs` : adresses, masques, `routingTable(device)` (réseaux directement connectés + routes statiques), `lookupRoute(device, ip)` (plus long préfixe).
+- `devices/router.mjs` : appelé avant le protocole ; répond à l'ARP et au ping pour ses adresses ; fait suivre les autres paquets (TTL − 1, ARP du saut suivant, nouvel en-tête Ethernet) ; perte et erreur ICMP à TTL 0 ou sans route.
+- Côté hôte, `stack.mjs` décide : même réseau (`route-direct`) ou passerelle (`route-gateway`), sinon `no-route`.
 - Le **diagnostic** suit le chemin de chaque paire d'hôtes (`traceRoute`) pour signaler une route manquante, un routeur suivant introuvable ou une boucle de routage.
-- Tests : `routage.test.js` (deux routeurs, routes dans les deux sens, TTL 64 → 62, routes manquantes, route par défaut), `router.test.js` (comportement du routeur isolé), `net.test.js` (calculs d'adresses et plus long préfixe).
+- Tests : `routage.test.mjs` (deux routeurs, routes dans les deux sens, TTL 64 → 62, routes manquantes, route par défaut), `router.test.mjs` (comportement du routeur isolé), `net.test.mjs` (calculs d'adresses et plus long préfixe).

@@ -8,10 +8,10 @@
 //
 // TEMPS D'ÉMISSION. Une trame occupe le câble pendant (taille + 20 octets de préambule et
 // d'intervalle) × 8 / bande passante. Un port n'émet qu'une trame à la fois : les suivantes
-// attendent dans sa file (commands.js). Le débit ne peut donc jamais dépasser la bande passante.
+// attendent dans sa file (commands.mjs). Le débit ne peut donc jamais dépasser la bande passante.
 
-import { CABLES, portSpeed } from './catalog.js';
-import { findDevice, parseEndpoint } from './scenario.js';
+import { CABLES, portSpeed } from './catalog.mjs';
+import { findDevice, parseEndpoint } from './scenario.mjs';
 
 /** 1 ms de simulation = 1 µs de réseau. */
 export const SLOWDOWN = 1000;

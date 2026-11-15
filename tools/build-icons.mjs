@@ -1,6 +1,6 @@
 // Génère les icônes de la PWA dans assets/icons/, sans dépendance (PNG écrit avec zlib de Node).
 //
-//   node tools/build-icons.js
+//   node tools/build-icons.mjs
 //
 // Les fichiers produits sont versionnés : on ne relance le script que pour changer le dessin.
 // Dessin : trois équipements reliés (un petit réseau) sur le fond de l'application (#101418).

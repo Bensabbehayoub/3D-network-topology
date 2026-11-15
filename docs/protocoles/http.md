@@ -2,7 +2,7 @@
 
 | Prévu (planning) | Réalisé | Couche | Fichiers |
 | --- | --- | --- | --- |
-| Ramy, S5 | Refonte, phase 4c | Couche 7 (application), sur TCP port 80 | `src/sim/protocols/http.js`, `scenarios/http.json`, `tests/http.test.js` |
+| Ramy, S5 | Refonte, phase 4c | Couche 7 (application), sur TCP port 80 | `src/sim/protocols/http.mjs`, `scenarios/http.json`, `tests/http.test.mjs` |
 
 > Statut : **implémenté et testé.**
 
@@ -37,6 +37,6 @@ Ethernet, IP, ports TCP, séquence et acquittement, méthode, chemin, hôte, cod
 
 ## Implémentation
 
-- `protocols/http.js` : `parseUrl`, `respond` (200 ou 404 d'après `pages`) ; le client enchaîne `resolveName` (DNS) puis `connect` (TCP), envoie ses requêtes l'une après l'autre sur la même connexion, puis la ferme. Le serveur web passe par `handleTcp`.
+- `protocols/http.mjs` : `parseUrl`, `respond` (200 ou 404 d'après `pages`) ; le client enchaîne `resolveName` (DNS) puis `connect` (TCP), envoie ses requêtes l'une après l'autre sur la même connexion, puis la ferme. Le serveur web passe par `handleTcp`.
 - Étapes expliquées : `http-start`, `http-dns`, `http-dns-done`, `http-connect`, `http-request`, `http-response`, `http-received`, `http-not-found`, `http-close`, `http-summary`, et les cas d'échec.
-- Tests (`tests/http.test.js`) : scénario (DNS, une seule connexion TCP pour deux requêtes, 200 puis 404) ; nom inconnu (échec DNS, aucune connexion) ; serveur sans service sur le port 80 (RST, connexion refusée) ; adresses et réponses ; champs de l'inspecteur.
+- Tests (`tests/http.test.mjs`) : scénario (DNS, une seule connexion TCP pour deux requêtes, 200 puis 404) ; nom inconnu (échec DNS, aucune connexion) ; serveur sans service sur le port 80 (RST, connexion refusée) ; adresses et réponses ; champs de l'inspecteur.

@@ -2,9 +2,9 @@
 
 | Prévu (planning) | Réalisé | Couche | Fichiers |
 | --- | --- | --- | --- |
-| Khalil, S4 | Refonte, phase 4c (fenêtre d'émission en phase 5) | Couche 4 (transport) | `src/sim/protocols/tcp.js`, `src/sim/devices/host.js` (RST sur port fermé), `scenarios/tcp.json`, `scenarios/debit.json`, `tests/tcp.test.js` |
+| Khalil, S4 | Refonte, phase 4c (fenêtre d'émission en phase 5) | Couche 4 (transport) | `src/sim/protocols/tcp.mjs`, `src/sim/devices/host.mjs` (RST sur port fermé), `scenarios/tcp.json`, `scenarios/debit.json`, `tests/tcp.test.mjs` |
 
-> Statut : **implémenté et testé.** HTTP et le scénario Débit réutilisent les connexions de `tcp.js`.
+> Statut : **implémenté et testé.** HTTP et le scénario Débit réutilisent les connexions de `tcp.mjs`.
 
 ## Rôle
 
@@ -48,7 +48,7 @@ Ports, numéros de séquence et d'acquittement, indicateurs (SYN, ACK, FIN, RST,
 
 ## Implémentation
 
-- `protocols/tcp.js` : `connect(ctx, client, { dstIp, dstPort, onEstablished, onMessage, onClosed, onFailed })` ; `handleTcp(ctx, device, packet, listener)` côté serveur ; `conn.send(message)` découpe en segments (MSS 1000), `conn.close()` ferme une fois tout acquitté. Segments hors ordre mis de côté, ACK cumulatifs, ACK dupliqués, RTO, FIN, RST.
-- `host.js` : un SYN vers un port fermé reçoit un RST (jamais en réponse à un RST).
+- `protocols/tcp.mjs` : `connect(ctx, client, { dstIp, dstPort, onEstablished, onMessage, onClosed, onFailed })` ; `handleTcp(ctx, device, packet, listener)` côté serveur ; `conn.send(message)` découpe en segments (MSS 1000), `conn.close()` ferme une fois tout acquitté. Segments hors ordre mis de côté, ACK cumulatifs, ACK dupliqués, RTO, FIN, RST.
+- `host.mjs` : un SYN vers un port fermé reçoit un RST (jamais en réponse à un RST).
 - Perte : paramètre `loseSegment` du scénario ; la trame part puis disparaît à mi-câble (option `lost` du moteur).
-- Tests (`tests/tcp.test.js`) : scénario complet (poignée de main, perte, ACK dupliqué, retransmission, fermeture, RST) ; sans perte ; serveur muet (SYN renvoyé puis abandon) ; champs de l'inspecteur. `tests/traffic.test.js` vérifie le débit du scénario Débit.
+- Tests (`tests/tcp.test.mjs`) : scénario complet (poignée de main, perte, ACK dupliqué, retransmission, fermeture, RST) ; sans perte ; serveur muet (SYN renvoyé puis abandon) ; champs de l'inspecteur. `tests/traffic.test.mjs` vérifie le débit du scénario Débit.

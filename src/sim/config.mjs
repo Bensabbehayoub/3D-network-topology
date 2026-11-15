@@ -8,10 +8,10 @@
 // - rôles d'un serveur : setRole(s, id, 'dhcp' | 'dns' | 'web', actif), avec des valeurs proposées
 //   (plage DHCP, enregistrements DNS, page d'accueil) ; addRecord(), removeRecord().
 
-import { BuilderError } from './builder.js';
-import { segments } from './diagnostics.js';
-import { addressedInterfaces, inNetwork, intToIp, ipToInt, maskOf, networkAddress, parseNetwork } from './net.js';
-import { isHostname, isIpv4, parseCidr } from './scenario.js';
+import { BuilderError } from './builder.mjs';
+import { segments } from './diagnostics.mjs';
+import { addressedInterfaces, inNetwork, intToIp, ipToInt, maskOf, networkAddress, parseNetwork } from './net.mjs';
+import { isHostname, isIpv4, parseCidr } from './scenario.mjs';
 
 const copy = (scenario) => structuredClone(scenario);
 

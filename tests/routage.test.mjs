@@ -1,9 +1,9 @@
-// Tests du routage statique (src/sim/devices/router.js, src/sim/net.js) : scenarios/routage.json.
+// Tests du routage statique (src/sim/devices/router.mjs, src/sim/net.mjs) : scenarios/routage.json.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { validateScenario } from '../simulation.js';
-import { play, readScenario, variant } from './netRun.js';
+import { validateScenario } from '../simulation.mjs';
+import { play, readScenario, variant } from './netRun.mjs';
 
 test('scenarios/routage.json : deux routeurs, routes statiques dans les deux sens, TTL 64 → 62', async () => {
   const scenario = await readScenario('routage');

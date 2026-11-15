@@ -1,4 +1,4 @@
-// Ramy : règles communes aux raccourcis clavier de l'interface (controls.js, selection.js).
+// Ramy : règles communes aux raccourcis clavier de l'interface (controls.mjs, selection.mjs).
 
 /** Le focus est-il dans un champ où les touches servent à la saisie (raccourcis ignorés) ? */
 export function isEditable(target) {

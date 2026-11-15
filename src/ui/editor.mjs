@@ -1,7 +1,7 @@
 // Ramy (phase 7) : éditeur de topologie du mode « Construire ».
 //
 // La topologie en construction (le « brouillon ») est un scénario : chaque modification passe par
-// les fonctions pures de src/sim/builder.js, puis le brouillon est rechargé dans le moteur
+// les fonctions pures de src/sim/builder.mjs, puis le brouillon est rechargé dans le moteur
 // (app.sim.load). Ainsi la scène 3D, les fiches d'équipement et le diagnostic (onglet
 // Recommandations) suivent la construction en direct, sans code de plus.
 //
@@ -20,9 +20,9 @@ import {
   fromScenario, linkBandwidth, MAX_LABEL, moveDevice, newTopology, palette, parseEndpoint, proposeAddress, proposeGateway, removeDevice,
   removeRecord, removeRoute, removeService, renameDevice, ROLES, rolesOf, RUNS, runFields, setAddress, setDns, setGateway, setRole,
   TYPE_NAMING, validateRun,
-} from '../../simulation.js';
+} from '../../simulation.mjs';
 
-import { createTopologyStore, exportJson, fileName, parseImport } from './storage.js';
+import { createTopologyStore, exportJson, fileName, parseImport } from './storage.mjs';
 
 export const DEFAULT_RUN = 'ping';
 
@@ -137,7 +137,7 @@ export function createEditorController(app, { onChange = () => {}, selection = n
   };
   const notify = () => onChange(view());
 
-  /** Applique une opération de builder.js ; recharge le brouillon dans le moteur. */
+  /** Applique une opération de builder.mjs ; recharge le brouillon dans le moteur. */
   const apply = async (operation, message) => {
     let next;
     try {

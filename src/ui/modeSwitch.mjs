@@ -1,8 +1,8 @@
 // Ramy (phase 7) : bascule « Explorer | Construire » dans l'en-tête.
 //
-// Explorer : choisir un scénario fourni et le jouer. Construire : éditeur de topologie (editor.js).
+// Explorer : choisir un scénario fourni et le jouer. Construire : éditeur de topologie (editor.mjs).
 // Deux boutons à bascule (aria-pressed) ; le changement de mode est confié au service `mode`
-// fourni par index.js, qui prévient l'éditeur, le rendu et la mise en page.
+// fourni par index.mjs, qui prévient l'éditeur, le rendu et la mise en page.
 
 export const MODES = Object.freeze({ explore: 'Explorer', build: 'Construire' });
 

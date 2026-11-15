@@ -81,14 +81,14 @@ function runServiceWorker({ manifest, network = (url) => new Response(`contenu d
   return { caches, requests, state, dispatch, fetchEvent };
 }
 
-const MANIFEST = { version: 'abc123', files: ['./', './index.html', './main.js', './src/ui/index.js'] };
+const MANIFEST = { version: 'abc123', files: ['./', './index.html', './main.js', './src/ui/index.mjs'] };
 
 test('installation : tous les fichiers listés sont précachés, en contournant le cache HTTP', async () => {
   const sw = runServiceWorker({ manifest: MANIFEST });
   await sw.dispatch('install');
 
   const store = sw.caches.stores.get('topology-abc123');
-  assert.deepEqual([...store.keys()].sort(), [BASE, `${BASE}index.html`, `${BASE}main.js`, `${BASE}src/ui/index.js`]);
+  assert.deepEqual([...store.keys()].sort(), [BASE, `${BASE}index.html`, `${BASE}main.js`, `${BASE}src/ui/index.mjs`]);
   assert.ok(sw.requests.every((request) => request.cache === 'reload'));
   assert.equal(sw.state.skipWaiting, 1, 'la nouvelle version prend la main sans attendre');
 });
@@ -98,7 +98,7 @@ test('installation : un fichier manquant fait échouer l\'installation (pas de h
     manifest: MANIFEST,
     network: (url) => (url.endsWith('main.js') ? new Response('', { status: 404 }) : new Response('ok')),
   });
-  await assert.rejects(sw.dispatch('install'), /main\.js → HTTP 404/);
+  await assert.rejects(sw.dispatch('install'), /main.js → HTTP 404/);
   assert.equal(sw.state.skipWaiting, 0);
 });
 
@@ -144,7 +144,7 @@ test('hors ligne : le site se recharge depuis le cache, et une navigation inconn
   online = false;
 
   assert.equal(await (await sw.fetchEvent('./', { mode: 'navigate' })).text(), `contenu de ${BASE}`);
-  assert.equal(await (await sw.fetchEvent('./src/ui/index.js')).text(), `contenu de ${BASE}src/ui/index.js`);
+  assert.equal(await (await sw.fetchEvent('./src/ui/index.mjs')).text(), `contenu de ${BASE}src/ui/index.mjs`);
   assert.equal(await (await sw.fetchEvent('./page-inconnue', { mode: 'navigate' })).text(), `contenu de ${BASE}index.html`);
   await assert.rejects(sw.fetchEvent('./absent.js'), /Failed to fetch/);
 });

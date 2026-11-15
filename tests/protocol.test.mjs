@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readdir } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { checkProtocol, describeHeaders, loadProtocol } from '../src/sim/protocol.js';
+import { checkProtocol, describeHeaders, loadProtocol } from '../src/sim/protocol.mjs';
 
 test('checkProtocol liste ce qui manque', () => {
   assert.deepEqual(checkProtocol({ name: 'x', start() {}, onReceive() {}, describe() {} }), []);
@@ -13,10 +13,10 @@ test('checkProtocol liste ce qui manque', () => {
 });
 
 test('chaque protocole du dépôt respecte l\'interface et porte le nom de son fichier', async () => {
-  const files = (await readdir(new URL('../src/sim/protocols/', import.meta.url))).filter((f) => f.endsWith('.js'));
+  const files = (await readdir(new URL('../src/sim/protocols/', import.meta.url))).filter((f) => f.endsWith('.mjs'));
   assert.ok(files.length > 0);
   for (const file of files) {
-    const name = file.replace(/\.js$/, '');
+    const name = file.replace(/\.mjs$/, '');
     const protocol = await loadProtocol(name);
     assert.equal(protocol.name, name);
   }

@@ -3,7 +3,7 @@
 // Ce que fait un vrai système d'exploitation sous les applications :
 // - ARP : cache par équipement, requête en diffusion, réponse, file d'attente des paquets en
 //   attente d'une adresse MAC, abandon après ARP_TIMEOUT ;
-// - IP : choix de la route (net.js), adresse source, TTL, en-tête Ethernet vers le prochain saut ;
+// - IP : choix de la route (net.mjs), adresse source, TTL, en-tête Ethernet vers le prochain saut ;
 // - ICMP : réponse automatique aux requêtes d'écho (ping), erreurs « TTL expiré » et
 //   « destination inaccessible » renvoyées à l'émetteur.
 //
@@ -16,8 +16,8 @@
 
 import {
   addressedInterfaces, BROADCAST_MAC, interfaceNamed, lookupRoute, UNKNOWN_MAC,
-} from './net.js';
-import { linkAt } from './scenario.js';
+} from './net.mjs';
+import { linkAt } from './scenario.mjs';
 
 /** Délai d'attente d'une réponse ARP (ms simulées) avant d'abandonner les paquets en attente. */
 export const ARP_TIMEOUT = 3000;

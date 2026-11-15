@@ -33,7 +33,7 @@ try{
  const expression=`(async()=>{
   const errors=[];addEventListener('error',event=>errors.push(event.message));addEventListener('unhandledrejection',event=>errors.push(String(event.reason)));
   const mount=document.createElement('div');Object.assign(mount.style,{position:'fixed',left:'0',top:'0',width:'640px',height:'420px',zIndex:'9999'});document.body.appendChild(mount);
-  const {initScene}=await import('./src/render/scene.js');let emitted=0;const renderer=await initScene(mount,{onDeviceClick:()=>emitted++});
+  const {initScene}=await import('./src/render/scene.mjs');let emitted=0;const renderer=await initScene(mount,{onDeviceClick:()=>emitted++});
   const topology={devices:[{id:'pc',type:'pc',label:'PC',ip:'10.0.0.2',position:[-4,0,0]},{id:'sw',type:'switch',label:'Switch',position:[0,0,0]},{id:'r',type:'router',label:'Router',ip:'10.0.0.1',position:[4,0,0]}],links:[{from:'pc',to:'sw'},{from:'sw',to:'r'}]};
   const summary=renderer.loadTopology(topology);await renderer.whenReady();const canvas=mount.querySelector('canvas');
   const picked=renderer.pickDevice({x:0,y:.3,z:10},{x:0,y:0,z:-20});const api={highlight:renderer.highlightDevice('sw','selected'),focus:renderer.focusDevice('r'),devices:renderer.listDevices().length,selected:window.__smokeSelected,picked,emitted};

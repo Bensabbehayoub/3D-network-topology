@@ -1,12 +1,12 @@
-// Tests de la palette des paquets (src/render/packetStyles.js).
+// Tests de la palette des paquets (src/render/packetStyles.mjs).
 import assert from 'node:assert/strict';
 import { readdir } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { BROADCAST_RADIUS, colorNumber, DEFAULT_COLOR, packetStyle, PROTOCOL_COLORS, PROTOCOL_LABELS, UNICAST_RADIUS } from './packetStyles.js';
+import { BROADCAST_RADIUS, colorNumber, DEFAULT_COLOR, packetStyle, PROTOCOL_COLORS, PROTOCOL_LABELS, UNICAST_RADIUS } from './packetStyles.mjs';
 
 test('chaque protocole du moteur a sa couleur, toutes différentes', async () => {
-  const protocols = (await readdir(new URL('../sim/protocols/', import.meta.url))).filter((f) => f.endsWith('.js')).map((f) => f.replace(/\.js$/, ''))
+  const protocols = (await readdir(new URL('../sim/protocols/', import.meta.url))).filter((f) => f.endsWith('.mjs')).map((f) => f.replace(/\.mjs$/, ''))
     .filter((name) => name !== 'aucun'); // « aucun » n'émet jamais de paquet
   for (const name of protocols) {
     assert.ok(PROTOCOL_COLORS[name], `couleur manquante pour ${name}`);

@@ -2,7 +2,7 @@
 // S2 (tâche 19) : infos de l'équipement sélectionné (nom, type, interfaces avec IP et MAC,
 //      passerelle), mises à jour à chaque changement de la sélection (selection.onChange).
 // Phase 4d : paquet sélectionné (dans le journal ou dans la scène) : instant, trajet, étape et
-//      champs de chaque couche, fournis par son protocole (app.sim.describe, voir packets.js).
+//      champs de chaque couche, fournis par son protocole (app.sim.describe, voir packets.mjs).
 //
 // Les valeurs viennent des scénarios : elles sont écrites avec textContent, jamais innerHTML.
 //
@@ -11,11 +11,11 @@
 //   deviceInfo()        lignes à afficher pour un équipement (pur)
 //   describeSelection() ce que le panneau doit afficher pour un id sélectionné (pur)
 //   renderDeviceInfo()  construit les éléments à partir d'un document (vrai ou faux)
-//   renderPacketInfo()  idem pour un paquet (vue calculée par packets.js → packetView)
+//   renderPacketInfo()  idem pour un paquet (vue calculée par packets.mjs → packetView)
 
-import { packetView } from './packets.js';
-import { datasheetView } from './datasheet.js';
-import { TOPICS } from '../../simulation.js';
+import { packetView } from './packets.mjs';
+import { datasheetView } from './datasheet.mjs';
+import { TOPICS } from '../../simulation.mjs';
 
 /** Intervalle minimal (ms réelles) entre deux mises à jour des débits de la fiche. */
 export const LIVE_REFRESH = 250;
@@ -297,7 +297,7 @@ const TEMPLATE = `
  * @param {object} container élément #inspector (sous Node : un faux conteneur { innerHTML })
  * @param {object} app objet partagé (app.sim, app.render)
  * @param {{ selection?: { onChange(listener): () => void, getSelection(): string | null } }} [services]
- *   services du pôle ui (index.js) ; sans sélection, le panneau garde son message d'attente
+ *   services du pôle ui (index.mjs) ; sans sélection, le panneau garde son message d'attente
  * @returns {object} API du module : getView(), refresh(), destroy()
  */
 export function mount(container, app, { selection, packets } = {}) {

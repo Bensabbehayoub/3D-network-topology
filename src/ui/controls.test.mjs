@@ -3,10 +3,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createMockSimulation, createSimulation, DEMO_PROTOCOL, DEMO_SCENARIO, MAX_SPEED, MIN_SPEED } from '../../simulation.js';
+import { createMockSimulation, createSimulation, DEMO_PROTOCOL, DEMO_SCENARIO, MAX_SPEED, MIN_SPEED } from '../../simulation.mjs';
 import {
   clampSpeed, controlsView, createControlsController, formatSpeed, formatTime, mount,
-} from './controls.js';
+} from './controls.mjs';
 
 /** Horloge de lecture contrôlée par le test : advance(ms) joue une image de ms millisecondes. */
 function manualScheduler() {

@@ -116,7 +116,7 @@ body {
   display: none;
 }
 
-/* ---------- Installation PWA et indicateur hors ligne (src/ui/install.js) ---------- */
+/* ---------- Installation PWA et indicateur hors ligne (src/ui/install.mjs) ---------- */
 
 #install-slot {
   position: relative;
@@ -171,7 +171,7 @@ body {
   font-size: 0.85rem;
 }
 
-/* ---------- Statut WebXR et bouton VR (pôle xr, Ayoub : src/xr/session.js) ---------- */
+/* ---------- Statut WebXR et bouton VR (pôle xr, Ayoub : src/xr/session.mjs) ---------- */
 
 .xr-status {
   position: relative;
@@ -326,7 +326,7 @@ body {
   min-height: calc(var(--touch) + 20px);
 }
 
-/* ---------- Barre de commandes (src/ui/controls.js) ---------- */
+/* ---------- Barre de commandes (src/ui/controls.mjs) ---------- */
 
 .controls-buttons {
   display: flex;
@@ -539,7 +539,7 @@ input[type="range"] {
   outline-offset: 2px;
 }
 
-/* ---------- Inspecteur : équipement sélectionné (src/ui/inspector.js) ---------- */
+/* ---------- Inspecteur : équipement sélectionné (src/ui/inspector.mjs) ---------- */
 
 .inspector-device[hidden] {
   display: none;

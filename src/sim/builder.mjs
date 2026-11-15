@@ -13,8 +13,8 @@
 //   disconnect(s, linkId)
 // Les erreurs sont levées en BuilderError (message prêt à afficher).
 
-import { CABLES, MODELS, modelPorts } from './catalog.js';
-import { parseEndpoint } from './scenario.js';
+import { CABLES, MODELS, modelPorts } from './catalog.mjs';
+import { parseEndpoint } from './scenario.mjs';
 
 export class BuilderError extends Error {
   constructor(message) {

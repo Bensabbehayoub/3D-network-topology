@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { createSimulation, TOPICS } from '../../simulation.js';
-import { DEVICE_BEHAVIOURS } from '../sim/devices/index.js';
-import { createLogModel, explanationView, HINT, mount } from './explanations.js';
+import { createSimulation, TOPICS } from '../../simulation.mjs';
+import { DEVICE_BEHAVIOURS } from '../sim/devices/index.mjs';
+import { createLogModel, explanationView, HINT, mount } from './explanations.mjs';
 
 async function pingSim() {
   const scenario = JSON.parse(await readFile(new URL('../../scenarios/ping.json', import.meta.url), 'utf8'));

@@ -1,10 +1,10 @@
-// Tests de DNS (src/sim/protocols/dns.js) avec le vrai moteur.
+// Tests de DNS (src/sim/protocols/dns.mjs) avec le vrai moteur.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { validateScenario } from '../simulation.js';
-import dns from '../src/sim/protocols/dns.js';
-import { play, readScenario, variant } from './netRun.js';
+import { validateScenario } from '../simulation.mjs';
+import dns from '../src/sim/protocols/dns.mjs';
+import { play, readScenario, variant } from './netRun.mjs';
 
 const dnsSends = (run) => run.events.filter((e) => e.type === 'send' && e.packet.protocol === 'dns' && (e.source === 'pc1' || e.source === 'dns1'));
 

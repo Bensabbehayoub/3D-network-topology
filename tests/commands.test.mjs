@@ -2,9 +2,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createSimulation, MAX_SPEED, MIN_SPEED } from '../src/sim/commands.js';
-import { TOPICS } from '../src/sim/events.js';
-import { COMMANDS, STATUS } from '../src/sim/state.js';
+import { createSimulation, MAX_SPEED, MIN_SPEED } from '../src/sim/commands.mjs';
+import { TOPICS } from '../src/sim/events.mjs';
+import { COMMANDS, STATUS } from '../src/sim/state.mjs';
 
 // Deux PC reliés directement, latence 100 ms.
 const SCENARIO = {
@@ -270,7 +270,7 @@ test('le protocole est chargé dynamiquement à partir du champ "protocol"', asy
 
 // --- S2 : états × commandes, historique, paquets en vol, temporisations ---
 
-import { isAllowed, nextStatus } from '../src/sim/state.js';
+import { isAllowed, nextStatus } from '../src/sim/state.mjs';
 
 /** Amène une simulation neuve dans l'état demandé. */
 async function reach(status) {

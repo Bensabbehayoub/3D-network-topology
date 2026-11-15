@@ -1,10 +1,10 @@
-// Tests de HTTP (src/sim/protocols/http.js) : DNS, TCP, GET, 200, 404, connexion persistante.
+// Tests de HTTP (src/sim/protocols/http.mjs) : DNS, TCP, GET, 200, 404, connexion persistante.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { validateScenario } from '../simulation.js';
-import http, { parseUrl, respond } from '../src/sim/protocols/http.js';
-import { play, readScenario, variant } from './netRun.js';
+import { validateScenario } from '../simulation.mjs';
+import http, { parseUrl, respond } from '../src/sim/protocols/http.mjs';
+import { play, readScenario, variant } from './netRun.mjs';
 
 const ends = (run) => run.events.filter((e) => e.type === 'send' && ['pc1', 'web1', 'dns1'].includes(e.source));
 

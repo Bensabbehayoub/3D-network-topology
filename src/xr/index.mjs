@@ -1,15 +1,15 @@
 // Pôle xr : appelé en dernier par main.js, après sim, render et ui.
 //
-// - session.js : détection de la WebXR Device API, statut HTML dans #xr-slot, entrée et sortie
+// - session.mjs : détection de la WebXR Device API, statut HTML dans #xr-slot, entrée et sortie
 //   de la session immersive-vr (app.render.startXR).
-// - vrRig.js : interface de la session VR, créée à l'entrée et détruite à la sortie :
-//   panneau de commandes (vrPanel.js), fiche d'équipement et explications (infoPanels.js),
-//   rayons et sélection à la manette (controllers.js).
+// - vrRig.mjs : interface de la session VR, créée à l'entrée et détruite à la sortie :
+//   panneau de commandes (vrPanel.mjs), fiche d'équipement et explications (infoPanels.mjs),
+//   rayons et sélection à la manette (controllers.mjs).
 // Sans WebXR, rien de tout cela n'est créé : l'application reste en mode 2D.
-import { mount } from './session.js';
-import { createVrRig } from './vrRig.js';
+import { mount } from './session.mjs';
+import { createVrRig } from './vrRig.mjs';
 
-export { detectCapabilities, describeStatus, capabilityRows } from './session.js';
+export { detectCapabilities, describeStatus, capabilityRows } from './session.mjs';
 
 /**
  * @param {object} [app] objet partagé rempli par main.js

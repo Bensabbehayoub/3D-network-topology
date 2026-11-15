@@ -1,10 +1,10 @@
-// Tests de DHCP (src/sim/protocols/dhcp.js, configuration à l'exécution de la pile).
+// Tests de DHCP (src/sim/protocols/dhcp.mjs, configuration à l'exécution de la pile).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { validateScenario } from '../simulation.js';
-import dhcp, { chooseAddress, prefixOfMask } from '../src/sim/protocols/dhcp.js';
-import { play, readScenario, variant } from './netRun.js';
+import { validateScenario } from '../simulation.mjs';
+import dhcp, { chooseAddress, prefixOfMask } from '../src/sim/protocols/dhcp.mjs';
+import { play, readScenario, variant } from './netRun.mjs';
 
 const dhcpSends = (run) => run.events.filter((e) => e.type === 'send' && e.packet.protocol === 'dhcp' && e.source !== 'sw1');
 

@@ -13,9 +13,9 @@
 //
 // Résultats : ctx.memory(source).ping = { sent, replies: [{ sequence, rtt, ttl }], errors, lost }.
 
-import { describeHeaders } from '../protocol.js';
-import { primaryIp } from '../net.js';
-import { DEFAULT_TTL, explainOnce, sendIp } from '../stack.js';
+import { describeHeaders } from '../protocol.mjs';
+import { primaryIp } from '../net.mjs';
+import { DEFAULT_TTL, explainOnce, sendIp } from '../stack.mjs';
 
 export const DEFAULTS = Object.freeze({ count: 2, interval: 1000, timeout: 4000 });
 

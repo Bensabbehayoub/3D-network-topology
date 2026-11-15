@@ -1,14 +1,14 @@
 // Point d'entrée de l'application. Figé après S1 : chaque pôle branche ses
-// sous-modules dans son propre index.js, jamais ici.
+// sous-modules dans son propre index.mjs, jamais ici.
 //
-// Chaque index.js exporte `async function init(app)` et renvoie son API publique,
+// Chaque index.mjs exporte `async function init(app)` et renvoie son API publique,
 // rangée dans `app` sous le nom du pôle. L'ordre compte : chaque pôle peut utiliser
 // ceux qui le précèdent (ui reçoit app.sim et app.render, xr reçoit les trois).
 const MODULES = [
-  ['sim', './src/sim/index.js'],
-  ['render', './src/render/index.js'],
-  ['ui', './src/ui/index.js'],
-  ['xr', './src/xr/index.js'],
+  ['sim', './src/sim/index.mjs'],
+  ['render', './src/render/index.mjs'],
+  ['ui', './src/ui/index.mjs'],
+  ['xr', './src/xr/index.mjs'],
 ];
 
 const app = {};

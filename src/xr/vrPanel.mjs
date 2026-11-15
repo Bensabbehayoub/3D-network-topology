@@ -1,20 +1,20 @@
 // Pôle xr : panneau de commandes 3D de la session VR.
 //
 // Mêmes commandes que la barre HTML (lecture, pause, pas à pas, vitesse, réinitialisation, état,
-// temps simulé) : le panneau réutilise le contrôleur de src/ui/controls.js, donc les mêmes
+// temps simulé) : le panneau réutilise le contrôleur de src/ui/controls.mjs, donc les mêmes
 // appels à app.sim et les mêmes règles d'activation (app.sim.isAllowed). Seul l'affichage
-// change : un canvas dessiné ici, visé par le rayon des manettes (controllers.js).
+// change : un canvas dessiné ici, visé par le rayon des manettes (controllers.mjs).
 
-import { createControlsController } from '../ui/controls.js';
-import { createCanvasPanel, drawBackground, FONT, MONO, PALETTE, roundedRect } from './canvasPanel.js';
-import { CONTROL_PANEL, controlAction, hitTest, panelPlane } from './panelLayout.js';
+import { createControlsController } from '../ui/controls.mjs';
+import { createCanvasPanel, drawBackground, FONT, MONO, PALETTE, roundedRect } from './canvasPanel.mjs';
+import { CONTROL_PANEL, controlAction, hitTest, panelPlane } from './panelLayout.mjs';
 
 const STATUS_COLORS = { playing: PALETTE.playing, paused: PALETTE.hover, finished: PALETTE.accent, unavailable: PALETTE.danger };
 
 /**
  * Dessine le panneau (séparé de Three.js : testé avec un faux contexte 2D).
  * @param {CanvasRenderingContext2D} ctx
- * @param {ReturnType<import('../ui/controls.js').controlsView>} view état des commandes
+ * @param {ReturnType<import('../ui/controls.mjs').controlsView>} view état des commandes
  * @param {string | null} hoverId bouton visé par une manette
  */
 export function drawControlPanel(ctx, view, hoverId = null, layout = CONTROL_PANEL) {

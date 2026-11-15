@@ -1,6 +1,6 @@
 // Ramy (phase 6) : panneau « Recommandations » — diagnostic du réseau chargé.
 //
-// La liste vient de app.sim.diagnose() (src/sim/diagnostics.js) : problèmes triés par gravité,
+// La liste vient de app.sim.diagnose() (src/sim/diagnostics.mjs) : problèmes triés par gravité,
 // avec leur cause et leur correction. Elle est recalculée à chaque changement de scénario et de
 // réinitialisation, et une fois par seconde pendant la lecture (le trafic mesuré peut révéler un
 // lien saturé). Un clic sur un problème le montre dans la scène : l'équipement est sélectionné
@@ -11,7 +11,7 @@
 //   createRecommendationsController() diagnostic tenu à jour, choix d'un problème, sans DOM
 //   mount()                          affichage
 
-import { countBySeverity, SEVERITY_LABELS, TOPICS } from '../../simulation.js';
+import { countBySeverity, SEVERITY_LABELS, TOPICS } from '../../simulation.mjs';
 
 /** Intervalle minimal (ms réelles) entre deux diagnostics pendant la lecture. */
 export const LIVE_REFRESH = 1000;

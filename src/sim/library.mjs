@@ -6,7 +6,7 @@
 // est une ébauche : il n'est pas proposé. Un scénario invalide ou introuvable est écarté (avec
 // son erreur), sans empêcher les autres de se charger.
 
-import { assertScenario } from './scenario.js';
+import { assertScenario } from './scenario.mjs';
 
 /** Dossier des scénarios, relatif à ce module : fonctionne sous /3D-network-topology/ comme en local. */
 export const SCENARIOS_BASE = new URL('../../scenarios/', import.meta.url);

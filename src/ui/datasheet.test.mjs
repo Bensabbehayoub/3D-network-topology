@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { createSimulation, createTrafficMeter, transmissionModel, TOPICS } from '../../simulation.js';
-import { DEVICE_BEHAVIOURS } from '../sim/devices/index.js';
-import { datasheetView, formatPercent, formatRate, loadLevel, TIME_NOTE } from './datasheet.js';
+import { createSimulation, createTrafficMeter, transmissionModel, TOPICS } from '../../simulation.mjs';
+import { DEVICE_BEHAVIOURS } from '../sim/devices/index.mjs';
+import { datasheetView, formatPercent, formatRate, loadLevel, TIME_NOTE } from './datasheet.mjs';
 
-/** Comme src/sim/index.js : moteur avec transmission, compteur et getTraffic(). */
+/** Comme src/sim/index.mjs : moteur avec transmission, compteur et getTraffic(). */
 async function debitSim() {
   const scenario = JSON.parse(await readFile(new URL('../../scenarios/debit.json', import.meta.url), 'utf8'));
   const sim = createSimulation({ devices: DEVICE_BEHAVIOURS, transmission: transmissionModel, scheduler: { start: () => () => {} } });
@@ -57,7 +57,7 @@ test('fiche en cours de transfert : le port vers le serveur est presque plein', 
 });
 
 test('sans mesure (faux moteur) : fiche sans débits, sans erreur', async () => {
-  const { createMockSimulation, DEMO_SCENARIO } = await import('../../simulation.js');
+  const { createMockSimulation, DEMO_SCENARIO } = await import('../../simulation.mjs');
   const sim = createMockSimulation({ scheduler: { start: () => () => {} } });
   await sim.load(DEMO_SCENARIO);
   const sheet = datasheetView({ sim }, 'r1');

@@ -7,17 +7,17 @@
 //
 // Le second paramètre ne sert qu'aux tests sous Node (pas de DOM) : main.js ne le passe pas.
 
-import { mount as mountControls } from './controls.js';
-import { mount as mountExplanations } from './explanations.js';
-import { mount as mountInspector } from './inspector.js';
-import { mount as mountInstall } from './install.js';
-import { mount as mountEditor } from './editor.js';
-import { createModeService, mount as mountModeSwitch } from './modeSwitch.js';
-import { mount as mountRecommendations } from './recommendations.js';
-import { mount as mountScenarioPicker } from './scenarioPicker.js';
-import { attachTabs } from './tabs.js';
-import { createPacketSelection, PACKET_SELECTED_EVENT } from './packets.js';
-import { attachSelection, createSelection, deviceExists, renderHighlighter } from './selection.js';
+import { mount as mountControls } from './controls.mjs';
+import { mount as mountExplanations } from './explanations.mjs';
+import { mount as mountInspector } from './inspector.mjs';
+import { mount as mountInstall } from './install.mjs';
+import { mount as mountEditor } from './editor.mjs';
+import { createModeService, mount as mountModeSwitch } from './modeSwitch.mjs';
+import { mount as mountRecommendations } from './recommendations.mjs';
+import { mount as mountScenarioPicker } from './scenarioPicker.mjs';
+import { attachTabs } from './tabs.mjs';
+import { createPacketSelection, PACKET_SELECTED_EVENT } from './packets.mjs';
+import { attachSelection, createSelection, deviceExists, renderHighlighter } from './selection.mjs';
 
 /**
  * Id des points de montage déclarés dans index.html.
@@ -38,7 +38,7 @@ export const MOUNT_POINTS = Object.freeze({
 });
 
 // Modules montés par ce pôle, dans l'ordre d'affichage.
-// selection.js n'a pas de zone à lui : il est créé à part.
+// selection.mjs n'a pas de zone à lui : il est créé à part.
 const MODULES = [
   { name: 'mode', id: MOUNT_POINTS.mode, mount: mountModeSwitch },
   { name: 'scenarioPicker', id: MOUNT_POINTS.scenarioPicker, mount: mountScenarioPicker },
@@ -62,7 +62,7 @@ const MODULES = [
  *   - clear() → boolean : retire la sélection ;
  *   - getSelection() → id de l'équipement sélectionné, ou null ;
  *   - onChange(listener) → désabonnement ; listener(id, previous) à chaque changement ;
- *   - packets : paquet sélectionné (packets.js) : select(eventId), clear(), get(), onChange(listener).
+ *   - packets : paquet sélectionné (packets.mjs) : select(eventId), clear(), get(), onChange(listener).
  */
 export async function init(app = {}, { root = globalThis.document } = {}) {
   const shared = app ?? {};

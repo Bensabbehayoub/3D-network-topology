@@ -28,7 +28,7 @@ test('index.html déclare les icônes par des chemins relatifs', async () => {
 test('main.js charge les quatre pôles et sw.js par des chemins relatifs', async () => {
   const main = await read('main.js');
   for (const pole of ['sim', 'render', 'ui', 'xr']) {
-    assert.ok(main.includes(`'./src/${pole}/index.js'`), `pôle ${pole} absent`);
+    assert.ok(main.includes(`'./src/${pole}/index.mjs'`), `pôle ${pole} absent`);
   }
   assert.ok(main.includes("register('./sw.js')"));
 });

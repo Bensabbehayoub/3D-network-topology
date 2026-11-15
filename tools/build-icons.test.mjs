@@ -1,10 +1,10 @@
-// Tests de tools/build-icons.js et des icônes versionnées dans assets/icons/.
+// Tests de tools/build-icons.mjs et des icônes versionnées dans assets/icons/.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { inflateSync } from 'node:zlib';
 
-import { buildIcon, drawIcon, encodePng, ICONS, OUTPUT_DIR, readPngSize } from './build-icons.js';
+import { buildIcon, drawIcon, encodePng, ICONS, OUTPUT_DIR, readPngSize } from './build-icons.mjs';
 
 const repoFile = (path) => readFile(new URL(`../${path}`, import.meta.url));
 const pixel = (pixels, size, x, y) => [...pixels.subarray((y * size + x) * 4, (y * size + x) * 4 + 4)];

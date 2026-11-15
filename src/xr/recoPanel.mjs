@@ -1,22 +1,22 @@
 // Pôle xr (phase 6) : panneau « Recommandations » de la session VR.
 //
-// Même contenu et même logique que le panneau 2D (src/ui/recommendations.js, dont il réutilise
+// Même contenu et même logique que le panneau 2D (src/ui/recommendations.mjs, dont il réutilise
 // le contrôleur) : problèmes triés par gravité, recalculés pendant la lecture. Le rayon d'une
 // manette survole une ligne ; la gâchette choisit le problème : l'équipement est sélectionné (sa
 // fiche VR s'affiche), le lien est mis en évidence, et la cause et la correction s'écrivent en bas.
 //
 // Ce qu'il faut écrire est calculé par recoSheet() (pur, testé sous Node) ; le dessin est à part.
 
-import { createRecommendationsController } from '../ui/recommendations.js';
-import { createCanvasPanel, drawBackground, FONT, PALETTE } from './canvasPanel.js';
-import { panelPlane, RECO_PANEL, recoRowAt, wrapText } from './panelLayout.js';
+import { createRecommendationsController } from '../ui/recommendations.mjs';
+import { createCanvasPanel, drawBackground, FONT, PALETTE } from './canvasPanel.mjs';
+import { panelPlane, RECO_PANEL, recoRowAt, wrapText } from './panelLayout.mjs';
 
 export const SEVERITY_COLORS = Object.freeze({ critique: '#ef476f', avertissement: '#f7b538', conseil: '#70b7df' });
 export const RECO_HINT = 'Visez un problème et appuyez sur la gâchette : il est montré dans la maquette et sa correction s\'affiche ici.';
 
 /**
  * Contenu du panneau (fonction pure).
- * @param {ReturnType<import('../ui/recommendations.js').recommendationsView>} view
+ * @param {ReturnType<import('../ui/recommendations.mjs').recommendationsView>} view
  * @param {number} [first] rang du premier problème affiché (défilement)
  */
 export function recoSheet(view, first = 0) {

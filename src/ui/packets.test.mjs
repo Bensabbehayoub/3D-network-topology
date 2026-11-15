@@ -4,9 +4,9 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { createSimulation } from '../../simulation.js';
-import { DEVICE_BEHAVIOURS } from '../sim/devices/index.js';
-import { createPacketSelection, deviceName, findEvent, logEntry, packetLabel, packetView } from './packets.js';
+import { createSimulation } from '../../simulation.mjs';
+import { DEVICE_BEHAVIOURS } from '../sim/devices/index.mjs';
+import { createPacketSelection, deviceName, findEvent, logEntry, packetLabel, packetView } from './packets.mjs';
 
 async function arpRun() {
   const scenario = JSON.parse(await readFile(new URL('../../scenarios/arp.json', import.meta.url), 'utf8'));

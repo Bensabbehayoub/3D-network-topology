@@ -31,7 +31,7 @@ jobs:
           node-version: 22
       - run: node --test
       # Vérifie à chaque pull request que la liste de précache se génère sans erreur.
-      - run: node tools/build-precache.js
+      - run: node tools/build-precache.mjs
 
   deploy:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -52,7 +52,7 @@ jobs:
         with:
           node-version: 22
       # Liste de précache publiée avec le site : sw.js la lit pour le mode hors ligne.
-      - run: node tools/build-precache.js
+      - run: node tools/build-precache.mjs
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

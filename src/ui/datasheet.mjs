@@ -6,7 +6,7 @@
 // - débit global et bande passante globale de l'équipement.
 // Les débits viennent de app.sim.getTraffic() et se mettent à jour pendant la simulation.
 
-import { CABLES, formatNumber, formatSpeed, modelOf, modelPorts, modelSheet, portConnector, portSpeed } from '../../simulation.js';
+import { CABLES, formatNumber, formatSpeed, modelOf, modelPorts, modelSheet, portConnector, portSpeed } from '../../simulation.mjs';
 
 /** Note sur l'échelle de temps, affichée sous les débits. */
 export const TIME_NOTE = 'Débits en temps réseau : 1 s de simulation = 1 ms de réseau.';

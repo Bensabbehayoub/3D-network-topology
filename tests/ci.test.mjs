@@ -30,7 +30,7 @@ test('jobs : tests, déploiement (adresse publiée en sortie), vérification HTT
   const yaml = await read('.github/workflows/ci.yml');
   const tests = job(yaml, 'test');
   assert.match(tests, /run: node --test/);
-  assert.match(tests, /run: node tools\/build-precache\.js/);
+  assert.match(tests, /run: node tools\/build-precache.mjs/);
   const deploy = job(yaml, 'deploy');
   assert.match(deploy, /needs: test/);
   assert.match(deploy, /page_url: \$\{\{ steps\.deployment\.outputs\.page_url \}\}/);

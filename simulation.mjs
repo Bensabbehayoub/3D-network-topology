@@ -1,16 +1,16 @@
 // Khalil : façade du moteur de simulation.
 //
 // Seul point d'import conseillé pour les autres pôles et pour les tests :
-//   import { TOPICS, STATUS, COMMANDS, isAllowed } from '../../simulation.js';
+//   import { TOPICS, STATUS, COMMANDS, isAllowed } from '../../simulation.mjs';
 //
 // Elle ne contient aucune logique : elle regroupe les contrats publics de src/sim/.
 
-export { TOPICS, EVENT_TYPES, BROADCAST_MAC, createBus, createEvent, isBroadcast } from './src/sim/events.js';
-export { STATUS, COMMANDS, isAllowed, nextStatus, allowedCommands } from './src/sim/state.js';
-export { createSimulation, MIN_SPEED, MAX_SPEED, MAX_FRAME_DELTA, EXTERNAL_TICK_TIMEOUT } from './src/sim/commands.js';
-export { createMockSimulation, DEMO_SCENARIO, DEMO_PROTOCOL } from './src/sim/mock.js';
-export { createEngine } from './src/sim/engine.js';
-export { checkProtocol, loadProtocol, describeHeaders } from './src/sim/protocol.js';
+export { TOPICS, EVENT_TYPES, BROADCAST_MAC, createBus, createEvent, isBroadcast } from './src/sim/events.mjs';
+export { STATUS, COMMANDS, isAllowed, nextStatus, allowedCommands } from './src/sim/state.mjs';
+export { createSimulation, MIN_SPEED, MAX_SPEED, MAX_FRAME_DELTA, EXTERNAL_TICK_TIMEOUT } from './src/sim/commands.mjs';
+export { createMockSimulation, DEMO_SCENARIO, DEMO_PROTOCOL } from './src/sim/mock.mjs';
+export { createEngine } from './src/sim/engine.mjs';
+export { checkProtocol, loadProtocol, describeHeaders } from './src/sim/protocol.mjs';
 export {
   SCHEMA_VERSION,
   DEVICE_TYPES,
@@ -24,17 +24,17 @@ export {
   neighbours,
   parseCidr,
   parseEndpoint,
-} from './src/sim/scenario.js';
+} from './src/sim/scenario.mjs';
 export {
   CABLES, DEFAULT_SPEED, MODELS, SPEEDS, formatNumber, formatSpeed, modelOf, modelPorts, modelSheet, portConnector, portSpeed,
-} from './src/sim/catalog.js';
-export { SLOWDOWN, createTrafficMeter, frameSize, linkBandwidth, transmissionModel, transmissionTime } from './src/sim/traffic.js';
-export { diagnose, countBySeverity, SEVERITIES, SEVERITY_LABELS, SATURATION } from './src/sim/diagnostics.js';
+} from './src/sim/catalog.mjs';
+export { SLOWDOWN, createTrafficMeter, frameSize, linkBandwidth, transmissionModel, transmissionTime } from './src/sim/traffic.mjs';
+export { diagnose, countBySeverity, SEVERITIES, SEVERITY_LABELS, SATURATION } from './src/sim/diagnostics.mjs';
 export {
   BuilderError, MAX_LABEL, TYPE_NAMING, addDevice, connect, disconnect, freePorts, fromScenario, moveDevice, newTopology, palette, removeDevice, renameDevice,
-} from './src/sim/builder.js';
+} from './src/sim/builder.mjs';
 export {
   ROLES, addRecord, addRoute, addService, proposeAddress, proposeGateway, removeRecord, removeRoute, removeService, rolesOf, setAddress, setDns,
   setGateway, setRole,
-} from './src/sim/config.js';
-export { RUNS, assembleRun, defaultValues, runFields, validateRun } from './src/sim/runs.js';
+} from './src/sim/config.mjs';
+export { RUNS, assembleRun, defaultValues, runFields, validateRun } from './src/sim/runs.mjs';

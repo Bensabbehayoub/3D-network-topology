@@ -1,10 +1,10 @@
-// Tests d'UDP (src/sim/protocols/udp.js, ports et erreurs de la pile) avec le vrai moteur.
+// Tests d'UDP (src/sim/protocols/udp.mjs, ports et erreurs de la pile) avec le vrai moteur.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { validateScenario } from '../simulation.js';
-import udp from '../src/sim/protocols/udp.js';
-import { play, readScenario, variant } from './netRun.js';
+import { validateScenario } from '../simulation.mjs';
+import udp from '../src/sim/protocols/udp.mjs';
+import { play, readScenario, variant } from './netRun.mjs';
 
 test('scenarios/udp.json : datagrammes livrés sans réponse, port fermé → ICMP port inaccessible', async () => {
   const scenario = await readScenario('udp');

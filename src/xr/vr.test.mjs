@@ -1,21 +1,21 @@
 // Tests de l'interface VR (pôle xr). Sans casque ni DOM : faux canvas, fausse session WebXR,
-// faux rendu (src/render/mock.js) et vrai faux moteur. Three.js tourne sous Node tant qu'on
+// faux rendu (src/render/mock.mjs) et vrai faux moteur. Three.js tourne sous Node tant qu'on
 // n'affiche rien.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createMockRenderer } from '../render/mock.js';
-import { createMockSimulation, DEMO_SCENARIO } from '../../simulation.js';
-import { init as initUi } from '../ui/index.js';
-import { describeSelection } from '../ui/inspector.js';
-import { createControllers, hoverChange, selectAction } from './controllers.js';
-import { createVrDevicePanel, createVrStepPanel, currentStep, DEVICE_HINT, deviceSheet, STEP_HINT, stepSheet } from './infoPanels.js';
+import { createMockRenderer } from '../render/mock.mjs';
+import { createMockSimulation, DEMO_SCENARIO } from '../../simulation.mjs';
+import { init as initUi } from '../ui/index.mjs';
+import { describeSelection } from '../ui/inspector.mjs';
+import { createControllers, hoverChange, selectAction } from './controllers.mjs';
+import { createVrDevicePanel, createVrStepPanel, currentStep, DEVICE_HINT, deviceSheet, STEP_HINT, stepSheet } from './infoPanels.mjs';
 import {
   CONTROL_PANEL, controlAction, hitTest, intersectPanel, nextSpeed, panelPlane, panelPoses,
   RAY_LENGTH, rayFromPose, resolveTarget, SPEEDS, wrapText,
-} from './panelLayout.js';
-import { canMountRig } from './vrRig.js';
-import { createVrControlPanel, drawControlPanel } from './vrPanel.js';
+} from './panelLayout.mjs';
+import { canMountRig } from './vrRig.mjs';
+import { createVrControlPanel, drawControlPanel } from './vrPanel.mjs';
 
 const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-6, message ?? `${actual} ≠ ${expected}`);
 const silentScheduler = { start: () => () => {} };
@@ -389,8 +389,8 @@ test('canMountRig : l\'interface VR exige la scène, la boucle et l\'ancrage du 
 });
 
 test('recommandations VR : contenu du panneau, lignes visées, détail du problème choisi', async () => {
-  const { recoSheet, RECO_HINT } = await import('./recoPanel.js');
-  const { recoRowAt, RECO_PANEL } = await import('./panelLayout.js');
+  const { recoSheet, RECO_HINT } = await import('./recoPanel.mjs');
+  const { recoRowAt, RECO_PANEL } = await import('./panelLayout.mjs');
   const items = Array.from({ length: 7 }, (_, i) => ({
     id: `f${i}`, severity: i === 0 ? 'critique' : 'conseil', severityLabel: i === 0 ? 'Critique' : 'Conseil',
     target: { kind: i === 1 ? 'link' : 'device', id: `x${i}`, label: `Cible ${i}` },

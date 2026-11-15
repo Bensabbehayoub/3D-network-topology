@@ -1,11 +1,11 @@
-// Tests de l'hôte et du serveur (src/sim/devices/host.js) avec un faux ctx.
+// Tests de l'hôte et du serveur (src/sim/devices/host.mjs) avec un faux ctx.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { DEVICE_BEHAVIOURS } from '../src/sim/devices/index.js';
-import host from '../src/sim/devices/host.js';
-import { arpCache } from '../src/sim/stack.js';
-import { fakeCtx, frame, LAN } from './fakeCtx.js';
+import { DEVICE_BEHAVIOURS } from '../src/sim/devices/index.mjs';
+import host from '../src/sim/devices/host.mjs';
+import { arpCache } from '../src/sim/stack.mjs';
+import { fakeCtx, frame, LAN } from './fakeCtx.mjs';
 
 const pc2 = LAN.devices.find((d) => d.id === 'pc2');
 const PC1 = '02:00:00:00:00:01';

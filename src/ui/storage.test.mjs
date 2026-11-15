@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
-import { addDevice, newTopology } from '../../simulation.js';
-import { createTopologyStore, DRAFT_KEY, exportJson, fileName, LIBRARY_KEY, MAX_IMPORT, parseImport, UNAVAILABLE } from './storage.js';
+import { addDevice, newTopology } from '../../simulation.mjs';
+import { createTopologyStore, DRAFT_KEY, exportJson, fileName, LIBRARY_KEY, MAX_IMPORT, parseImport, UNAVAILABLE } from './storage.mjs';
 
 /** Faux localStorage en mémoire. */
 export function memoryStorage() {

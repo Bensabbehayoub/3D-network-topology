@@ -4,9 +4,10 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import * as THREE from '../vendor/three/build/three.webgpu.js';
-import { computeFrame, createPacketAnimator, mountPacketAnimator, packetPosition, PACKET_HEIGHT } from '../src/render/packetAnimator.js';
-import { createMockSimulation, DEMO_SCENARIO } from '../src/sim/mock.js';
-import { STATUS } from '../simulation.js';
+import { cablePath, computeFrame, createPacketAnimator, mountPacketAnimator, packetPosition, pathPoint, PACKET_HEIGHT, PACKET_RADIUS } from '../src/render/packetAnimator.mjs';
+import { createLinkLayer } from '../src/render/links.mjs';
+import { createMockSimulation, DEMO_SCENARIO } from '../src/sim/mock.mjs';
+import { STATUS } from '../simulation.mjs';
 
 /** Horloge manuelle : frame(ms) joue une image de ms millisecondes réelles. */
 function manualScheduler() {
@@ -128,4 +129,113 @@ test('dispose retire le groupe et se désabonne du moteur', async () => {
   sim.play();
   scheduler.frame(100);
   assert.equal(animator.count(), 0);
+});
+
+// --- Paquets sur les câbles : le paquet suit le tracé du câble dessiné par links.mjs ---
+
+/** Scène minimale : un groupe « World » avec les équipements de la démo et leurs vrais câbles. */
+function sceneWithCables() {
+  const world = new THREE.Group();
+  const roots = new Map();
+  for (const [id, p] of positions) {
+    const root = new THREE.Object3D();
+    root.position.set(p.x, p.y, p.z);
+    roots.set(id, root);
+    world.add(root);
+  }
+  const links = [
+    { id: 'l1', from: 'pc1', to: 'sw1' },
+    { id: 'l2', from: 'sw1', to: 'r1' },
+    { id: 'l3', from: 'r1', to: 'sw2' },
+    { id: 'l4', from: 'sw2', to: 'pc2' },
+  ];
+  const layer = createLinkLayer(links, roots);
+  world.add(layer.group);
+  return { world, layer };
+}
+
+test("pathPoint : avance à vitesse constante le long d'une ligne brisée", () => {
+  const points = [{ x: 0, y: 0, z: 0 }, { x: 3, y: 0, z: 0 }, { x: 3, y: 0, z: 1 }]; // longueur 3 + 1
+  assert.deepEqual(pathPoint(points, 0), { x: 0, y: 0, z: 0 });
+  assert.deepEqual(pathPoint(points, 0.5), { x: 2, y: 0, z: 0 });
+  assert.deepEqual(pathPoint(points, 0.875), { x: 3, y: 0, z: 0.5 });
+  assert.deepEqual(pathPoint(points, 1), { x: 3, y: 0, z: 1 });
+  assert.deepEqual(pathPoint(points, 2), pathPoint(points, 1));
+});
+
+test("cablePath : retrouve le câble par son id et l'oriente dans le sens du paquet", () => {
+  const { world } = sceneWithCables();
+  const forward = cablePath(world, { link: 'l1', source: 'pc1', destination: 'sw1' });
+  const backward = cablePath(world, { link: 'l1', source: 'sw1', destination: 'pc1' });
+  assert.equal(forward.length, 3); // départ, creux du câble, arrivée
+  assert.deepEqual(backward, [...forward].reverse());
+  assert.ok(forward[0].x < forward[2].x, 'de pc1 (x = -4) vers sw1 (x = -2)');
+  assert.ok(forward[1].y <= forward[0].y, 'le milieu du câble est le point le plus bas');
+  // Sans id de lien, on le retrouve par ses deux extrémités.
+  assert.deepEqual(cablePath(world, { source: 'pc1', destination: 'sw1' }), forward);
+  assert.equal(cablePath(world, { source: 'pc1', destination: 'pc2' }), null);
+  assert.equal(cablePath(new THREE.Group(), { source: 'pc1', destination: 'sw1' }), null);
+});
+
+test('cablePath : même tracé quand le monde est réduit et déplacé (mode VR)', () => {
+  const { world } = sceneWithCables();
+  const before = cablePath(world, { link: 'l2', source: 'sw1', destination: 'r1' });
+  world.scale.setScalar(0.25);
+  world.position.set(0, 1, -2);
+  const after = cablePath(world, { link: 'l2', source: 'sw1', destination: 'r1' });
+  after.forEach((p, i) => {
+    for (const axis of ['x', 'y', 'z']) assert.ok(Math.abs(p[axis] - before[i][axis]) < 1e-9);
+  });
+});
+
+test("computeFrame place le paquet sur le câble, pas en l'air", () => {
+  const { world } = sceneWithCables();
+  const event = { id: 7, link: 'l1', source: 'pc1', destination: 'sw1', packet: { id: 'p1', protocol: 'demo', type: 'request' } };
+  const getPath = (e) => cablePath(world, e);
+  const path = getPath(event);
+  for (const progress of [0, 0.25, 0.5, 0.75, 1]) {
+    const [item] = computeFrame([{ event, progress }], getPosition, getPath);
+    assert.deepEqual(item.position, pathPoint(path, progress));
+    assert.ok(item.position.y < PACKET_HEIGHT, `y = ${item.position.y}`);
+  }
+  // Sans câble dessiné : repli en ligne droite au-dessus des équipements.
+  const [fallback] = computeFrame([{ event, progress: 0.5 }], getPosition, () => null);
+  assert.deepEqual(fallback.position, packetPosition(getPosition('pc1'), getPosition('sw1'), 0.5));
+});
+
+test('mountPacketAnimator : le paquet de la démo suit les câbles de la scène', async () => {
+  const { world } = sceneWithCables();
+  const scheduler = manualScheduler();
+  const sim = createMockSimulation({ scheduler });
+  await sim.load(DEMO_SCENARIO);
+  const render = { world, getDevice: (id) => (positions.has(id) ? { position: positions.get(id) } : null) };
+  const animator = mountPacketAnimator({ sim, render });
+  sim.play();
+  scheduler.frame(16);
+  scheduler.frame(184); // milieu du câble pc1 → sw1
+  const [item] = animator.getFrame();
+  const path = cablePath(world, { source: 'pc1', destination: 'sw1' });
+  const expected = pathPoint(path, item.progress);
+  for (const axis of ['x', 'y', 'z']) assert.ok(Math.abs(item.position[axis] - expected[axis]) < 1e-9, axis);
+  const mesh = world.getObjectByName('packets').children[0];
+  assert.ok(Math.abs(mesh.position.y - expected.y) < 1e-9, 'la sphère est sur le câble');
+  animator.dispose();
+});
+
+test('tous les paquets ont la même taille, diffusion comprise', () => {
+  const sim = {
+    on: () => () => {},
+    getPacketsInFlight: () => [
+      { event: { id: 1, source: 'pc1', destination: 'sw1', packet: { id: 'u', protocol: 'icmp', type: 'request', eth: { dst: '02:00:00:00:02:01' } } }, progress: 0.5 },
+      { event: { id: 2, source: 'sw1', destination: 'r1', packet: { id: 'b', protocol: 'arp', type: 'request', eth: { dst: 'ff:ff:ff:ff:ff:ff' } } }, progress: 0.5 },
+    ],
+  };
+  const parent = new THREE.Group();
+  const animator = createPacketAnimator({ sim, parent, getPosition });
+  const [unicast, broadcast] = animator.getFrame();
+  assert.equal(unicast.broadcast, false);
+  assert.equal(broadcast.broadcast, true);
+  const sizes = parent.getObjectByName('packets').children.map((mesh) => mesh.scale.x);
+  assert.deepEqual(sizes, [PACKET_RADIUS, PACKET_RADIUS]);
+  animator.dispose();
 });

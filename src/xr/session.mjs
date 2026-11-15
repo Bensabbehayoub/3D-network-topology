@@ -5,14 +5,14 @@
 // Si WebXR est absente, le statut l'indique et l'application reste en mode 2D (souris / tactile).
 //
 // La détection est séparée de l'affichage : detectCapabilities() et describeStatus() sont
-// testables sous Node avec un faux environnement (voir session.test.js).
+// testables sous Node avec un faux environnement (voir session.test.mjs).
 
 /** Fonctionnalités demandées à l'ouverture de la session (facultatives : la session s'ouvre sans). */
 export const SESSION_OPTIONS = Object.freeze({ optionalFeatures: ['local-floor', 'bounded-floor'] });
 
 /**
  * Options de session : SESSION_OPTIONS, plus les fonctionnalités demandées par le rendu
- * (« webgpu » : voie native de la VR en WebGPU, voir src/render/renderers.js).
+ * (« webgpu » : voie native de la VR en WebGPU, voir src/render/renderers.mjs).
  * @param {string[]} [extra] app.render.xrSessionFeatures()
  */
 export function sessionOptions(extra = []) {
@@ -46,7 +46,7 @@ export async function detectCapabilities(env = globalThis) {
     immersiveVR: webxr ? await supports(xr, 'immersive-vr') : false,
     immersiveAR: webxr ? await supports(xr, 'immersive-ar') : false,
     webgpu: Boolean(navigator.gpu),
-    // API WebXR/WebGPU du navigateur ; le pont de l'émulateur (src/render/xrBridge.js) n'est pas compté.
+    // API WebXR/WebGPU du navigateur ; le pont de l'émulateur (src/render/xrBridge.mjs) n'est pas compté.
     xrGPUBinding: typeof env.XRGPUBinding === 'function' && env.XRGPUBinding.isTopologyBridge !== true,
   };
 }

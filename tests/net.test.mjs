@@ -1,11 +1,11 @@
-// Tests de l'adressage IPv4 et des tables de routage (src/sim/net.js), fonctions pures.
+// Tests de l'adressage IPv4 et des tables de routage (src/sim/net.mjs), fonctions pures.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
   addressedInterfaces, formatRoute, inNetwork, intToIp, ipToInt, lookupRoute, maskOf, networkAddress,
   ownsIp, parseNetwork, primaryIp, routingTable,
-} from '../src/sim/net.js';
+} from '../src/sim/net.mjs';
 
 test('conversions d\'adresses et masques', () => {
   assert.equal(ipToInt('192.168.1.10'), 0xc0a8010a);
