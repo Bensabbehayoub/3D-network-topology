@@ -115,7 +115,7 @@ Détails : [`docs/manuel.md`](docs/manuel.md#réalité-virtuelle). Sans WebXR, l
 
 | Besoin | Choix | Pourquoi |
 | --- | --- | --- |
-| Rendu 3D | **Three.js r187**, `WebGPURenderer`, copié dans `vendor/three/` | Rendu 100 % WebGPU demandé par le superviseur, y compris en VR (pont `src/render/xrBridge.js` pour l'émulateur). Essais : [`docs/decision-renderer.md`](docs/decision-renderer.md). |
+| Rendu 3D | **Three.js r187**, `WebGPURenderer`, copié dans `vendor/three/` | Rendu 100 % WebGPU demandé par le superviseur, y compris en VR (pont `src/render/xrBridge.mjs` pour l'émulateur). Essais : [`docs/decision-renderer.md`](docs/decision-renderer.md). |
 | Réalité virtuelle | **WebXR Device API** (`immersive-vr`), testée avec Immersive Web Emulator | Aucun casque disponible ; même code pour un vrai casque. |
 | Simulation | Moteur **à évènements discrets** en JavaScript pur | Déterministe (pause, pas à pas, vitesse cohérents), testable sous Node, indépendant du nombre d'images par seconde. |
 | Application | **PWA** : `manifest.json` + Service Worker | Accès par URL, installation facultative, hors ligne. |
@@ -153,7 +153,7 @@ Détails, diagrammes de déploiement, de séquence et de classes : [`docs/archit
 index.html, styles.css      page et mise en page
 main.js                     charge les quatre pôles, enregistre le Service Worker
 manifest.json, sw.js        PWA (installation, hors ligne)
-simulation.js               façade publique du pôle sim
+simulation.mjs               façade publique du pôle sim
 src/sim/                    moteur, pile réseau, équipements, protocoles, trafic, diagnostic, éditeur
 src/render/                 scène WebGPU, topologie, paquets, pont WebXR
 src/ui/                     interface : commandes, inspecteur, journal, recommandations, éditeur
@@ -178,7 +178,7 @@ docs/                       documentation
 | --- | --- | --- | --- |
 | **Ramy Driouech** | [ramydriwech](https://github.com/ramydriwech) | Interface pédagogique (`src/ui/`, `index.html`, `styles.css`) | Cas d'utilisation, cahier conceptuel, manuel utilisateur, vidéo |
 | **Mohamed Aziz Saoudi** | [zyyyyyyyyyyz](https://github.com/zyyyyyyyyyyz) | Rendu 3D (`src/render/`, `vendor/three/`, `assets/models/`) | Diagramme de séquence du ping, captures et montage vidéo |
-| **Khalil Krifa** | [111JOJO111](https://github.com/111JOJO111) | Moteur de simulation (`simulation.js`, `src/sim/`, `tests/`) | Diagramme de classes, doc de la simulation |
+| **Khalil Krifa** | [111JOJO111](https://github.com/111JOJO111) | Moteur de simulation (`simulation.mjs`, `src/sim/`, `tests/`) | Diagramme de classes, doc de la simulation |
 | **Ayoub Ben Sabbeh** | [Bensabbehayoub](https://github.com/Bensabbehayoub) | Plateforme et XR (`main.js`, `sw.js`, `.github/`, `tools/`, `src/xr/`) | Diagramme de déploiement, doc de déploiement |
 
 - **Sprints S1 et S2** : un pôle par membre, propriétaire de ses fichiers (CODEOWNERS), fusion par pull request relue.

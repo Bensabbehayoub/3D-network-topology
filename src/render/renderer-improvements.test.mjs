@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../../vendor/three/build/three.webgpu.js';
-import {createDeviceFactory} from './factory.js';
-import {createMockRenderer} from './mock.js';
-import {pickDeviceFromObjects} from './scene.js';
+import {createDeviceFactory} from './factory.mjs';
+import {createMockRenderer} from './mock.mjs';
+import {pickDeviceFromObjects} from './scene.mjs';
 
 const raycaster=new THREE.Raycaster();
 const box=(id,z,{nested=false}={})=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial());mesh.position.z=z;if(!nested)mesh.userData.deviceId=id;if(!nested)return mesh;const root=new THREE.Group();root.userData.deviceId=id;const child=new THREE.Group();child.add(mesh);root.add(child);return root;};

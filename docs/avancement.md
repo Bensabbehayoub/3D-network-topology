@@ -24,14 +24,14 @@ Tests : `node --test` → 188 tests, 177 réussis, 11 « à faire » (protocoles
 
 | Domaine | État |
 | --- | --- |
-| Moteur (`src/sim/`) | Contrôleur, file d'évènements, bus, états, validation des scénarios : faits et testés. `app.sim` est encore le **faux moteur** (`mock.js`, protocole « demo »). |
+| Moteur (`src/sim/`) | Contrôleur, file d'évènements, bus, états, validation des scénarios : faits et testés. `app.sim` est encore le **faux moteur** (`mock.mjs`, protocole « demo »). |
 | Protocoles (`src/sim/protocols/`) | **Vides** (9 lignes chacun) : ARP, ICMP, UDP, DNS, DHCP, TCP, HTTP. Pas de routage. |
-| Équipements (`src/sim/devices/`) | **Vides** : `host.js`, `switch.js`, `router.js`. |
+| Équipements (`src/sim/devices/`) | **Vides** : `host.mjs`, `switch.mjs`, `router.mjs`. |
 | Scénarios | `arp.json` complet ; les sept autres sont des ébauches de 6 lignes. |
-| Rendu (`src/render/`) | Three.js **r180**, `WebGLRenderer`. Topologie, liens, étiquettes, modèles GLB, surbrillance, lancer de rayon (`picking.js`), animation des paquets. |
-| Interface (`src/ui/`) | Commandes, sélection, fiche d'équipement : faites et testées. `scenarioPicker.js` et `explanations.js` : gabarits S1 sans logique. `install.js` : vide. Pas d'inspecteur de paquet ni de journal. |
-| XR (`src/xr/`) | Détection WebXR, statut, entrée et sortie de session `immersive-vr`. `vrPanel.js` et `controllers.js` : vides. |
-| PWA | `manifest.json` sans icône ; `sw.js` ne met rien en cache ; `tools/build-precache.js` génère `precache-manifest.js` (non versionné) mais rien ne le lit. |
+| Rendu (`src/render/`) | Three.js **r180**, `WebGLRenderer`. Topologie, liens, étiquettes, modèles GLB, surbrillance, lancer de rayon (`picking.mjs`), animation des paquets. |
+| Interface (`src/ui/`) | Commandes, sélection, fiche d'équipement : faites et testées. `scenarioPicker.mjs` et `explanations.mjs` : gabarits S1 sans logique. `install.mjs` : vide. Pas d'inspecteur de paquet ni de journal. |
+| XR (`src/xr/`) | Détection WebXR, statut, entrée et sortie de session `immersive-vr`. `vrPanel.mjs` et `controllers.mjs` : vides. |
+| PWA | `manifest.json` sans icône ; `sw.js` ne met rien en cache ; `tools/build-precache.mjs` génère `precache-manifest.js` (non versionné) mais rien ne le lit. |
 | CI | Tests, génération du précache, déploiement GitHub Pages. Pas de vérification après déploiement. |
 | Documentation | README et architecture décrivent l'état S1 ; `decision-renderer.md` se contredit sur la version (r187 annoncée, r180 embarquée). |
 
@@ -60,18 +60,18 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 12 nov | `docs/avancement.md` est le fichier de reprise entre conversations. | Demande de Ramy. |
 | 12 nov | `precache-manifest.js` reste généré (non versionné). Sans lui, `sw.js` s'installe sans cache. | Personne ne maintient la liste à la main ; le développement local n'est pas gêné par un cache. |
 | 12 nov | Stratégie unique « cache d'abord » ; une nouvelle version prend la main à l'activation (`skipWaiting`, `clients.claim`) et supprime les anciens caches. Pas de bandeau « nouvelle version ». | Simplicité ; la version du cache change dès qu'un fichier change. |
-| 12 nov | Icônes dessinées par `tools/build-icons.js` (PNG écrit avec `zlib` de Node), versionnées dans `assets/icons/`. | Aucune dépendance, aucune ressource tierce à attribuer. |
+| 12 nov | Icônes dessinées par `tools/build-icons.mjs` (PNG écrit avec `zlib` de Node), versionnées dans `assets/icons/`. | Aucune dépendance, aucune ressource tierce à attribuer. |
 | 12 nov | Horloge du moteur pilotée par la boucle de rendu (`app.sim.tick(delta)`), avec relais interne si personne ne l'appelle pendant 250 ms. | En VR, le `requestAnimationFrame` de la fenêtre est suspendu : sans cela la simulation se figeait. |
 | 12 nov | Panneaux VR dessinés sur des canvas 2D appliqués à des plans (pas de bibliothèque de texte 3D). Ils réutilisent `controlsView` et `describeSelection` du pôle ui. | Aucune dépendance ; mêmes règles et mêmes données qu'en 2D. |
 | 12 nov | Visée à la manette avec tolérance (`pickDeviceHit(…, { tolerance: 0.7 })`) : l'étiquette d'un équipement est aussi une cible. | Routeur et switch sont plats, donc difficiles à toucher exactement avec un rayon. |
 | 12 nov | Gâchette dans le vide : la sélection est gardée. | Éviter de perdre la fiche sur un tir manqué. |
 | 12 nov | Essais VR automatisés avec la bibliothèque IWER 2.8 (Meta) injectée dans Chrome piloté, depuis un dossier temporaire hors dépôt. | L'extension Immersive Web Emulator ne se charge pas dans un Chrome sans interface ; IWER est son moteur. |
 | 12 nov | **Rendu 100 % WebGPU** : `WebGPURenderer` seul, en mode classique et en VR ; `WebGLRenderer`, `three.module.js` et `?rendu=webgl` supprimés. Aucun contexte WebGL n'est créé. | Demande du professeur (cours : WebGPU, WebXR, Immersive Web Emulator). Remplace la bascule vers `WebGLRenderer` en VR, jamais commitée. |
-| 12 nov | VR en WebGPU : `XRGPUBinding` du navigateur s'il accorde la fonctionnalité `webgpu` ; sinon (Immersive Web Emulator) pont `src/render/xrBridge.js` (XRGPUBinding fourni par le pont, copie WebGPU dans un canevas WebGPU, couche-surface sans WebGL remise à l'émulateur). | L'émulateur ne connaît pas l'API WebXR/WebGPU ; le `XRGPUBinding` de Chrome (derrière un drapeau) refuse ses sessions. |
+| 12 nov | VR en WebGPU : `XRGPUBinding` du navigateur s'il accorde la fonctionnalité `webgpu` ; sinon (Immersive Web Emulator) pont `src/render/xrBridge.mjs` (XRGPUBinding fourni par le pont, copie WebGPU dans un canevas WebGPU, couche-surface sans WebGL remise à l'émulateur). | L'émulateur ne connaît pas l'API WebXR/WebGPU ; le `XRGPUBinding` de Chrome (derrière un drapeau) refuse ses sessions. |
 | 12 nov | Sans WebGPU : message « WebGPU requis » à la place de la scène, aucun repli. | Choix du 100 % WebGPU ; le repli WebGL 2 de `WebGPURenderer` n'est jamais déclenché. |
 | 12 nov | La vue classique (caméra, cible) est sauvegardée à l'entrée en VR et rendue à la sortie. | Three.js recopie la pose du casque dans la caméra : la vue revenait collée au routeur. |
 | 12 nov | Phase 4 découpée en 4a, 4b, 4c, 4d, un commit chacune. | Taille de la phase ; accord de Ramy. |
-| 12 nov | Pile réseau commune (`stack.js`, `net.js`) : les équipements font ARP, routage, TTL et réponse au ping ; les protocoles ne gèrent que leur côté « application ». | Mêmes équipements pour tous les scénarios ; les protocoles de 4b/4c (DNS, DHCP, TCP, HTTP) s'appuieront sur `sendIp`. |
+| 12 nov | Pile réseau commune (`stack.mjs`, `net.mjs`) : les équipements font ARP, routage, TTL et réponse au ping ; les protocoles ne gèrent que leur côté « application ». | Mêmes équipements pour tous les scénarios ; les protocoles de 4b/4c (DNS, DHCP, TCP, HTTP) s'appuieront sur `sendIp`. |
 | 12 nov | Explications choisies par le scénario : la pile annonce des identifiants d'étapes standard (du plus précis au plus général), seules celles présentes dans `steps` sont affichées, une fois par exécution. | Ajouter ou retirer une explication sans toucher au code. |
 | 12 nov | `scenarios/index.json` liste les scénarios terminés ; les ébauches restent hors liste. Repli sur le faux moteur si aucun scénario n'est lisible. | Pas de listage de dossier possible sur un site statique. |
 | 12 nov | Durées ralenties : 400 ms par lien, ping toutes les 7 s, délais de 10 à 12 s. | Paquets visibles à vitesse 1 ; la vitesse ×4 accélère. |
@@ -89,7 +89,7 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 | 12 nov | Option B (choix de Ramy) : la bande passante règle le temps d'émission, et chaque port a une file d'attente. | Un lien lent est vraiment plus lent ; l'utilisation ne dépasse jamais 100 % ; base de la règle « goulot d'étranglement » de la phase 6. |
 | 12 nov | Fenêtre d'émission TCP (8000 octets) à la place d'un intervalle fixe entre segments. | Les émetteurs suivent le rythme du lien le plus lent, sans perte ni retransmission inutile. |
 | 12 nov | Perte simulée sur le câble (option `lost` de `ctx.send`) : la trame part puis disparaît à mi-chemin. | Avec la file d'attente, l'ancienne perte « avant le départ » apparaissait avant le segment précédent. |
-| 12 nov | Catalogue générique (`src/sim/catalog.js`) : 8 modèles fictifs aux valeurs réalistes (capacité de commutation = somme des ports × 2, débit de transfert en paquets de 64 octets). | Règle « pas de produits réels ». |
+| 12 nov | Catalogue générique (`src/sim/catalog.mjs`) : 8 modèles fictifs aux valeurs réalistes (capacité de commutation = somme des ports × 2, débit de transfert en paquets de 64 octets). | Règle « pas de produits réels ». |
 | 12 nov | Bande passante globale d'un équipement = somme des vitesses des ports reliés × 2 (duplex) ; débit global = émis + reçu. | Définition simple, cohérente avec la capacité de commutation des fiches constructeur. |
 | 13 nov | Gravités : critique (le réseau ne fonctionne pas comme prévu), avertissement (dégradé ou risqué), conseil (bonne pratique, ex. point de défaillance unique). La pastille de l'onglet ne compte pas les conseils. | Ne pas noyer les vrais problèmes sous les conseils. |
 | 13 nov | « Passerelle introuvable » critique seulement s'il existe d'autres réseaux ; sinon conseil. Passerelles inutiles retirées des scénarios à un seul réseau (arp, udp, tcp, debit). | Sans routeur ni autre réseau, la passerelle ne sert à rien : ce n'était pas une vraie panne. |
@@ -120,26 +120,26 @@ comporte un risque connu. La phase 1 est fusionnée dans `main` (pull request #1
 ### Phase 1 — PWA complète (12 novembre)
 
 - Tests : 213 tests, 202 réussis, 11 « à faire », 0 échec.
-- Fichiers : `manifest.json`, `sw.js`, `src/ui/install.js` (+ test), `src/ui/index.js` (+ test),
-  `index.html`, `styles.css`, `tools/build-icons.js` (+ test), `assets/icons/*.png`,
-  `tests/sw.test.js`, `tests/platform.test.js`, `tools/build-precache.js` (+ test),
+- Fichiers : `manifest.json`, `sw.js`, `src/ui/install.mjs` (+ test), `src/ui/index.mjs` (+ test),
+  `index.html`, `styles.css`, `tools/build-icons.mjs` (+ test), `assets/icons/*.png`,
+  `tests/sw.test.mjs`, `tests/platform.test.mjs`, `tools/build-precache.mjs` (+ test),
   `.github/workflows/ci.yml` (commentaire), `docs/simulation/contrats.md` (§6 API du pôle ui).
 - Vérifié dans Chrome piloté, site servi sous `/3D-network-topology/` : Service Worker actif,
   68 fichiers en cache, aucune erreur d'installabilité, rechargement et lecture de la simulation
   avec le serveur arrêté, badge « Hors ligne », aucun débordement à 390 et 340 px.
 - Reste à vérifier à la main : l'invite d'installation de Chrome (impossible sans interface).
-- Pour tester le hors ligne en local : `node tools/build-precache.js` avant de servir le dossier,
+- Pour tester le hors ligne en local : `node tools/build-precache.mjs` avant de servir le dossier,
   puis supprimer `precache-manifest.js` (sinon le cache masque les modifications suivantes).
 
 ### Phase 3 — Session immersive complète (12 novembre)
 
 - Tests : 243 tests, 232 réussis, 11 « à faire », 0 échec.
-- Moteur : `app.sim.tick(deltaMs)` (`src/sim/commands.js`, `simulation.js`, `tests/commands.test.js`).
+- Moteur : `app.sim.tick(deltaMs)` (`src/sim/commands.mjs`, `simulation.mjs`, `tests/commands.test.mjs`).
 - Rendu : boucle unique `setAnimationLoop((time, xrFrame) => …)`, `onFrame`, `pickDeviceHit`,
-  `getVRAnchor`, placement VR (`src/render/scene.js`, `index.js`, `mock.js`, `picking.js`,
-  `vrLayout.js`, `vrLayout.test.mjs`).
-- XR : `src/xr/panelLayout.js` (pur), `canvasPanel.js`, `vrPanel.js`, `infoPanels.js`,
-  `controllers.js`, `vrRig.js`, `session.js` (crochets d'entrée et de sortie), `index.js`, `vr.test.js`.
+  `getVRAnchor`, placement VR (`src/render/scene.mjs`, `index.mjs`, `mock.mjs`, `picking.mjs`,
+  `vrLayout.mjs`, `vrLayout.test.mjs`).
+- XR : `src/xr/panelLayout.mjs` (pur), `canvasPanel.mjs`, `vrPanel.mjs`, `infoPanels.mjs`,
+  `controllers.mjs`, `vrRig.mjs`, `session.mjs` (crochets d'entrée et de sortie), `index.mjs`, `vr.test.mjs`.
 - Documentation : `docs/simulation/contrats.md` (§4 `tick`, §7 API du rendu), `docs/architecture.md` (§6).
 - Vérifié dans Chrome piloté avec IWER (profil Meta Quest 3) : entrée en VR, gâchette sur Lecture,
   Vitesse +, Pause, Pas à pas, Réinitialiser ; le temps simulé avance pendant la session ;
@@ -178,11 +178,11 @@ Three.js 0.187.0, Chrome 157 piloté avec WebGPU réel (adaptateur Intel gen-12l
 - Tests : 251 tests, 240 réussis, 11 « à faire », 0 échec.
 - Vendor : `vendor/three/` passé à 0.187.0 (`three.webgpu.js`, `three.tsl.js`, `SkeletonUtils.js`,
   `LICENSE` en plus), `install.mjs` (dossier source en argument), `README.md`.
-- Rendu : `src/render/renderers.js` (+ `renderers.test.mjs`), `scene.js` (création asynchrone,
+- Rendu : `src/render/renderers.mjs` (+ `renderers.test.mjs`), `scene.mjs` (création asynchrone,
   bascule de renderer, `getRenderer`, `getReferenceSpace`, `getRenderingInfo`, `xrSessionFeatures`,
-  `whenSettled`, sauvegarde de la vue), `index.js`, `mock.js`, `browser-smoke.mjs`.
-- XR : `session.js` (option `webgpu` conditionnelle, statut du rendu réel), `session.test.js`,
-  `controllers.js` (`getReferenceSpace()`), `vr.test.js`.
+  `whenSettled`, sauvegarde de la vue), `index.mjs`, `mock.mjs`, `browser-smoke.mjs`.
+- XR : `session.mjs` (option `webgpu` conditionnelle, statut du rendu réel), `session.test.mjs`,
+  `controllers.mjs` (`getReferenceSpace()`), `vr.test.mjs`.
 - Docs : `decision-renderer.md` (réécrit), `README.md`, `architecture.md`, `docs/README.md`,
   `ATTRIBUTION.md`, `contrats.md` (§7).
 - Boucle d'animation unique et horloge pilotée par le rendu : faites en phase 3, inchangées.
@@ -200,17 +200,17 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
   l'émulateur (« parameter 1 is not of type 'XRSession' »). IWER 2.8 ne connaît pas la
   fonctionnalité `webgpu` et n'avance ses images que si la session a une couche `XRWebGLLayer` ;
   il ne lit sur son contexte que la taille du canevas et des appels d'effacement.
-- Solution : `src/render/xrBridge.js` (+ `xrBridge.test.mjs`) fournit `XRGPUBinding` aux sessions de
+- Solution : `src/render/xrBridge.mjs` (+ `xrBridge.test.mjs`) fournit `XRGPUBinding` aux sessions de
   l'émulateur : chaque œil est rendu par `WebGPURenderer` dans une tranche de texture WebGPU, copiée
   (commandes WebGPU) dans un canevas WebGPU que l'émulateur affiche, via une couche dont le
   « contexte » est une simple surface. Sessions du navigateur avec `webgpu` accordé : son
   `XRGPUBinding`, pont inactif.
-- Fichiers : `renderers.js` (WebGPU seul, `assertWebGPU`, `WebGPUUnavailableError`),
-  `renderers.test.mjs` (dont le test « zéro WebGL » sur tout `src/`), `scene.js` (plus de bascule,
-  `whenSettled` supprimé, `getRenderingInfo` → `{ classic, xr: { backend, path } }`), `index.js`
-  (message « WebGPU requis »), `mock.js`, `browser-smoke.mjs`, `styles.css` ; tous les imports
+- Fichiers : `renderers.mjs` (WebGPU seul, `assertWebGPU`, `WebGPUUnavailableError`),
+  `renderers.test.mjs` (dont le test « zéro WebGL » sur tout `src/`), `scene.mjs` (plus de bascule,
+  `whenSettled` supprimé, `getRenderingInfo` → `{ classic, xr: { backend, path } }`), `index.mjs`
+  (message « WebGPU requis »), `mock.mjs`, `browser-smoke.mjs`, `styles.css` ; tous les imports
   `three.module.js` → `three.webgpu.js` (src, tests, modules complémentaires) ; `install.mjs` ne
-  copie plus `three.module.js` ; `session.js` (plus de test WebGL 2, ligne XRGPUBinding, statut).
+  copie plus `three.module.js` ; `session.mjs` (plus de test WebGL 2, ligne XRGPUBinding, statut).
 - Tests : 257 tests, 246 réussis, 11 « à faire », 0 échec.
 - Vérifié dans Chrome 157 piloté (WebGPU réel, GPU Intel) avec IWER 2.8, profil Meta Quest 3, compteur
   de `getContext('webgl…')` injecté avant la page : **0 contexte WebGL** du chargement à la fin ;
@@ -226,16 +226,16 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 ### Phase 4a — équipements, ARP, ICMP, routage statique, vrai moteur (12 novembre)
 
 - Tests : 294 tests, 289 réussis, 5 « à faire » (UDP, DNS, DHCP, TCP, HTTP), 0 échec.
-- Moteur : `src/sim/net.js` (adressage, tables de routage, plus long préfixe), `src/sim/stack.js`
+- Moteur : `src/sim/net.mjs` (adressage, tables de routage, plus long préfixe), `src/sim/stack.mjs`
   (ARP avec file d'attente et délai, `sendIp`, réponse au ping, erreurs ICMP, routage, étapes
-  standard), `src/sim/devices/host.js`, `switch.js`, `router.js`, `devices/index.js`,
-  `src/sim/protocols/arp.js`, `icmp.js`, `src/sim/library.js`, `src/sim/index.js` (vrai moteur,
-  `listScenarios`, `loadScenario`, repli sur le faux moteur), `scenario.js` (validation de `routes`).
+  standard), `src/sim/devices/host.mjs`, `switch.mjs`, `router.mjs`, `devices/index.mjs`,
+  `src/sim/protocols/arp.mjs`, `icmp.mjs`, `src/sim/library.mjs`, `src/sim/index.mjs` (vrai moteur,
+  `listScenarios`, `loadScenario`, repli sur le faux moteur), `scenario.mjs` (validation de `routes`).
 - Scénarios : `ping.json`, `routage.json`, `ttl.json` (nouveau), `index.json` ; `arp.json` inchangé.
-- Interface : `src/ui/scenarioPicker.js` (+ test), `styles.css` (message d'erreur du choix).
-- Tests : `tests/net.test.js`, `arp.test.js`, `icmp.test.js`, `routage.test.js`, `switch.test.js`,
-  `host.test.js`, `router.test.js` (les « à faire » remplacés), `mock.test.js` et `scenario.test.js`
-  complétés ; aides `tests/netRun.js` et `tests/fakeCtx.js`.
+- Interface : `src/ui/scenarioPicker.mjs` (+ test), `styles.css` (message d'erreur du choix).
+- Tests : `tests/net.test.mjs`, `arp.test.mjs`, `icmp.test.mjs`, `routage.test.mjs`, `switch.test.mjs`,
+  `host.test.mjs`, `router.test.mjs` (les « à faire » remplacés), `mock.test.mjs` et `scenario.test.mjs`
+  complétés ; aides `tests/netRun.mjs` et `tests/fakeCtx.mjs`.
 - Docs : `contrats.md` (§1 `routes` et liste des scénarios, §3 équipements, pile et étapes standard,
   §4 choix du scénario, §5 faux moteur en repli).
 - Vérifié dans Chrome 157 piloté : liste des 4 scénarios, changement de scénario (scène 3D, état,
@@ -248,16 +248,16 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 ### Phase 4b — UDP, DNS, DHCP (12 novembre)
 
 - Tests : 305 tests, 303 réussis, 2 « à faire » (TCP, HTTP), 0 échec.
-- Pile : `stack.js` (ports, `sendUdp`, diffusion `255.255.255.255`, `runtimeDevice`,
-  `configureDevice`, erreur ICMP « port inaccessible »), `devices/host.js` (ports fermés, diffusion),
-  `devices/router.js` (diffusion jamais transmise), `protocol.js` (`describeHeaders` affiche le
-  protocole de transport), `scenario.js` (validation de `dns`, `services`, `records`, `dhcp`,
+- Pile : `stack.mjs` (ports, `sendUdp`, diffusion `255.255.255.255`, `runtimeDevice`,
+  `configureDevice`, erreur ICMP « port inaccessible »), `devices/host.mjs` (ports fermés, diffusion),
+  `devices/router.mjs` (diffusion jamais transmise), `protocol.mjs` (`describeHeaders` affiche le
+  protocole de transport), `scenario.mjs` (validation de `dns`, `services`, `records`, `dhcp`,
   `isHostname`).
-- Protocoles : `protocols/udp.js`, `dns.js` (`resolveName`, `handleDns`, cache), `dhcp.js` (DORA,
+- Protocoles : `protocols/udp.mjs`, `dns.mjs` (`resolveName`, `handleDns`, cache), `dhcp.mjs` (DORA,
   plage, baux, vérification par ping).
 - Scénarios : `udp.json`, `dns.json`, `dhcp.json` (réécrits) ; `index.json` (7 scénarios).
-- Tests : `tests/udp.test.js`, `dns.test.js`, `dhcp.test.js` (les « à faire » remplacés),
-  `scenario.test.js` et `mock.test.js` complétés.
+- Tests : `tests/udp.test.mjs`, `dns.test.mjs`, `dhcp.test.mjs` (les « à faire » remplacés),
+  `scenario.test.mjs` et `mock.test.mjs` complétés.
 - Docs : `contrats.md` (§1 nouveaux champs et `transport.protocol`, §3 pile et étapes standard).
 - Vérifié dans Chrome 157 piloté : 7 scénarios dans la liste ; DHCP joué jusqu'au bout (14,9 s
   simulées), DNS et UDP en lecture ; console vide.
@@ -266,13 +266,13 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 ### Phase 4c — TCP et HTTP (12 novembre)
 
 - Tests : 314 tests, 314 réussis, 0 « à faire », 0 échec : chaque protocole a ses tests.
-- Protocoles : `protocols/tcp.js` (connexion réutilisable : `connect`, `handleTcp`, `conn.send`,
-  `conn.close`, `tcpFields`), `protocols/http.js` (`parseUrl`, `respond`, DNS + TCP + GET).
-- Pile : `devices/host.js` répond RST à un SYN vers un port TCP fermé ; `scenario.js` valide `pages`.
+- Protocoles : `protocols/tcp.mjs` (connexion réutilisable : `connect`, `handleTcp`, `conn.send`,
+  `conn.close`, `tcpFields`), `protocols/http.mjs` (`parseUrl`, `respond`, DNS + TCP + GET).
+- Pile : `devices/host.mjs` répond RST à un SYN vers un port TCP fermé ; `scenario.mjs` valide `pages`.
 - Scénarios : `tcp.json` (perte et retransmission, RST), `http.json` (même réseau que DNS, page « / »
   et 404) ; `index.json` (9 scénarios).
-- Tests : `tests/tcp.test.js`, `tests/http.test.js` (les « à faire » remplacés), `host.test.js`,
-  `scenario.test.js`, `mock.test.js` complétés.
+- Tests : `tests/tcp.test.mjs`, `tests/http.test.mjs` (les « à faire » remplacés), `host.test.mjs`,
+  `scenario.test.mjs`, `mock.test.mjs` complétés.
 - Docs : `contrats.md` (champ `pages`, API TCP, étapes standard TCP et HTTP).
 - Vérifié dans Chrome 157 piloté : 9 scénarios ; TCP (14,6 s) et HTTP (22,7 s) joués jusqu'au bout ;
   console vide.
@@ -280,13 +280,13 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 ### Phase 4d — explications en 2D, journal, inspecteur de paquets, couleurs (12 novembre)
 
 - Tests : 325 tests, 325 réussis, 0 échec.
-- Rendu : `src/render/packetStyles.js` (+ test : une couleur par protocole, diffusion plus grosse),
-  `packetAnimator.js` (couleurs, mise en avant du paquet sélectionné), `scene.js` (clic sur un paquet
-  en vol → `onPacketClick`), `index.js` (`topology:packet-selected`, `packetStyle`,
-  `highlightPacket`), `mock.js`.
-- Interface : `src/ui/packets.js` (+ test : libellés, lignes du journal, vue de l'inspecteur,
-  sélection), `explanations.js` (+ test : étape en cours, journal cliquable), `inspector.js`
-  (section paquet, `renderPacketInfo`), `index.js` (sélection de paquet partagée, `app.ui.packets`),
+- Rendu : `src/render/packetStyles.mjs` (+ test : une couleur par protocole, diffusion plus grosse),
+  `packetAnimator.mjs` (couleurs, mise en avant du paquet sélectionné), `scene.mjs` (clic sur un paquet
+  en vol → `onPacketClick`), `index.mjs` (`topology:packet-selected`, `packetStyle`,
+  `highlightPacket`), `mock.mjs`.
+- Interface : `src/ui/packets.mjs` (+ test : libellés, lignes du journal, vue de l'inspecteur,
+  sélection), `explanations.mjs` (+ test : étape en cours, journal cliquable), `inspector.mjs`
+  (section paquet, `renderPacketInfo`), `index.mjs` (sélection de paquet partagée, `app.ui.packets`),
   `styles.css` (explication, journal, tableaux par couche).
 - Docs : `contrats.md` (§6 `app.ui.packets` et modules, §7 `packetStyle`, `highlightPacket`,
   évènement `topology:packet-selected`).
@@ -301,23 +301,23 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 ### Phase 5 — caractéristiques, débit et bande passante (12 novembre)
 
 - Tests : 340 tests, 340 réussis, 0 échec.
-- Moteur : `src/sim/catalog.js` (modèles et câbles), `src/sim/traffic.js` (taille des trames, temps
-  d'émission, bande passante effective, compteur de trafic), `commands.js` (file d'attente par port,
-  champs `bytes` et `transmitted`, perte sur le câble `lost`), `events.js`, `scenario.js` (validation
-  de `model`, `speed`, `bandwidth`, `cable`), `index.js` (`getTraffic()`, `timeScale`), `stack.js`
-  (`lost` transmis), `protocols/tcp.js` (fenêtre d'émission, transferts simultanés `transfers`),
-  `simulation.js` (exports du catalogue et du trafic).
+- Moteur : `src/sim/catalog.mjs` (modèles et câbles), `src/sim/traffic.mjs` (taille des trames, temps
+  d'émission, bande passante effective, compteur de trafic), `commands.mjs` (file d'attente par port,
+  champs `bytes` et `transmitted`, perte sur le câble `lost`), `events.mjs`, `scenario.mjs` (validation
+  de `model`, `speed`, `bandwidth`, `cable`), `index.mjs` (`getTraffic()`, `timeScale`), `stack.mjs`
+  (`lost` transmis), `protocols/tcp.mjs` (fenêtre d'émission, transferts simultanés `transfers`),
+  `simulation.mjs` (exports du catalogue et du trafic).
 - Scénarios : modèles, bandes passantes et câbles dans les 9 scénarios ; nouveau `debit.json`
   (3 PC vers un serveur derrière un câble Cat 5 à 100 Mb/s) ; `index.json` (10 scénarios).
-- Interface : `src/ui/datasheet.js` (+ test) fiche d'équipement ; `inspector.js` (modèle,
+- Interface : `src/ui/datasheet.mjs` (+ test) fiche d'équipement ; `inspector.mjs` (modèle,
   caractéristiques repliables, tableau des ports, débit global, mise à jour 4 fois par seconde) ;
   `styles.css`.
-- Rendu : `links.js` (`setLoads`), `packetStyles.js` (`LOAD_COLORS`, `loadLevel`), `scene.js`
-  (`setLinkLoads`), `index.js` (couleurs de charge d'après `getTraffic`), `mock.js`.
-- VR : `xr/infoPanels.js` (modèle, ports les plus chargés d'abord, débit global, mise à jour 2 fois
+- Rendu : `links.mjs` (`setLoads`), `packetStyles.mjs` (`LOAD_COLORS`, `loadLevel`), `scene.mjs`
+  (`setLinkLoads`), `index.mjs` (couleurs de charge d'après `getTraffic`), `mock.mjs`.
+- VR : `xr/infoPanels.mjs` (modèle, ports les plus chargés d'abord, débit global, mise à jour 2 fois
   par seconde).
-- Tests : `tests/catalog.test.js`, `tests/traffic.test.js` (taille, temps d'émission, file d'attente,
-  compteur, scénario débit), `src/ui/datasheet.test.js` ; tests d'ARP, ping et TCP recalculés avec le
+- Tests : `tests/catalog.test.mjs`, `tests/traffic.test.mjs` (taille, temps d'émission, file d'attente,
+  compteur, scénario débit), `src/ui/datasheet.test.mjs` ; tests d'ARP, ping et TCP recalculés avec le
   temps d'émission.
 - Vérifié dans Chrome 157 piloté (scénario Débit) : lien vers le serveur en rouge à 98 %, liens des PC
   en vert ; fiche du switch avec la vitesse négociée à 100 Mb/s (câble Cat 5), débits émis et reçus
@@ -326,18 +326,18 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 ### Phase 6 — diagnostic et recommandations (13 novembre)
 
 - Tests : 359 tests, 359 réussis, 0 échec.
-- Moteur : `src/sim/diagnostics.js` (14 règles, `diagnose`, `traceRoute`, `segments`,
-  `countBySeverity`), `index.js` (`app.sim.diagnose()`, aussi pour le faux moteur), `simulation.js`.
+- Moteur : `src/sim/diagnostics.mjs` (14 règles, `diagnose`, `traceRoute`, `segments`,
+  `countBySeverity`), `index.mjs` (`app.sim.diagnose()`, aussi pour le faux moteur), `simulation.mjs`.
 - Scénarios : nouveau `diagnostic.json` (passerelle hors sous-réseau, IP en double, vitesses
   différentes, câble Cat 5 sur un lien Gigabit, route de retour manquante) ; passerelles inutiles
   retirées de `arp`, `udp`, `tcp`, `debit` ; `index.json` (11 scénarios).
 - Interface : `index.html` (onglets « Explications | Recommandations », point de montage
-  `#recommendations`, pastille), `src/ui/tabs.js`, `src/ui/recommendations.js` (+ test : vue,
-  choix, mise à jour pendant la lecture, onglets au clavier), `index.js`, `styles.css`.
-- Rendu : `links.js` (`highlight`), `scene.js` (`highlightLink`), `mock.js`.
-- VR : `src/xr/recoPanel.js` (contrôleur partagé avec la 2D, survol et gâchette), `panelLayout.js`
-  (`RECO_PANEL`, `recoRowAt`, position au-dessus de la maquette), `vrRig.js` ; test dans `vr.test.js`.
-- Tests : `tests/diagnostics.test.js` (une faute injectée par règle, scénarios corrects sans alerte,
+  `#recommendations`, pastille), `src/ui/tabs.mjs`, `src/ui/recommendations.mjs` (+ test : vue,
+  choix, mise à jour pendant la lecture, onglets au clavier), `index.mjs`, `styles.css`.
+- Rendu : `links.mjs` (`highlight`), `scene.mjs` (`highlightLink`), `mock.mjs`.
+- VR : `src/xr/recoPanel.mjs` (contrôleur partagé avec la 2D, survol et gâchette), `panelLayout.mjs`
+  (`RECO_PANEL`, `recoRowAt`, position au-dessus de la maquette), `vrRig.mjs` ; test dans `vr.test.mjs`.
+- Tests : `tests/diagnostics.test.mjs` (une faute injectée par règle, scénarios corrects sans alerte,
   saturation mesurée pendant le scénario Débit).
 - Vérifié dans Chrome 157 piloté : scénario Diagnostic, pastille « 6 », liste triée, clic sur un
   problème de lien (lien en jaune) et de routeur (fiche du Routeur 2) ; onglets au clavier ;
@@ -347,14 +347,14 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 ### Phase 7a — mode Construire : équipements et câbles (13 novembre)
 
 - Tests : 373 tests, 373 réussis, 0 échec.
-- Moteur : `src/sim/builder.js` (opérations pures), `src/sim/protocols/aucun.js`, `scenario.js`
-  (topologie vide permise), `simulation.js` (exports).
-- Rendu : `scene.js` (mode édition : glisser un équipement, toucher du sol, `setEditMode`), `index.js`
-  (évènements `topology:device-moved` et `topology:ground-clicked`), `mock.js`.
-- Interface : `index.html` (`#mode-slot`, panneau `#editor`), `src/ui/modeSwitch.js` (bascule et
-  service de mode), `src/ui/editor.js` (éditeur), `index.js`, `selection.js` (sélection gardée),
+- Moteur : `src/sim/builder.mjs` (opérations pures), `src/sim/protocols/aucun.mjs`, `scenario.mjs`
+  (topologie vide permise), `simulation.mjs` (exports).
+- Rendu : `scene.mjs` (mode édition : glisser un équipement, toucher du sol, `setEditMode`), `index.mjs`
+  (évènements `topology:device-moved` et `topology:ground-clicked`), `mock.mjs`.
+- Interface : `index.html` (`#mode-slot`, panneau `#editor`), `src/ui/modeSwitch.mjs` (bascule et
+  service de mode), `src/ui/editor.mjs` (éditeur), `index.mjs`, `selection.mjs` (sélection gardée),
   `styles.css` (mode Construire, éditeur, boutons `btn-danger` et `btn-small`).
-- Tests : `tests/builder.test.js`, `src/ui/editor.test.js` ; `index.test.js` et `packetStyles.test.mjs`
+- Tests : `tests/builder.test.mjs`, `src/ui/editor.test.mjs` ; `index.test.mjs` et `packetStyles.test.mjs`
   adaptés.
 - Vérifié dans Chrome 157 piloté : passage en Construire (copie du scénario affiché), topologie vide,
   ajout au centre, placement d'un switch par clic sur le sol, deux câbles, message d'erreur clair,
@@ -366,17 +366,17 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 ### Phase 7b — configuration et choix du protocole (13 novembre)
 
 - Tests : 382 tests, 382 réussis, 0 échec.
-- Moteur : `src/sim/config.js` (adresses, propositions, passerelle, DNS, routes, ports, rôles,
-  enregistrements DNS), `src/sim/runs.js` (protocoles, champs, valeurs proposées, validation,
-  scénario assemblé et explications génériques), `index.js` (`setCustomScenario`, « Ma topologie »
-  en tête de liste), `simulation.js`.
-- Interface : `src/ui/editor.js` (configuration de l'équipement sélectionné, section « Jouer cette
+- Moteur : `src/sim/config.mjs` (adresses, propositions, passerelle, DNS, routes, ports, rôles,
+  enregistrements DNS), `src/sim/runs.mjs` (protocoles, champs, valeurs proposées, validation,
+  scénario assemblé et explications génériques), `index.mjs` (`setCustomScenario`, « Ma topologie »
+  en tête de liste), `simulation.mjs`.
+- Interface : `src/ui/editor.mjs` (configuration de l'équipement sélectionné, section « Jouer cette
   topologie », retour en Explorer sur « Ma topologie », focus clavier rendu après chaque
   modification), `styles.css` (formulaires, cases à cocher, messages, éditeur plus haut en
   mode Construire).
-- Tests : `tests/runs.test.js` (réseau construit de zéro avec les seules adresses proposées, sans
+- Tests : `tests/runs.test.mjs` (réseau construit de zéro avec les seules adresses proposées, sans
   problème au diagnostic, puis les 9 protocoles joués de bout en bout ; messages d'erreur ; boucle
-  bloquante), `src/ui/editor.test.js`, `tests/mock.test.js`.
+  bloquante), `src/ui/editor.test.mjs`, `tests/mock.test.mjs`.
 - Vérifié dans Chrome 157 piloté : copie du scénario Ping, adresse de PC 2 effacée puis proposée,
   protocole DHCP refusé avec deux messages clairs (bouton désactivé), ping « Tout est prêt »,
   « Jouer cette topologie » → Explorer sur « Ma topologie », lecture complète (10,3 s) ; console vide.
@@ -384,11 +384,11 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
 ### Phase 7c — enregistrer, ouvrir, exporter, importer (13 novembre)
 
 - Tests : 389 tests, 389 réussis, 0 échec.
-- Interface : `src/ui/storage.js` (+ test : brouillon, topologies nommées, import/export, stockage
-  indisponible), `src/ui/editor.js` (brouillon retrouvé, section « Enregistrer et ouvrir », export
+- Interface : `src/ui/storage.mjs` (+ test : brouillon, topologies nommées, import/export, stockage
+  indisponible), `src/ui/editor.mjs` (brouillon retrouvé, section « Enregistrer et ouvrir », export
   par téléchargement, import par fichier ; correction : `apply()` renvoyait l'id de la topologie),
   `styles.css`.
-- Tests : `src/ui/storage.test.js`, `src/ui/editor.test.js` (rechargement simulé, enregistrer,
+- Tests : `src/ui/storage.test.mjs`, `src/ui/editor.test.mjs` (rechargement simulé, enregistrer,
   rouvrir, exporter, importer).
 - Vérifié dans Chrome 157 piloté : topologie enregistrée « Salle 12 », page rechargée → topologie
   retrouvée et liste conservée ; import de `ping.json` par le champ fichier ; fichier cassé refusé
@@ -406,7 +406,7 @@ Remplace la bascule vers `WebGLRenderer` décrite ci-dessus (elle n'a jamais ét
   échange de clés, vérification), certificat (sujet, émetteur, dates, expiré → échec, moins de
   14 jours → avertissement), TLS 1.2, redirection HTTP → HTTPS, HSTS, tableau dans
   `$GITHUB_STEP_SUMMARY`.
-- `tests/ci.test.js` (structure du pipeline, versions des actions, syntaxe et refus d'une adresse
+- `tests/ci.test.mjs` (structure du pipeline, versions des actions, syntaxe et refus d'une adresse
   non HTTPS) ; `docs/ci-cd.md` (schéma Mermaid, rôle des étapes, section TLS) ; `docs/README.md`.
 - Vérifié : versions des actions existantes (API GitHub, 13 nov) ; script lancé sur le vrai site :
   TLS 1.3, TLS_AES_128_GCM_SHA256, X25519, certificat `*.github.io` Let's Encrypt (YR1) valide

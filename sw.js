@@ -1,6 +1,6 @@
 // Service Worker : rend l'application utilisable hors ligne après le premier chargement.
 //
-// - Installation : précache de tous les fichiers listés par tools/build-precache.js
+// - Installation : précache de tous les fichiers listés par tools/build-precache.mjs
 //   (precache-manifest.js, généré à chaque déploiement, non versionné).
 // - Cache versionné : son nom contient la version de la liste, qui change dès qu'un fichier
 //   change. À l'activation, les caches des anciennes versions sont supprimés.

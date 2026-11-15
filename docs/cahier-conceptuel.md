@@ -137,7 +137,7 @@ Les étapes expliquées dans l'ordre : `icmp-start`, `icmp-request-1`, `route-ga
 
 ## 6. États de la simulation
 
-Patron State (`src/sim/state.js`) : une commande non permise renvoie `false` et le bouton correspondant est désactivé, en 2D comme sur le pupitre VR.
+Patron State (`src/sim/state.mjs`) : une commande non permise renvoie `false` et le bouton correspondant est désactivé, en 2D comme sur le pupitre VR.
 
 ```mermaid
 stateDiagram-v2
@@ -227,7 +227,7 @@ classDiagram
       +onReceive(device, packet, ctx, meta) bool
     }
     class Stack {
-      <<stack.js, net.js>>
+      <<stack.mjs, net.mjs>>
       +sendIp(ctx, id, packet)
       +sendUdp(ctx, id, datagram)
       +resolveMac()

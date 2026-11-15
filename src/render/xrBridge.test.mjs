@@ -1,10 +1,10 @@
-// Tests du pont WebGPU ↔ WebXR de l'émulateur (src/render/xrBridge.js), sans navigateur :
+// Tests du pont WebGPU ↔ WebXR de l'émulateur (src/render/xrBridge.mjs), sans navigateur :
 // calculs purs et comportement avec de faux objets WebXR/WebGPU. Le rendu réel est vérifié dans
 // Chrome avec IWER (docs/decision-renderer.md).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { emulatorSurface, eyeViewport, hasNativeWebGPUFeature, installXRGPUBridge, prepareXRSession, presentationCopies } from './xrBridge.js';
+import { emulatorSurface, eyeViewport, hasNativeWebGPUFeature, installXRGPUBridge, prepareXRSession, presentationCopies } from './xrBridge.mjs';
 
 /** Matrice de projection (ordre colonnes) de rapport largeur/hauteur `aspect`. */
 const projection = (aspect, f = 1.5) => [f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, -1, -1, 0, 0, -0.2, 0];

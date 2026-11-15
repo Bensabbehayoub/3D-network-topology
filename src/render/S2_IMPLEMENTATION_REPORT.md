@@ -11,7 +11,7 @@
 
 ## Architecture and lifecycle
 
-`scene.js` owns the scene, camera, controls, renderer, topology groups, and event listeners. `factory.js` owns cached GLB templates, shared fallback resources, and highlight resources. A topology load adds deterministic fallbacks synchronously, creates links and labels, then replaces eligible devices as cached GLBs resolve. Each replacement refreshes cable endpoints and label heights.
+`scene.mjs` owns the scene, camera, controls, renderer, topology groups, and event listeners. `factory.mjs` owns cached GLB templates, shared fallback resources, and highlight resources. A topology load adds deterministic fallbacks synchronously, creates links and labels, then replaces eligible devices as cached GLBs resolve. Each replacement refreshes cable endpoints and label heights.
 
 Topology replacement disposes link geometries, link material, label textures, and label materials. GLB and fallback geometry/material resources remain shared until renderer disposal, when the factory releases them once. A generation token rejects stale asynchronous results, including results arriving after `dispose()`.
 

@@ -27,7 +27,7 @@ flowchart LR
 
 | Job | Quand | Rôle |
 | --- | --- | --- |
-| `test` | pull request, push sur `main`, lancement manuel | `node --test` (toute la suite, sans navigateur) puis `node tools/build-precache.js` (la liste des fichiers mis en cache hors ligne doit se générer). Un échec est signalé dans la pull request (pour l'imposer avant toute fusion, déclarer ce job comme vérification obligatoire dans les règles de protection de `main`). |
+| `test` | pull request, push sur `main`, lancement manuel | `node --test` (toute la suite, sans navigateur) puis `node tools/build-precache.mjs` (la liste des fichiers mis en cache hors ligne doit se générer). Un échec est signalé dans la pull request (pour l'imposer avant toute fusion, déclarer ce job comme vérification obligatoire dans les règles de protection de `main`). |
 | `deploy` | push sur `main`, lancement manuel, après `test` | Génère `precache-manifest.js` (non versionné), publie le dépôt comme site statique (`configure-pages`, `upload-pages-artifact`, `deploy-pages`) et transmet l'adresse publiée au job suivant. |
 | `verify-tls` | après un déploiement réussi, et chaque lundi | Lance [`tools/verify-tls.sh`](../tools/verify-tls.sh) sur l'adresse publiée : réponse HTTPS (jusqu'à 10 essais à 15 s d'intervalle, le temps que Pages publie), `openssl s_client` (version TLS, suite de chiffrement, échange de clés, vérification du certificat), certificat (sujet, émetteur, dates), TLS 1.2, redirection HTTP → HTTPS, en-tête HSTS. Résumé en tableau dans la page de l'exécution. **Échoue** si le site ne répond pas en HTTPS ou si le certificat est invalide ou expiré ; **avertit** s'il expire dans moins de 14 jours, sans redirection ou sans HSTS. |
 
@@ -40,7 +40,7 @@ Autres réglages :
   Let's Encrypt dure 90 jours) ;
 - versions des actions vérifiées le 13 novembre 2026 : `checkout@v7`, `setup-node@v7`,
   `configure-pages@v6`, `upload-pages-artifact@v5`, `deploy-pages@v5` (contrôlées par
-  `tests/ci.test.js`).
+  `tests/ci.test.mjs`).
 
 **Seule la branche `main` est publiée.** Une branche de travail (comme `feature/refonte-prof`)
 passe les tests à chaque pull request, mais n'est en ligne qu'après sa fusion dans `main`.

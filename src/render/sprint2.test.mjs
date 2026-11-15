@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {readFile,stat} from 'node:fs/promises';
 import * as THREE from '../../vendor/three/build/three.webgpu.js';
 import {GLTFLoader} from '../../vendor/three/examples/jsm/loaders/GLTFLoader.js';
-import {createDeviceFactory,createGenerationTracker,DEVICE_MODEL_TYPES,MODEL_URLS} from './factory.js';
-import {createLinkLayer,resolveLinkEndpoints} from './links.js';
-import {formatDeviceLabel,labelLines} from './labels.js';
-import {createMockRenderer} from './mock.js';
+import {createDeviceFactory,createGenerationTracker,DEVICE_MODEL_TYPES,MODEL_URLS} from './factory.mjs';
+import {createLinkLayer,resolveLinkEndpoints} from './links.mjs';
+import {formatDeviceLabel,labelLines} from './labels.mjs';
+import {createMockRenderer} from './mock.mjs';
 
 const device=(id='pc-1',type='pc',position={x:2,y:0,z:-3})=>({id,type,label:id,ip:null,position});
 const template=()=>{const scene=new THREE.Group();scene.add(new THREE.Mesh(new THREE.BoxGeometry(2,1,1),new THREE.MeshStandardMaterial()));return {scene};};
@@ -84,5 +84,5 @@ test('GLTFLoader and dependency resolve only through vendored local imports',asy
 });
 
 test('scene source preserves every S1 public method and adds readiness inspection',async()=>{
- const source=await readFile(new URL('./scene.js',import.meta.url),'utf8');for(const method of ['loadTopology','pickDevice','highlightDevice','getDevice','listDevices','focusDevice','resetView','resize','dispose'])assert.match(source,new RegExp(`${method}\\s*\\(`));assert.match(source,/whenReady\s*\(/);
+ const source=await readFile(new URL('./scene.mjs',import.meta.url),'utf8');for(const method of ['loadTopology','pickDevice','highlightDevice','getDevice','listDevices','focusDevice','resetView','resize','dispose'])assert.match(source,new RegExp(`${method}\\s*\\(`));assert.match(source,/whenReady\s*\(/);
 });

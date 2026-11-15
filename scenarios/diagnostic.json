@@ -17,9 +17,9 @@
       "label": "PC 1",
       "model": "pc-1g",
       "position": [
-        -9,
+        -13.5,
         0,
-        -3
+        -4.5
       ],
       "gateway": "192.168.1.1",
       "interfaces": [
@@ -36,7 +36,7 @@
       "label": "PC 2",
       "model": "pc-1g",
       "position": [
-        -9,
+        -13.5,
         0,
         0
       ],
@@ -55,9 +55,9 @@
       "label": "PC 3",
       "model": "pc-1g",
       "position": [
-        -9,
+        -13.5,
         0,
-        3
+        4.5
       ],
       "gateway": "192.168.1.1",
       "interfaces": [
@@ -75,7 +75,7 @@
       "label": "Switch 1",
       "model": "sw-24g",
       "position": [
-        -5,
+        -7.5,
         0,
         0
       ],
@@ -100,7 +100,7 @@
       "label": "Routeur 1",
       "model": "rt-4g",
       "position": [
-        -1,
+        -1.5,
         0,
         0
       ],
@@ -129,7 +129,7 @@
       "label": "Routeur 2",
       "model": "rt-4g",
       "position": [
-        3,
+        4.5,
         0,
         0
       ],
@@ -152,7 +152,7 @@
       "label": "Switch 2",
       "model": "sw-24g",
       "position": [
-        6,
+        9,
         0,
         0
       ],
@@ -171,7 +171,7 @@
       "label": "Serveur",
       "model": "srv-1g",
       "position": [
-        9,
+        13.5,
         0,
         0
       ],

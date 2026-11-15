@@ -2,7 +2,7 @@
 
 | Prévu (planning) | Réalisé | Couche | Fichiers |
 | --- | --- | --- | --- |
-| Ramy, S4 | Refonte, phase 4b | Couche 7 (application), sur UDP ports 67/68 | `src/sim/protocols/dhcp.js`, `src/sim/stack.js` (`configureDevice`, `runtimeDevice`), `scenarios/dhcp.json`, `tests/dhcp.test.js` |
+| Ramy, S4 | Refonte, phase 4b | Couche 7 (application), sur UDP ports 67/68 | `src/sim/protocols/dhcp.mjs`, `src/sim/stack.mjs` (`configureDevice`, `runtimeDevice`), `scenarios/dhcp.json`, `tests/dhcp.test.mjs` |
 
 > Statut : **implémenté et testé.**
 
@@ -36,7 +36,7 @@ MAC du client, adresses IP source (0.0.0.0) et destination (255.255.255.255), po
 
 ## Implémentation
 
-- `protocols/dhcp.js` : clients (DISCOVER, REQUEST, vérification), serveur (plage, baux, première adresse libre), explications `dhcp-discover`, `dhcp-offer`, `dhcp-request`, `dhcp-ack`, `dhcp-configured`, `dhcp-verify`, `dhcp-verified`, `dhcp-pool-empty`, `dhcp-summary`.
-- `stack.js` : `configureDevice` applique l'adresse obtenue ; `runtimeDevice` la rend visible aux autres protocoles et à la fiche d'équipement.
+- `protocols/dhcp.mjs` : clients (DISCOVER, REQUEST, vérification), serveur (plage, baux, première adresse libre), explications `dhcp-discover`, `dhcp-offer`, `dhcp-request`, `dhcp-ack`, `dhcp-configured`, `dhcp-verify`, `dhcp-verified`, `dhcp-pool-empty`, `dhcp-summary`.
+- `stack.mjs` : `configureDevice` applique l'adresse obtenue ; `runtimeDevice` la rend visible aux autres protocoles et à la fiche d'équipement.
 - Dans l'éditeur, le rôle « serveur DHCP » propose une plage (.100 à .150) ; jouer DHCP sans serveur est refusé avec une explication.
-- Tests (`tests/dhcp.test.js`) : DORA pour deux clients, adresses distinctes, ping de vérification ; sans DHCP, pas d'adresse ; plage épuisée ; choix de l'adresse ; champs de l'inspecteur.
+- Tests (`tests/dhcp.test.mjs`) : DORA pour deux clients, adresses distinctes, ping de vérification ; sans DHCP, pas d'adresse ; plage épuisée ; choix de l'adresse ; champs de l'inspecteur.

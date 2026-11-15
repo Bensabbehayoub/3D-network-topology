@@ -7,18 +7,18 @@ Ce document décrit ce que le moteur attend des autres et ce qu'il leur fournit 
 1. [Format des scénarios JSON](#1-format-des-scénarios-json) : tous
 2. [Évènements réseau et bus](#2-évènements-réseau-et-bus) : Ayoub (animation), Ramy (journal, explications), Aziz (topologie)
 3. [Interface protocole](#3-interface-protocole) : auteurs de protocoles (Aziz, Ramy, Khalil)
-4. [API de commandes et états](#4-api-de-commandes-et-états) : Ramy (`controls.js`), Ayoub (`vrPanel.js`)
+4. [API de commandes et états](#4-api-de-commandes-et-états) : Ramy (`controls.mjs`), Ayoub (`vrPanel.mjs`)
 5. [Faux moteur](#5-faux-moteur-mock) : tout le monde, dès maintenant
 6. [API du pôle ui](#6-api-du-pôle-ui-appui) : Ayoub (sélection en VR)
 7. [API du pôle render](#7-api-du-pôle-render-apprender-utilisée-par-les-autres-pôles) : ui et xr
 
-Tout s'importe depuis la façade `simulation.js` à la racine :
+Tout s'importe depuis la façade `simulation.mjs` à la racine :
 
 ```js
-import { TOPICS, STATUS, COMMANDS, isBroadcast, validateScenario } from '../../simulation.js';
+import { TOPICS, STATUS, COMMANDS, isBroadcast, validateScenario } from '../../simulation.mjs';
 ```
 
-Dans l'application, l'instance du moteur est `app.sim` (créée par `src/sim/index.js`, appelé en premier par `main.js`).
+Dans l'application, l'instance du moteur est `app.sim` (créée par `src/sim/index.mjs`, appelé en premier par `main.js`).
 
 ---
 
@@ -31,7 +31,7 @@ Un fichier `scenarios/<protocole>.json` par scénario. Il contient **sa** topolo
   "schema": 1,                       // version du format (obligatoire)
   "id": "arp",                       // identifiant unique (obligatoire)
   "title": "ARP : trouver l'adresse MAC d'un voisin",   // affiché dans la liste (obligatoire)
-  "protocol": "arp",                 // charge src/sim/protocols/arp.js (obligatoire)
+  "protocol": "arp",                 // charge src/sim/protocols/arp.mjs (obligatoire)
   "description": "Rôle du protocole, 2-3 phrases.",     // facultatif
   "params": { "source": "pc1", "target": "pc2" },        // paramètres par défaut, libres, lus par le protocole
   "devices": [ ... ],                // peut être vide depuis la phase 7 (topologie en construction)
@@ -74,17 +74,17 @@ Un fichier `scenarios/<protocole>.json` par scénario. Il contient **sa** topolo
 - `a` et `b` : `"équipement:interface"`. Une interface n'est reliée qu'une fois ; un lien relie deux équipements différents.
 - `latency` : facultatif, en ms simulées (400 par défaut, soit 0,4 s à vitesse 1).
 - `bandwidth` (phase 5) : facultatif, 10, 100, 1000 ou 10000 (Mb/s).
-- `cable` (phase 5) : facultatif, `cuivre-cat5` (100 Mb/s au plus), `cuivre-cat5e`, `cuivre-cat6` (1 Gb/s), `cuivre-cat6a`, `fibre-mm`, `fibre-sm` (10 Gb/s). Liste et longueurs dans `src/sim/catalog.js`.
+- `cable` (phase 5) : facultatif, `cuivre-cat5` (100 Mb/s au plus), `cuivre-cat5e`, `cuivre-cat6` (1 Gb/s), `cuivre-cat6a`, `fibre-mm`, `fibre-sm` (10 Gb/s). Liste et longueurs dans `src/sim/catalog.mjs`.
 - Bande passante **effective** d'un lien : la plus petite de `bandwidth`, des vitesses des deux ports et du câble.
 
 ### Modèles d'équipements (phase 5)
 
-- `model` (facultatif) sur un équipement : un identifiant du catalogue `src/sim/catalog.js` (`pc-1g`, `srv-1g`, `srv-10g`, `sw-8fe`, `sw-24g`, `sw-48x`, `rt-4g`, `rt-8x`). Modèles **génériques et fictifs** (références inventées), valeurs réalistes. Le type du modèle doit être celui de l'équipement, et l'équipement ne peut pas avoir plus d'interfaces que le modèle n'a de ports.
+- `model` (facultatif) sur un équipement : un identifiant du catalogue `src/sim/catalog.mjs` (`pc-1g`, `srv-1g`, `srv-10g`, `sw-8fe`, `sw-24g`, `sw-48x`, `rt-4g`, `rt-8x`). Modèles **génériques et fictifs** (références inventées), valeurs réalistes. Le type du modèle doit être celui de l'équipement, et l'équipement ne peut pas avoir plus d'interfaces que le modèle n'a de ports.
 - `speed` (facultatif) sur une interface : 10, 100, 1000 ou 10000 (Mb/s). Sans elle : la vitesse du port du modèle (les interfaces suivent l'ordre des ports du modèle), sinon 1 Gb/s.
 
 ### Échelle de temps et transmission (phase 5)
 
-1 seconde de simulation (à vitesse ×1) représente **1 milliseconde de réseau** (`SLOWDOWN = 1000`, `src/sim/traffic.js`). Une trame occupe le câble pendant (taille + 20 octets de préambule et d'intervalle) × 8 / bande passante ; un port n'émet qu'une trame à la fois, les suivantes attendent dans sa file. Taille d'une trame : en-têtes réels (Ethernet 18, IP 20, UDP 8, TCP 20) + données, 64 octets au minimum (`frameSize`).
+1 seconde de simulation (à vitesse ×1) représente **1 milliseconde de réseau** (`SLOWDOWN = 1000`, `src/sim/traffic.mjs`). Une trame occupe le câble pendant (taille + 20 octets de préambule et d'intervalle) × 8 / bande passante ; un port n'émet qu'une trame à la fois, les suivantes attendent dans sa file. Taille d'une trame : en-têtes réels (Ethernet 18, IP 20, UDP 8, TCP 20) + données, 64 octets au minimum (`frameSize`).
 
 ### Étape pédagogique
 
@@ -101,7 +101,7 @@ Le protocole affiche une étape avec `ctx.explain('arp-request')` et y rattache 
 ### Vérifier son scénario
 
 ```js
-import { validateScenario } from './simulation.js';
+import { validateScenario } from './simulation.mjs';
 const { ok, errors } = validateScenario(json);   // errors : messages en français, avec le chemin du champ
 ```
 
@@ -155,7 +155,7 @@ app.sim.on(TOPICS.TICK, () => {
 });
 ```
 
-**Garanties testées** (`tests/mock.test.js`) :
+**Garanties testées** (`tests/mock.test.mjs`) :
 - la lecture continue, quelle que soit la durée des images et la vitesse, produit **exactement** la même suite d'évènements que le pas à pas ;
 - ordre des messages au chargement : `SCENARIO`, `RESET`, `STATE` ; à chaque pas : `STEP` et `NETWORK` dans l'ordre où le protocole les produit, puis `TICK`, puis `STATE` ; à la réinitialisation : `RESET`, `STATE`.
 
@@ -181,10 +181,10 @@ Les paquets et évènements sont **gelés** : pour modifier un paquet (TTL, adre
 
 ## 3. Interface protocole
 
-Fichier `src/sim/protocols/<nom>.js`, export par défaut :
+Fichier `src/sim/protocols/<nom>.mjs`, export par défaut :
 
 ```js
-import { describeHeaders } from '../protocol.js';
+import { describeHeaders } from '../protocol.mjs';
 
 export default {
   name: 'icmp',                               // = nom du fichier = champ "protocol" du scénario
@@ -228,17 +228,17 @@ Aucun registre à modifier : le moteur charge le fichier d'après le champ `prot
 
 - Le protocole n'agit **que** par `ctx` : ni `setTimeout`, ni `Date.now()`, ni DOM, ni Three.js. Il est donc déterministe et testable sous Node.
 - `describe(packet)` renvoie un tableau `{ layer, field, value }` de chaînes. L'inspecteur l'affiche sans connaître le protocole, avec `app.sim.describe(packet)`, qui choisit le bon protocole d'après `packet.protocol`.
-- Comportements d'équipements (phase 4, `src/sim/devices/`) : `switch.js`, `host.js` (aussi pour `server`) et `router.js` sont appelés **avant** le protocole à chaque réception. S'ils renvoient `true`, le paquet est traité et le protocole n'est pas appelé. Ils traitent tout ce qui ne dépend pas du scénario :
+- Comportements d'équipements (phase 4, `src/sim/devices/`) : `switch.mjs`, `host.mjs` (aussi pour `server`) et `router.mjs` sont appelés **avant** le protocole à chaque réception. S'ils renvoient `true`, le paquet est traité et le protocole n'est pas appelé. Ils traitent tout ce qui ne dépend pas du scénario :
   - **switch** : table MAC apprise, inondation (diffusion ou MAC inconnue), transmission par le seul bon port, filtrage ; renvoie toujours `true` ;
   - **hôte / serveur** : ignore les trames pour une autre MAC ; ARP ; rejette un paquet IP pour une autre adresse (sauf la diffusion `255.255.255.255`) ; rejette UDP/TCP vers un port fermé (ICMP « port inaccessible » en UDP, segment RST en TCP, rien pour une diffusion) ; répond aux pings ; laisse le reste au protocole ;
   - **routeur** : ARP pour l'adresse de l'interface interrogée ; répond aux pings qui lui sont adressés ; ne fait jamais suivre une diffusion `255.255.255.255` ; fait suivre les autres paquets (TTL − 1, route la plus précise, ARP du saut suivant) ; à TTL 0 ou sans route, perte et erreur ICMP (`time-exceeded`, `unreachable`) renvoyée à l'émetteur.
-- **Pile commune** (`src/sim/stack.js`, `src/sim/net.js`) à utiliser par les protocoles :
+- **Pile commune** (`src/sim/stack.mjs`, `src/sim/net.mjs`) à utiliser par les protocoles :
   - `sendIp(ctx, deviceId, { protocol, type, ip: { dst, src?, ttl? }, transport?, data? }, { step?, interface? })` route le paquet, fait l'ARP si besoin, puis l'émet ; vers `255.255.255.255` (diffusion limitée), ni route ni ARP : trame de diffusion sur le réseau local ;
   - `sendUdp(ctx, deviceId, { protocol, type, dst, dstPort, srcPort?, src?, data? }, options)` ouvre le port source (éphémère à partir de 49152 si absent) puis envoie ; `protocol` est le protocole applicatif (`dns`, `dhcp`…) ;
   - `runtimeDevice(ctx, device)` : l'équipement avec la configuration obtenue pendant l'exécution ; `configureDevice(ctx, id, { interface, ip, gateway?, dns? })` l'applique (DHCP). Le scénario n'est jamais modifié ;
   - `isPortOpen`, `openPort`, `resolveMac`, `explainOnce(ctx, [ids])`, `lookupRoute(device, ip)`, `routingTable(device)`, `primaryIp(device)` ;
-  - DNS pour les autres protocoles : `resolveName(ctx, deviceId, name, { onResolved(ip, { cached }), onFailed(reason) })` et `handleDns(ctx, device, packet)` dans `protocols/dns.js` ;
-  - TCP pour les autres protocoles (`protocols/tcp.js`) : `connect(ctx, clientId, { dstIp, dstPort, protocol?, onEstablished(conn), onMessage(conn, msg), onClosed(conn), onFailed(reason) })` ; `handleTcp(ctx, device, packet, listener)` à appeler depuis `onReceive`, avec `listener = { protocol?, onAccept?, onMessage?, onClosed? }` pour un serveur ; `conn.send({ size, … }, { protocol, type, step? })` découpe le message en segments de 1000 octets (MSS) ; `conn.close()` ferme une fois tout acquitté. Segments : `transport = { protocol: 'tcp', src, dst, flags, seq, ack, window }`, `data = { length, part, parts, message }`. Simplifications : numéros initiaux fixes (1000 client, 5000 serveur), une seule temporisation de retransmission par connexion (RTO, `params.rto`), pas de contrôle de congestion ni de TIME_WAIT. Perte simulée : `params.loseSegment` (numéro du segment de données de `params.loseFrom`, client par défaut).
+  - DNS pour les autres protocoles : `resolveName(ctx, deviceId, name, { onResolved(ip, { cached }), onFailed(reason) })` et `handleDns(ctx, device, packet)` dans `protocols/dns.mjs` ;
+  - TCP pour les autres protocoles (`protocols/tcp.mjs`) : `connect(ctx, clientId, { dstIp, dstPort, protocol?, onEstablished(conn), onMessage(conn, msg), onClosed(conn), onFailed(reason) })` ; `handleTcp(ctx, device, packet, listener)` à appeler depuis `onReceive`, avec `listener = { protocol?, onAccept?, onMessage?, onClosed? }` pour un serveur ; `conn.send({ size, … }, { protocol, type, step? })` découpe le message en segments de 1000 octets (MSS) ; `conn.close()` ferme une fois tout acquitté. Segments : `transport = { protocol: 'tcp', src, dst, flags, seq, ack, window }`, `data = { length, part, parts, message }`. Simplifications : numéros initiaux fixes (1000 client, 5000 serveur), une seule temporisation de retransmission par connexion (RTO, `params.rto`), pas de contrôle de congestion ni de TIME_WAIT. Perte simulée : `params.loseSegment` (numéro du segment de données de `params.loseFrom`, client par défaut).
 
 ### Étapes standard
 
@@ -261,7 +261,7 @@ La pile et les équipements annoncent chaque action par une liste d'identifiants
 | `tcp-start`, `tcp-syn[-<eq>]`, `tcp-syn-ack[-<eq>]`, `tcp-established[-<eq>]`, `tcp-accepted[-<eq>]`, `tcp-data[-<n>]` ou `tcp-data-<client\|server>-<n>`, `tcp-lost[-<n>]`, `tcp-ack[-<eq>]`, `tcp-out-of-order[-<eq>]`, `tcp-dup-ack[-<eq>]`, `tcp-retransmit[-<n>]`, `tcp-cumulative-ack[-<eq>]`, `tcp-delivered[-<eq>]`, `tcp-fin[-<eq>]`, `tcp-fin-ack[-<eq>]`, `tcp-last-ack[-<eq>]`, `tcp-closed[-<eq>]`, `tcp-rst[-<eq>]`, `tcp-connect-closed`, `tcp-refused`, `tcp-failed`, `tcp-summary` | TCP (`<n>` : numéro du segment de données) |
 | `http-start`, `http-dns`, `http-dns-done`, `http-dns-failed`, `http-connect`, `http-request[-<n>]`, `http-response[-<code>]`, `http-received[-<n>]`, `http-not-found[-<n>]`, `http-close`, `http-failed`, `http-summary` | HTTP (`<n>` : rang de l'URL) |
 | `dhcp-start`, `dhcp-discover[-<eq>]`, `dhcp-offer[-<eq>]`, `dhcp-request[-<eq>]`, `dhcp-ack[-<eq>]`, `dhcp-configured[-<eq>]`, `dhcp-verify[-<eq>]`, `dhcp-verified[-<eq>]`, `dhcp-pool-empty`, `dhcp-summary` | DHCP |
-- Chaque protocole a un test de sa séquence de messages (définition de « terminé »). Le test `tests/protocol.test.js` vérifie automatiquement que chaque fichier respecte l'interface.
+- Chaque protocole a un test de sa séquence de messages (définition de « terminé »). Le test `tests/protocol.test.mjs` vérifie automatiquement que chaque fichier respecte l'interface.
 
 ---
 
@@ -304,7 +304,7 @@ Une commande non permise renvoie `false` sans exception : un clic au mauvais mom
 
 ### Choix du scénario (phase 4)
 
-`app.sim` (créé par `src/sim/index.js`) ajoute à l'API ci-dessus :
+`app.sim` (créé par `src/sim/index.mjs`) ajoute à l'API ci-dessus :
 
 | Membre | Rôle |
 | --- | --- |
@@ -312,12 +312,12 @@ Une commande non permise renvoie `false` sans exception : un clic au mauvais mom
 | `loadScenario(id, params?)` → promesse de booléen | charge le scénario (comme `load`) ; `false` si l'id est inconnu |
 | `getTraffic()` (phase 5) | `{ time, links, ports, devices }` : par lien `{ bandwidth, cable, ab, ba, utilization }` (sens a→b et b→a), par port `"équipement:interface"` `{ speed, negotiated, linked, link, peer, tx, rx, utilization }`, par équipement `{ current, average, bandwidth, utilization }`. Chaque mesure `{ current, average, bytes, utilization }` : débit instantané (fenêtre de 1 ms de réseau) et moyen en Mb/s, utilisation de 0 à 1 |
 | `timeScale` | 1000 : 1 ms de simulation = 1 µs de réseau |
-| Protocole `aucun` (phase 7) | `src/sim/protocols/aucun.js` : ne fait rien. Sert à charger une topologie en construction : scène, fiches et diagnostic fonctionnent, la lecture n'envoie rien |
-| Construction (phase 7, `src/sim/builder.js`, exporté par `simulation.js`) | fonctions pures qui renvoient un nouveau scénario valide ou lèvent `BuilderError` (message en français) : `newTopology()`, `fromScenario(s)`, `addDevice(s, { model, position })` → `{ scenario, id }`, `moveDevice`, `renameDevice` (30 caractères au plus, nom unique), `removeDevice` (retire aussi ses câbles), `freePorts(s, id)`, `connect(s, { a, b, cable })` → `{ scenario, id }`, `disconnect(s, linkId)`, `palette()`. Un équipement ajouté reçoit toutes les interfaces de son modèle (`eth0`…, `p1`…, `g0`…) et des adresses MAC uniques (sauf les ports de switch) |
-| Configuration (phase 7b, `src/sim/config.js`) | fonctions pures, `BuilderError` en cas de refus : `setAddress(s, id, interface, cidr \| '')` (refuse adresse de réseau, de diffusion, déjà prise, préfixe hors /8 à /30 ; /24 par défaut), `proposeAddress(s, id, interface)` (réseau déjà présent sur le segment, sinon nouveau 192.168.N.0/24 ; .1 pour un routeur, .10 et suivantes sinon), `setGateway`, `proposeGateway` (adresse du routeur du segment), `setDns`, `addRoute` (le routeur suivant doit être un voisin), `removeRoute`, `addService`, `removeService`, `setRole(s, id, 'dhcp' \| 'dns' \| 'web', actif)` (port et configuration proposés : plage .100 à .150, enregistrements vers les serveurs web, page « / »), `addRecord`, `removeRecord`, `rolesOf(device)` |
-| Protocoles à jouer (phase 7b, `src/sim/runs.js`) | `RUNS` (ping, routage, arp, udp, dns, dhcp, tcp, http, debit), `runFields(s, runId)`, `defaultValues(s, runId)`, `validateRun(s, runId, values)` → `{ errors, warnings, params, protocol }` (les erreurs bloquent la lecture, les avertissements non ; une boucle de commutation est toujours une erreur), `assembleRun(s, runId, params)` → scénario avec des explications génériques (noms des équipements insérés) |
+| Protocole `aucun` (phase 7) | `src/sim/protocols/aucun.mjs` : ne fait rien. Sert à charger une topologie en construction : scène, fiches et diagnostic fonctionnent, la lecture n'envoie rien |
+| Construction (phase 7, `src/sim/builder.mjs`, exporté par `simulation.mjs`) | fonctions pures qui renvoient un nouveau scénario valide ou lèvent `BuilderError` (message en français) : `newTopology()`, `fromScenario(s)`, `addDevice(s, { model, position })` → `{ scenario, id }`, `moveDevice`, `renameDevice` (30 caractères au plus, nom unique), `removeDevice` (retire aussi ses câbles), `freePorts(s, id)`, `connect(s, { a, b, cable })` → `{ scenario, id }`, `disconnect(s, linkId)`, `palette()`. Un équipement ajouté reçoit toutes les interfaces de son modèle (`eth0`…, `p1`…, `g0`…) et des adresses MAC uniques (sauf les ports de switch) |
+| Configuration (phase 7b, `src/sim/config.mjs`) | fonctions pures, `BuilderError` en cas de refus : `setAddress(s, id, interface, cidr \| '')` (refuse adresse de réseau, de diffusion, déjà prise, préfixe hors /8 à /30 ; /24 par défaut), `proposeAddress(s, id, interface)` (réseau déjà présent sur le segment, sinon nouveau 192.168.N.0/24 ; .1 pour un routeur, .10 et suivantes sinon), `setGateway`, `proposeGateway` (adresse du routeur du segment), `setDns`, `addRoute` (le routeur suivant doit être un voisin), `removeRoute`, `addService`, `removeService`, `setRole(s, id, 'dhcp' \| 'dns' \| 'web', actif)` (port et configuration proposés : plage .100 à .150, enregistrements vers les serveurs web, page « / »), `addRecord`, `removeRecord`, `rolesOf(device)` |
+| Protocoles à jouer (phase 7b, `src/sim/runs.mjs`) | `RUNS` (ping, routage, arp, udp, dns, dhcp, tcp, http, debit), `runFields(s, runId)`, `defaultValues(s, runId)`, `validateRun(s, runId, values)` → `{ errors, warnings, params, protocol }` (les erreurs bloquent la lecture, les avertissements non ; une boucle de commutation est toujours une erreur), `assembleRun(s, runId, params)` → scénario avec des explications génériques (noms des équipements insérés) |
 | `setCustomScenario(scenario)` (phase 7b) | ajoute ou remplace « Ma topologie » (id `perso`) en tête de `listScenarios()` ; `loadScenario('perso')` la charge. Lève une erreur si le scénario est invalide |
-| `diagnose()` (phase 6) | diagnostic du scénario chargé, avec le trafic mesuré à l'instant courant : liste triée par gravité de `{ id, rule, severity: 'critique' \| 'avertissement' \| 'conseil', target: { kind: 'device' \| 'link', id, label }, problem, cause, recommendation }`. Règles et seuils : `src/sim/diagnostics.js` (`RULES`, `SATURATION` = 80 %) |
+| `diagnose()` (phase 6) | diagnostic du scénario chargé, avec le trafic mesuré à l'instant courant : liste triée par gravité de `{ id, rule, severity: 'critique' \| 'avertissement' \| 'conseil', target: { kind: 'device' \| 'link', id, label }, problem, cause, recommendation }`. Règles et seuils : `src/sim/diagnostics.mjs` (`RULES`, `SATURATION` = 80 %) |
 
 ## 5. Faux moteur (mock)
 
@@ -325,7 +325,7 @@ Depuis la phase 4, `app.sim` est le vrai moteur. Le faux moteur ne sert plus qu'
 
 Le faux moteur (`app.sim.mock === true`) : c'est le vrai contrôleur, mais avec un protocole « demo » qui fait faire un aller-retour à un paquet entre `params.source` et `params.target` sur **n'importe quelle** topologie valide. Les routeurs décrémentent le TTL et les étapes du scénario s'affichent dans l'ordre.
 
-Au démarrage, il charge `DEMO_SCENARIO` (deux réseaux reliés par un routeur, voir `src/sim/mock.js`). On peut lui donner n'importe quel scénario :
+Au démarrage, il charge `DEMO_SCENARIO` (deux réseaux reliés par un routeur, voir `src/sim/mock.mjs`). On peut lui donner n'importe quel scénario :
 
 ```js
 const json = await (await fetch('./scenarios/arp.json')).json();
@@ -337,7 +337,7 @@ L'API est la même que celle du vrai moteur : les autres pôles n'ont rien eu à
 
 ## 6. API du pôle ui (`app.ui`)
 
-Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle xr.
+Valeur renvoyée par `init(app)` de `src/ui/index.mjs`, utilisable par le pôle xr.
 
 | Membre | Rôle |
 | --- | --- |
@@ -353,9 +353,9 @@ Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle x
 | `modules.recommendations` (phase 6) | `getView()` → `{ available, counts, items, message, badge }`, `refresh()`, `choose(id)` : montre le problème dans la scène (équipement sélectionné et cadré, ou lien mis en évidence) |
 | `mode` (phase 7) | « Explorer \| Construire » : `get()`, `set('explore' \| 'build')`, `onChange(listener)`. En Construire : `document.body.dataset.mode = 'build'` (l'éditeur remplace l'inspecteur, la liste des scénarios et la barre de lecture sont masquées), `app.render.setEditMode(true)`, onglet Recommandations ouvert |
 | `modules.editor` (phase 7) | éditeur de topologie : `enter()`, `leave()`, `arm(model)`, `place(position)`, `addAtCenter(model)`, `move`, `rename`, `remove`, `connect(a, b, cable)`, `disconnect`, `restart(fromCurrent)`, `getView()`, `getDraft()` ; configuration (7b) : `setAddress`, `proposeAddress`, `setGateway`, `proposeGateway`, `setDns`, `addRoute`, `removeRoute`, `setRole`, `addService`, `removeService`, `addRecord`, `removeRecord` ; protocole : `chooseRun(id)`, `setRunValue(key, value)`, `play()` (prépare « Ma topologie » ; en sortant de Construire, Explorer l'affiche) ; enregistrement (7c) : `saveAs(nom)`, `openSaved(nom)`, `removeSaved(nom)`, `exportFile()` → `{ name, text }`, `importText(texte)`. Chaque modification recharge le brouillon dans le moteur (`app.sim.load`) et le garde dans le navigateur |
-| Stockage (phase 7c, `src/ui/storage.js`) | `createTopologyStore(storage)` : brouillon (`loadDraft`, `saveDraft`, `clearDraft`, clé `topologie3d.brouillon`), topologies nommées (`list`, `save`, `open`, `remove`, clé `topologie3d.topologies`, `{ version: 1, items: [{ name, savedAt, scenario }] }`). Stockage indisponible : `{ ok: false, error }` avec un message, jamais d'exception. `exportJson(scenario)`, `parseImport(texte)` (JSON, 1 Mo au plus, scénario validé ; un scénario fourni devient une copie modifiable), `fileName(titre)` |
+| Stockage (phase 7c, `src/ui/storage.mjs`) | `createTopologyStore(storage)` : brouillon (`loadDraft`, `saveDraft`, `clearDraft`, clé `topologie3d.brouillon`), topologies nommées (`list`, `save`, `open`, `remove`, clé `topologie3d.topologies`, `{ version: 1, items: [{ name, savedAt, scenario }] }`). Stockage indisponible : `{ ok: false, error }` avec un message, jamais d'exception. `exportJson(scenario)`, `parseImport(texte)` (JSON, 1 Mo au plus, scénario validé ; un scénario fourni devient une copie modifiable), `fileName(titre)` |
 | `tabs` (phase 6) | onglets « Explications \| Recommandations » : `select('explanations' \| 'recommendations')`, `selected()`, `onChange(listener)` |
-| `modules.inspector` | `getView()` (équipement sélectionné, avec `sheet` : fiche de `src/ui/datasheet.js`, mise à jour en direct), `getPacketView()` → `{ eventId, title, meta, layers }` ou `null` (paquet sélectionné) |
+| `modules.inspector` | `getView()` (équipement sélectionné, avec `sheet` : fiche de `src/ui/datasheet.mjs`, mise à jour en direct), `getPacketView()` → `{ eventId, title, meta, layers }` ou `null` (paquet sélectionné) |
 
 ## 7. API du pôle render (`app.render`) utilisée par les autres pôles
 
@@ -367,12 +367,12 @@ Valeur renvoyée par `init(app)` de `src/ui/index.js`, utilisable par le pôle x
 | `pickDevice(origin, direction)` → id ou `null` | lancer de rayon en coordonnées monde |
 | `pickDeviceHit(origin, direction, { tolerance })` → `{ id, point, distance }` ou `null` | idem, avec le point visé. `tolerance` (unités de la topologie) accepte un équipement ou une étiquette proche du rayon : visée à la manette |
 | `onFrame(listener)` → désabonnement | `listener({ time, delta, xrFrame, referenceSpace, presenting })` à chaque image de la boucle d'animation unique ; `xrFrame` et `referenceSpace` valent `null` hors session VR |
-| `startXR(session)` → promesse, `isPresenting()` | affichage en WebGPU dans une session WebXR ouverte par le pôle xr : `XRGPUBinding` du navigateur, ou pont de l'émulateur (`src/render/xrBridge.js`). La promesse est rejetée si le navigateur ne permet pas la VR en WebGPU |
+| `startXR(session)` → promesse, `isPresenting()` | affichage en WebGPU dans une session WebXR ouverte par le pôle xr : `XRGPUBinding` du navigateur, ou pont de l'émulateur (`src/render/xrBridge.mjs`). La promesse est rejetée si le navigateur ne permet pas la VR en WebGPU |
 | `xrSessionFeatures()` | fonctionnalités de session à demander en plus : `['webgpu']` |
 | `getRenderer()`, `getReferenceSpace()` | le `WebGPURenderer` de la scène (le même toute la vie de la page) et l'espace de référence de la session (`null` hors VR) |
 | `getRenderingInfo()` → `{ classic, xr }` | rendu réellement utilisé : `classic` vaut `'WebGPU'` ; `xr` vaut `{ backend: 'WebGPU', path: 'natif' \| 'pont émulateur' }` pendant une session, sinon `null` |
 | `getVRAnchor()` → `{ x, y, z, width, depth }` ou `null` | centre et taille (m) de la maquette pendant une session VR ; les panneaux VR s'y accrochent |
-| `packetStyle(protocol, broadcast?)` → `{ color, radius }` | couleur (`'#rrggbb'`) et taille d'un paquet, une couleur par protocole (`src/render/packetStyles.js`) ; le journal de l'interface utilise les mêmes |
+| `packetStyle(protocol, broadcast?)` → `{ color, radius }` | couleur (`'#rrggbb'`) et taille d'un paquet, une couleur par protocole (`src/render/packetStyles.mjs`) ; le journal de l'interface utilise les mêmes |
 | `highlightPacket(eventId)` | met en avant (plus gros) le paquet en vol de cet évènement d'envoi ; `null` : aucun |
 | `highlightLink(id)` (phase 6) | met un lien en évidence (jaune), au-dessus de sa couleur de charge ; `null` : aucun. Renvoie `false` si le lien est inconnu |
 | `setLinkLoads({ idLien: utilisation })` (phase 5) | couleur des liens selon leur charge : bleu au repos, vert < 50 %, orange 50 à 80 %, rouge ≥ 80 %. Appelé par le pôle render lui-même 4 fois par seconde d'après `app.sim.getTraffic()` |
@@ -388,4 +388,4 @@ Sélection (pôle ui) : un nouveau scénario désélectionne, sauf si c'est la m
 
 ## Tests
 
-`node --test` lance tous les tests. Ceux du pôle simulation : `tests/engine.test.js`, `events.test.js`, `scenario.test.js`, `state.test.js`, `commands.test.js`, `protocol.test.js`, `mock.test.js`.
+`node --test` lance tous les tests. Ceux du pôle simulation : `tests/engine.test.mjs`, `events.test.mjs`, `scenario.test.mjs`, `state.test.mjs`, `commands.test.mjs`, `protocol.test.mjs`, `mock.test.mjs`.

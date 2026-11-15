@@ -34,9 +34,9 @@
       "label": "PC 1",
       "model": "pc-1g",
       "position": [
-        -5,
+        -7.5,
         0,
-        -3
+        -4.5
       ],
       "interfaces": [
         {
@@ -52,7 +52,7 @@
       "label": "PC 2",
       "model": "pc-1g",
       "position": [
-        -5,
+        -7.5,
         0,
         0
       ],
@@ -70,9 +70,9 @@
       "label": "PC 3",
       "model": "pc-1g",
       "position": [
-        -5,
+        -7.5,
         0,
-        3
+        4.5
       ],
       "interfaces": [
         {
@@ -113,7 +113,7 @@
       "label": "Serveur de sauvegarde",
       "model": "srv-1g",
       "position": [
-        5,
+        7.5,
         0,
         0
       ],

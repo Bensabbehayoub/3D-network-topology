@@ -7,11 +7,11 @@
 | --- | --- | --- |
 | Mode classique (PC, mobile) | WebGPU | `WebGPURenderer` |
 | Session `immersive-vr`, navigateur qui accorde la fonctionnalité `webgpu` (vrai casque) | WebGPU | `XRGPUBinding` du navigateur (**non vérifié** : pas de casque dans l'équipe) |
-| Session `immersive-vr` dans Immersive Web Emulator | WebGPU | pont `src/render/xrBridge.js` (ci-dessous) |
+| Session `immersive-vr` dans Immersive Web Emulator | WebGPU | pont `src/render/xrBridge.mjs` (ci-dessous) |
 | Navigateur sans WebGPU | aucun | message « WebGPU requis » à la place de la scène ; le reste de l'interface reste utilisable |
 | Navigateur réel sans `XRGPUBinding` (VR) | aucun | la session VR est refermée, erreur dans la console ; le mode classique continue |
 
-Le choix est codé dans `src/render/renderers.js` : on vérifie `navigator.gpu` et un adaptateur
+Le choix est codé dans `src/render/renderers.mjs` : on vérifie `navigator.gpu` et un adaptateur
 **avant** de créer le renderer, parce que `WebGPURenderer` basculerait sinon en silence sur son
 backend WebGL 2. Le build WebGL de Three.js (`three.module.js`, `WebGLRenderer`) n'est plus embarqué :
 tous les modules importent `three.webgpu.js`. Un test (`renderers.test.mjs`) vérifie qu'aucun fichier
@@ -56,7 +56,7 @@ est jugée sur une capture d'écran prise pendant la session.
 | `XRGPUBinding` de Chrome (drapeau « Experimental Web Platform features ») | refusé : « parameter 1 is not of type 'XRSession' » (session de l'émulateur) | — | 0 |
 | `WebGPURenderer({ forceWebGL: true })` | ouverte | **vide** (« Invalid value used as weak map key ») | 1 |
 | Bascule vers `WebGLRenderer` pendant la VR | ouverte | correcte | 1 |
-| **`WebGPURenderer` WebGPU + pont `xrBridge.js`** | ouverte | **correcte, mono et stéréo** | **0** |
+| **`WebGPURenderer` WebGPU + pont `xrBridge.mjs`** | ouverte | **correcte, mono et stéréo** | **0** |
 
 La bascule vers `WebGLRenderer` a été la première version de la phase 2 ; elle a été remplacée par
 le pont avant d'être commitée, à la demande du professeur (100 % WebGPU).

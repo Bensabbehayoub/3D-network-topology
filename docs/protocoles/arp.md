@@ -2,7 +2,7 @@
 
 | Prévu (planning) | Réalisé | Couche | Fichiers |
 | --- | --- | --- | --- |
-| Khalil, S3 | Refonte, phase 4a | Couche 2/3 (entre Ethernet et IP) | `src/sim/stack.js` (résolution, cache, file d'attente), `src/sim/protocols/arp.js` (scénario ARP), `src/sim/devices/host.js`, `router.js` (réponses), `scenarios/arp.json`, `tests/arp.test.js` |
+| Khalil, S3 | Refonte, phase 4a | Couche 2/3 (entre Ethernet et IP) | `src/sim/stack.mjs` (résolution, cache, file d'attente), `src/sim/protocols/arp.mjs` (scénario ARP), `src/sim/devices/host.mjs`, `router.mjs` (réponses), `scenarios/arp.json`, `tests/arp.test.mjs` |
 
 > Statut : **implémenté et testé.** ARP est fait par la pile commune : tous les scénarios IP l'utilisent (ping, DNS, HTTP…), pas seulement le scénario ARP.
 
@@ -39,8 +39,8 @@ Ethernet (MAC source et destination), opération (requête ou réponse), adresse
 
 ## Implémentation
 
-- `stack.js` : `resolveMac` consulte le cache (`ctx.memory`), sinon diffuse une requête et met en **file d'attente** les paquets IP qui attendent cette adresse ; à la réponse, le cache est rempli et la file envoyée. Délai sans réponse : abandon expliqué (`arp-timeout`).
-- `devices/host.js` et `router.js` : répondent pour leur propre adresse (le routeur pour l'adresse de l'interface interrogée) et retiennent le demandeur ; ignorent les requêtes pour une autre adresse.
-- `devices/switch.js` : apprentissage des MAC, inondation des diffusions, transmission par un seul port ensuite.
+- `stack.mjs` : `resolveMac` consulte le cache (`ctx.memory`), sinon diffuse une requête et met en **file d'attente** les paquets IP qui attendent cette adresse ; à la réponse, le cache est rempli et la file envoyée. Délai sans réponse : abandon expliqué (`arp-timeout`).
+- `devices/host.mjs` et `router.mjs` : répondent pour leur propre adresse (le routeur pour l'adresse de l'interface interrogée) et retiennent le demandeur ; ignorent les requêtes pour une autre adresse.
+- `devices/switch.mjs` : apprentissage des MAC, inondation des diffusions, transmission par un seul port ensuite.
 - Étapes expliquées : `arp-cache-miss`, `arp-request`, `arp-reply`, `arp-ignore`, `arp-cache-update`, `arp-timeout`, `arp-done`, `arp-failed` (avec suffixe d'équipement, voir [contrats §3](../simulation/contrats.md#étapes-standard)).
-- Tests (`tests/arp.test.js`, et `host.test.js`, `switch.test.js`) : séquence du scénario (requête diffusée, inondation, réponse directe, cache) ; cible absente (abandon après le délai) ; champs de l'inspecteur.
+- Tests (`tests/arp.test.mjs`, et `host.test.mjs`, `switch.test.mjs`) : séquence du scénario (requête diffusée, inondation, réponse directe, cache) ; cible absente (abandon après le délai) ; champs de l'inspecteur.

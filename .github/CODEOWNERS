@@ -27,7 +27,7 @@
 /assets/models/                 @zyyyyyyyyyyz @ramydriwech
 
 # Khalil : moteur de simulation
-/simulation.js                  @111JOJO111 @Bensabbehayoub
+/simulation.mjs                  @111JOJO111 @Bensabbehayoub
 /src/sim/                       @111JOJO111 @Bensabbehayoub
 /tests/                         @111JOJO111 @Bensabbehayoub
 /docs/architecture.md           @111JOJO111 @Bensabbehayoub
@@ -44,43 +44,43 @@
 /tools/                         @Bensabbehayoub @111JOJO111
 /assets/icons/                  @Bensabbehayoub @111JOJO111
 /src/xr/                        @Bensabbehayoub @111JOJO111
-/src/render/packetAnimator.js   @Bensabbehayoub @111JOJO111
-/src/sim/devices/switch.js      @Bensabbehayoub @111JOJO111
-/tests/switch.test.js           @Bensabbehayoub @111JOJO111
-/tests/packetAnimator.test.js   @Bensabbehayoub @111JOJO111
-/tests/platform.test.js         @Bensabbehayoub @111JOJO111
+/src/render/packetAnimator.mjs   @Bensabbehayoub @111JOJO111
+/src/sim/devices/switch.mjs      @Bensabbehayoub @111JOJO111
+/tests/switch.test.mjs           @Bensabbehayoub @111JOJO111
+/tests/packetAnimator.test.mjs   @Bensabbehayoub @111JOJO111
+/tests/platform.test.mjs         @Bensabbehayoub @111JOJO111
 /scenarios/ping.json            @Bensabbehayoub @111JOJO111
 /docs/decision-renderer.md      @Bensabbehayoub @111JOJO111
 
 # Protocoles : l'auteur possède ses quatre fichiers
-/src/sim/protocols/arp.js       @111JOJO111 @Bensabbehayoub
+/src/sim/protocols/arp.mjs       @111JOJO111 @Bensabbehayoub
 /scenarios/arp.json             @111JOJO111 @Bensabbehayoub
-/tests/arp.test.js              @111JOJO111 @Bensabbehayoub
+/tests/arp.test.mjs              @111JOJO111 @Bensabbehayoub
 /docs/protocoles/arp.md         @111JOJO111 @Bensabbehayoub
-/src/sim/protocols/tcp.js       @111JOJO111 @Bensabbehayoub
+/src/sim/protocols/tcp.mjs       @111JOJO111 @Bensabbehayoub
 /scenarios/tcp.json             @111JOJO111 @Bensabbehayoub
-/tests/tcp.test.js              @111JOJO111 @Bensabbehayoub
+/tests/tcp.test.mjs              @111JOJO111 @Bensabbehayoub
 /docs/protocoles/tcp.md         @111JOJO111 @Bensabbehayoub
 /scenarios/routage.json         @111JOJO111 @Bensabbehayoub
 /docs/protocoles/routage.md     @111JOJO111 @Bensabbehayoub
 
-/src/sim/protocols/icmp.js      @zyyyyyyyyyyz @ramydriwech
-/tests/icmp.test.js             @zyyyyyyyyyyz @ramydriwech
+/src/sim/protocols/icmp.mjs      @zyyyyyyyyyyz @ramydriwech
+/tests/icmp.test.mjs             @zyyyyyyyyyyz @ramydriwech
 /docs/protocoles/icmp.md        @zyyyyyyyyyyz @ramydriwech
-/src/sim/protocols/udp.js       @zyyyyyyyyyyz @ramydriwech
+/src/sim/protocols/udp.mjs       @zyyyyyyyyyyz @ramydriwech
 /scenarios/udp.json             @zyyyyyyyyyyz @ramydriwech
-/tests/udp.test.js              @zyyyyyyyyyyz @ramydriwech
+/tests/udp.test.mjs              @zyyyyyyyyyyz @ramydriwech
 /docs/protocoles/udp.md         @zyyyyyyyyyyz @ramydriwech
-/src/sim/protocols/dns.js       @zyyyyyyyyyyz @ramydriwech
+/src/sim/protocols/dns.mjs       @zyyyyyyyyyyz @ramydriwech
 /scenarios/dns.json             @zyyyyyyyyyyz @ramydriwech
-/tests/dns.test.js              @zyyyyyyyyyyz @ramydriwech
+/tests/dns.test.mjs              @zyyyyyyyyyyz @ramydriwech
 /docs/protocoles/dns.md         @zyyyyyyyyyyz @ramydriwech
 
-/src/sim/protocols/dhcp.js      @ramydriwech @zyyyyyyyyyyz
+/src/sim/protocols/dhcp.mjs      @ramydriwech @zyyyyyyyyyyz
 /scenarios/dhcp.json            @ramydriwech @zyyyyyyyyyyz
-/tests/dhcp.test.js             @ramydriwech @zyyyyyyyyyyz
+/tests/dhcp.test.mjs             @ramydriwech @zyyyyyyyyyyz
 /docs/protocoles/dhcp.md        @ramydriwech @zyyyyyyyyyyz
-/src/sim/protocols/http.js      @ramydriwech @zyyyyyyyyyyz
+/src/sim/protocols/http.mjs      @ramydriwech @zyyyyyyyyyyz
 /scenarios/http.json            @ramydriwech @zyyyyyyyyyyz
-/tests/http.test.js             @ramydriwech @zyyyyyyyyyyz
+/tests/http.test.mjs             @ramydriwech @zyyyyyyyyyyz
 /docs/protocoles/http.md        @ramydriwech @zyyyyyyyyyyz
