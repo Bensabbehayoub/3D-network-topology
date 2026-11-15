@@ -129,7 +129,8 @@ test('mount sous Node : gabarit fixe, aucun nom d\'équipement dans le HTML', as
   const { app } = await setup();
   const container = { innerHTML: '' };
   const editor = mount(container, app);
-  assert.match(container.innerHTML, /Relier deux ports libres/);
+  assert.match(container.innerHTML, /Relier deux équipements/);
+  assert.match(container.innerHTML, /data-action="link"[^>]*>Relier dans la scène</);
   assert.doesNotMatch(container.innerHTML, /PC 1/);
   assert.equal(linkLabel({ devices: [{ id: 'a', label: 'A' }, { id: 'b' }] }, { a: 'a:x', b: 'b:y' }), 'A (x) ↔ b (y)');
   editor.dispose();
@@ -195,4 +196,70 @@ test('7c : brouillon retrouvé après un « rechargement », enregistrer, rouvri
   assert.match(second.editor.getView().error, /JSON valide/);
   assert.equal(second.editor.removeSaved('Salle 12'), true);
   assert.deepEqual(second.editor.getView().saved.items, []);
+});
+
+test('relier dans la scène : bouton, puis clic sur deux équipements (premier port libre de chacun)', async () => {
+  const { sim, editor } = await setup();
+  await editor.enter();
+  await editor.restart(false);
+  const pc = await editor.addAtCenter('pc-1g');
+  const sw = await editor.addAtCenter('sw-24g');
+  assert.equal(await editor.pickForLink(pc), false, 'sans le mode, un clic ne relie rien');
+
+  assert.equal(editor.startLinking(), true);
+  assert.equal(editor.isLinking(), true);
+  assert.deepEqual(editor.getView().linking, { first: null, firstLabel: null });
+  assert.equal(await editor.pickForLink(pc), true, 'premier équipement retenu');
+  assert.equal(editor.getView().linking.first, pc);
+  assert.match(editor.getView().notice, /cliquez sur le second équipement/);
+  assert.equal(await editor.pickForLink(pc), true, 'le même équipement est refusé');
+  assert.match(editor.getView().error, /autre équipement/);
+
+  const link = await editor.pickForLink(sw, 'fibre-mm');
+  assert.equal(link, 'l1');
+  assert.equal(editor.isLinking(), false, 'le mode s\'arrête après le câble');
+  assert.deepEqual(sim.getScenario().links, [{ id: 'l1', a: `${pc}:eth0`, b: `${sw}:p1`, cable: 'fibre-mm' }]);
+  assert.match(editor.getView().notice, /Câble posé/);
+  assert.equal(editor.getView().error, null);
+
+  // Un deuxième câble prend les ports suivants encore libres du switch.
+  const pc2 = await editor.addAtCenter('pc-1g');
+  editor.startLinking();
+  await editor.pickForLink(sw);
+  assert.equal(await editor.pickForLink(pc2), 'l2');
+  assert.equal(sim.getScenario().links[1].a, `${sw}:p2`);
+});
+
+test('relier dans la scène : équipement sans port libre, annulation, et un seul mode à la fois', async () => {
+  const { editor } = await setup();
+  await editor.enter();
+  await editor.restart(false);
+  const a = await editor.addAtCenter('pc-1g');
+  const b = await editor.addAtCenter('pc-1g');
+  const c = await editor.addAtCenter('pc-1g');
+  editor.startLinking();
+  await editor.pickForLink(a);
+  await editor.pickForLink(b); // les deux PC n'ont qu'un port : il est maintenant pris
+
+  editor.startLinking();
+  assert.equal(await editor.pickForLink(a), false, 'pas de port libre : rien n\'est retenu');
+  assert.match(editor.getView().error, /n'a plus de port libre/);
+  assert.equal(editor.getView().linking.first, null);
+  await editor.pickForLink(c);
+  assert.equal(await editor.pickForLink(b), true, 'second sans port libre : on attend un autre clic');
+  assert.equal(editor.getView().linking.first, c);
+
+  assert.equal(editor.cancelLinking(), true);
+  assert.equal(editor.isLinking(), false);
+  assert.equal(editor.getView().notice, null);
+  assert.equal(editor.cancelLinking(), false, 'déjà annulé');
+
+  editor.startLinking();
+  editor.arm('pc-1g');
+  assert.equal(editor.isLinking(), false, 'placer un équipement arrête la liaison');
+  editor.startLinking();
+  assert.equal(editor.getView().armed, null, 'et inversement');
+  await editor.leave();
+  assert.equal(editor.isLinking(), false, 'sortir de Construire arrête la liaison');
+  assert.equal(editor.startLinking(), false, 'hors de Construire, pas de liaison');
 });

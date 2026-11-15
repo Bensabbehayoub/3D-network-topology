@@ -9,7 +9,8 @@
 //   scène ») ou « Ajouter au centre » (sans pointeur : clavier, lecteur d'écran).
 // - Déplacer : glisser l'équipement dans la scène (évènement topology:device-moved du rendu).
 // - Renommer, supprimer : équipement sélectionné (clic dans la scène).
-// - Câbles : deux ports libres et un type de câble ; retirer un câble.
+// - Câbles : bouton « Relier dans la scène » puis clic sur deux équipements (premier port libre de
+//   chacun, ajout d'Ayoub), ou formulaire avec deux ports libres ; type de câble ; retirer un câble.
 // - Repartir d'une topologie vide ou du scénario affiché en mode Explorer.
 //
 // Découpage pour les tests sous Node : createEditorController() (sans DOM), puis mount().
@@ -29,6 +30,7 @@ export const DEFAULT_RUN = 'ping';
 export const DEFAULT_MODEL = 'pc-1g';
 export const DEFAULT_CABLE = 'cuivre-cat6';
 export const PLACE_HINT = 'Touchez le sol de la scène à l\'endroit voulu (Échap pour annuler).';
+export const LINK_FIRST_HINT = 'Cliquez sur le premier équipement à relier (Échap pour annuler).';
 
 /** Première place libre sur une grille autour du centre (3 unités entre deux équipements). */
 export function freeSpot(devices, step = 3) {
@@ -61,6 +63,7 @@ export function createEditorController(app, { onChange = () => {}, selection = n
   let draft = null;
   let active = false;
   let armed = null; // modèle à placer au prochain toucher du sol
+  let linking = null; // « Relier dans la scène » : { first: id | null }, sinon null
   let error = null;
   let notice = null;
   let returnTo = null; // scénario affiché avant d'entrer en construction
@@ -107,6 +110,7 @@ export function createEditorController(app, { onChange = () => {}, selection = n
     return {
       active,
       armed,
+      linking: linking ? { first: linking.first, firstLabel: linking.first ? nameOf(draft, linking.first) : null } : null,
       error,
       notice,
       title: draft?.title ?? '',
@@ -187,6 +191,7 @@ export function createEditorController(app, { onChange = () => {}, selection = n
       if (!active) return;
       active = false;
       armed = null;
+      linking = null;
       const target = launch ? 'perso' : returnTo;
       launch = false;
       if (target && typeof sim?.loadScenario === 'function') await sim.loadScenario(target);
@@ -290,6 +295,7 @@ export function createEditorController(app, { onChange = () => {}, selection = n
     /** Arme le placement : le prochain toucher du sol ajoute ce modèle. */
     arm(model) {
       armed = model ?? null;
+      if (armed) linking = null; // un seul mode de clic dans la scène à la fois
       notice = armed ? PLACE_HINT : null;
       error = null;
       notify();
@@ -315,6 +321,55 @@ export function createEditorController(app, { onChange = () => {}, selection = n
       const done = await apply((s) => removeDevice(s, id), `${label} supprimé, avec ses câbles.`);
       if (done) selection?.clear?.();
       return done;
+    },
+    // --- Relier dans la scène (Ayoub) : bouton, puis clic sur deux équipements ---
+    /** Active le mode : les deux prochains clics sur un équipement posent un câble entre eux. */
+    startLinking() {
+      if (!active) return false;
+      armed = null;
+      linking = { first: null };
+      error = null;
+      notice = LINK_FIRST_HINT;
+      notify();
+      return true;
+    },
+    cancelLinking() {
+      if (!linking) return false;
+      linking = null;
+      error = null;
+      notice = null;
+      notify();
+      return true;
+    },
+    isLinking: () => linking !== null,
+    /**
+     * Clic sur un équipement pendant le mode « Relier ». Le premier clic retient l'équipement ; le
+     * second pose le câble entre le premier port libre de chacun, puis le mode s'arrête.
+     * @returns {Promise<string | boolean>} id du câble posé, true si l'on attend le second clic, false sinon
+     */
+    async pickForLink(id, cable = DEFAULT_CABLE) {
+      if (!active || !linking || !draft?.devices.some((device) => device.id === id)) return false;
+      const label = nameOf(draft, id);
+      if (freePorts(draft, id).length === 0) {
+        error = `${label} n'a plus de port libre : choisissez un autre équipement (Échap pour annuler).`;
+        notify();
+        return linking.first ? true : false;
+      }
+      if (!linking.first) {
+        linking = { first: id };
+        error = null;
+        notice = `${label} choisi : cliquez sur le second équipement (Échap pour annuler).`;
+        notify();
+        return true;
+      }
+      if (linking.first === id) {
+        error = 'Cliquez sur un autre équipement : un câble relie deux équipements différents.';
+        notify();
+        return true;
+      }
+      const first = linking.first;
+      linking = null;
+      return api.connect(`${first}:${freePorts(draft, first)[0]}`, `${id}:${freePorts(draft, id)[0]}`, cable);
     },
     connect: (a, b, cable = DEFAULT_CABLE) => apply((s) => connect(s, { a, b, cable }), (r) => `Câble posé : ${linkLabel(r.scenario, r.scenario.links.at(-1))}.`),
     disconnect: (linkId) => apply((s) => disconnect(s, linkId), 'Câble retiré.'),
@@ -349,15 +404,18 @@ const TEMPLATE = `
     <div data-role="selected"></div>
   </section>
   <section class="editor-section" aria-labelledby="editor-connect">
-    <h3 class="editor-heading" id="editor-connect">Relier deux ports libres</h3>
+    <h3 class="editor-heading" id="editor-connect">Relier deux équipements</h3>
+    <label class="editor-field">Câble <select data-role="cable"></select></label>
+    <button type="button" class="btn btn-primary editor-link-toggle" data-action="link" data-focus="link" aria-pressed="false">Relier dans la scène</button>
+    <p class="editor-hint">Cliquez sur « Relier dans la scène », puis sur les deux équipements : le câble prend le premier port libre de chacun.</p>
+    <p class="editor-hint">Ou choisissez les ports :</p>
     <div class="editor-grid">
       <label class="editor-field">Équipement A <select data-role="a-device"></select></label>
       <label class="editor-field">Port A <select data-role="a-port"></select></label>
       <label class="editor-field">Équipement B <select data-role="b-device"></select></label>
       <label class="editor-field">Port B <select data-role="b-port"></select></label>
     </div>
-    <label class="editor-field">Câble <select data-role="cable"></select></label>
-    <button type="button" class="btn btn-primary" data-action="connect">Relier</button>
+    <button type="button" class="btn" data-action="connect">Relier ces ports</button>
   </section>
   <section class="editor-section" aria-labelledby="editor-links">
     <h3 class="editor-heading" id="editor-links">Câbles</h3>
@@ -666,6 +724,13 @@ export function mount(container, app, { selection = null, mode = null, store = u
     parts.notice.textContent = view.notice ?? '';
     parts.error.hidden = !view.error;
     parts.error.textContent = view.error ?? '';
+    // Bouton « Relier dans la scène » : enfoncé pendant le mode, il sert alors à annuler.
+    const linkToggle = find('[data-action="link"]');
+    if (linkToggle) {
+      linkToggle.setAttribute('aria-pressed', String(Boolean(view.linking)));
+      linkToggle.textContent = view.linking ? 'Annuler la liaison' : 'Relier dans la scène';
+      linkToggle.disabled = !view.linking && view.devices.filter((device) => device.free.length > 0).length < 2;
+    }
 
     // Équipement sélectionné : renommer, supprimer, ports.
     const box = parts.selected;
@@ -745,6 +810,10 @@ export function mount(container, app, { selection = null, mode = null, store = u
       const action = event.target?.closest?.('[data-action]')?.dataset.action;
       if (action === 'arm') controller.arm(parts.model.value);
       if (action === 'center') controller.addAtCenter(parts.model.value);
+      if (action === 'link') {
+        if (controller.isLinking()) controller.cancelLinking();
+        else controller.startLinking();
+      }
       if (action === 'connect') {
         const a = parts['a-device'].value && parts['a-port'].value ? `${parts['a-device'].value}:${parts['a-port'].value}` : '';
         const b = parts['b-device'].value && parts['b-port'].value ? `${parts['b-device'].value}:${parts['b-port'].value}` : '';
@@ -789,8 +858,14 @@ export function mount(container, app, { selection = null, mode = null, store = u
     on(scene, 'topology:device-moved', (event) => {
       if (controller.isActive()) controller.move(event.detail.id, event.detail.position);
     });
+    // Relier dans la scène : un clic sur un équipement (émis par le rendu) choisit un bout du câble.
+    on(scene, 'topology:device-selected', (event) => {
+      if (controller.isLinking()) controller.pickForLink(event.detail?.id, parts.cable.value);
+    });
     on(doc, 'keydown', (event) => {
-      if (event.key === 'Escape' && controller.getView().armed) controller.arm(null);
+      if (event.key !== 'Escape') return;
+      if (controller.getView().armed) controller.arm(null);
+      if (controller.isLinking()) controller.cancelLinking();
     });
   }
   render(controller.getView());

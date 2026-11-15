@@ -848,6 +848,17 @@ body[data-mode="build"] .scene {
   column-gap: 8px;
 }
 
+/* « Relier dans la scène » enfoncé : le mode attend deux clics sur des équipements. */
+.editor-link-toggle {
+  margin-top: 8px;
+}
+
+.editor-link-toggle[aria-pressed="true"] {
+  background: #ffd166;
+  border-color: #ffd166;
+  color: #101418;
+}
+
 .editor-actions {
   display: flex;
   flex-wrap: wrap;
