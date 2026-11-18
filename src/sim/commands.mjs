@@ -16,6 +16,7 @@
 //   describe(packet)                lignes de l'inspecteur (PacketField[]) via le bon protocole
 //   getHistory()                    évènements réseau publiés depuis la dernière réinitialisation (S2)
 //   getPacketsInFlight()            paquets en cours de trajet et leur avancement 0..1 (S2, animateur)
+//   getDeviceTables(id)             tables d'un équipement : cache ARP, table MAC… (S3, inspecteur)
 //   isAllowed(command)              la commande est-elle permise maintenant ? (activer les boutons)
 //   tick(realDeltaMs)               avance la lecture d'une image, depuis la boucle de rendu (VR comprise)
 //   on(topic, listener) / once(...) abonnement au bus (TOPICS de events.mjs) → désabonnement
@@ -95,6 +96,8 @@ function deepFreeze(value) {
  *   comportements d'équipements par type (S3 : switch.mjs, host.mjs, router.mjs). Appelé avant le
  *   protocole à chaque réception ; s'il renvoie true, le paquet est traité et le protocole n'est pas appelé.
  * @param {number} [options.speed] vitesse initiale (1 par défaut)
+ * @param {(memory: object) => object} [options.tables] tables réseau d'un équipement calculées à partir
+ *   de sa mémoire d'exécution (S3 : networkTables de stack.mjs) ; utilisée par getDeviceTables()
  * @param {(scenario: object, link: object, packet: object) => { bytes: number, duration: number }} [options.transmission]
  *   taille de la trame et durée d'émission sur le lien (phase 5, voir traffic.mjs). Sans elle, une
  *   trame part et arrive comme avant (durée nulle, aucune file d'attente).
@@ -444,6 +447,20 @@ export function createSimulation(options = {}) {
      * par exemple après une pause, un pas à pas ou un changement de vitesse.
      * @returns {Array<{ event: import('./events.mjs').NetworkEvent, progress: number }>}
      */
+    /**
+     * Tables réseau d'un équipement à l'instant courant (copie gelée), calculées par l'option
+     * `tables` du moteur (networkTables de stack.mjs dans l'application) : cache ARP d'un PC ou
+     * d'un routeur, adresses en attente de réponse ARP, table MAC d'un switch.
+     * Vides après une réinitialisation ; null si l'équipement n'existe pas ou sans scénario.
+     * @param {string} deviceId
+     * @returns {object | null}
+     */
+    getDeviceTables(deviceId) {
+      if (!scenario || !run || !findDevice(scenario, deviceId)) return null;
+      if (typeof options.tables !== 'function') return null;
+      return deepFreeze(structuredClone(options.tables(run.memory.get(deviceId) ?? {})));
+    },
+
     getPacketsInFlight() {
       if (!run) return [];
       const now = engine.now();
