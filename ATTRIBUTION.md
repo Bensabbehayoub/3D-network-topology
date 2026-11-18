@@ -129,6 +129,10 @@ Claude a été utilisé comme assistant de développement pour le pôle simulati
     *   **Prompt ou usage principal :** génération du code et des tests des tâches 23 à 25 du plan.
     *   **Axe de vérification appliqué par l'étudiant :** comparaison de l'ordre du tas avec un tri de référence sur 2 000 actions aléatoires ; test de charge sur 50 000 actions (qui a révélé et fait corriger un défaut du garde-fou anti-boucle) ; vérification de chaque commande dans chacun des 5 états ; vérification que la lecture continue produit la même suite d'évènements que le pas à pas (PR #7).
 
+*   **Composant ou Shader concerné :** Compléments S3 sur ARP, le PC et le routeur (tâches 34 à 36) : tables consultables d'un équipement (`getDeviceTables` dans `src/sim/commands.mjs`, `networkTables` dans `src/sim/stack.mjs`, branchement dans `src/sim/index.mjs`), règle de fusion de la RFC 826 (`handleArp` dans `src/sim/stack.mjs`), tests ajoutés dans `tests/arp.test.mjs`, mises à jour de `docs/protocoles/arp.md`, `docs/simulation/contrats.md` et `docs/planning.md`. Le mécanisme ARP de base (requête, réponse, cache, file d'attente) vient de la refonte (phase 4a).
+    *   **Prompt ou usage principal :** audit du mécanisme ARP existant par rapport aux tâches 34 à 36 du plan, puis génération du code et des tests qui le complètent.
+    *   **Axe de vérification appliqué par l'étudiant :** 9 tests ajoutés avec le vrai moteur et le scénario du ping (cache ARP qui se remplit puis se vide, ARP vers la passerelle, diffusion bornée à son réseau, cache réutilisé, une seule requête pour plusieurs paquets en attente, réponse après l'abandon, règle de fusion, contenu des caches après un ping entre réseaux) ; suite complète `node --test` sans échec ; jalon S3 (ping entre deux PC, ARP puis ICMP, pause, pas à pas, inspection) rejoué dans Chrome.
+
 *   **Composant ou Shader concerné :** ce fichier `ATTRIBUTION.md`
     *   **Prompt ou usage principal :** remplissage du modèle à partir du contenu réel du dépôt.
     *   **Axe de vérification appliqué par l'étudiant :** contrôle de chaque entrée dans le dépôt (version de Three.js, dossier `assets/` vide, recherche de code tiers).

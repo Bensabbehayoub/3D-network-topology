@@ -105,9 +105,9 @@ Phases de la refonte et commits :
 | 31 | Aziz | ICMP (ping) et tests | `protocols/icmp.mjs`, `tests/icmp.test.mjs` | 3 | ✅ Refonte, phase 4a |
 | 32 | Aziz | Couleurs des protocoles, aspect broadcast/unicast | `src/render/packetStyles.mjs` | 3 | ✅ Refonte, phase 4d |
 | 33 | Aziz | Premier jet du diagramme de séquence du ping | `docs/` | 1 | ✅ Refonte, phase 9a ([`cahier-conceptuel.md`](cahier-conceptuel.md)) |
-| 34 | Khalil | ARP (requête, réponse, cache) | `protocols/arp.mjs` | 3 | ✅ Refonte, phase 4a |
-| 35 | Khalil | Comportement d'un PC et d'un routeur | `devices/host.mjs`, `router.mjs` | 3 | ✅ Refonte, phase 4a |
-| 36 | Khalil | Tests d'ARP | `tests/arp.test.mjs` | 1 | ✅ Refonte, phase 4a |
+| 34 | Khalil | ARP (requête, réponse, cache) | `protocols/arp.mjs` | 3 | ✅ Refonte, phase 4a ; compléments S3 (Khalil) |
+| 35 | Khalil | Comportement d'un PC et d'un routeur | `devices/host.mjs`, `router.mjs` | 3 | ✅ Refonte, phase 4a ; compléments S3 (Khalil) |
+| 36 | Khalil | Tests d'ARP | `tests/arp.test.mjs` | 1 | ✅ Refonte, phase 4a ; compléments S3 (Khalil) |
 | 37 | Ayoub | Switch : apprentissage MAC, inondation | `devices/switch.mjs` | 3 | ✅ Refonte, phase 4a |
 | 38 | Ayoub | Tests du switch | `tests/switch.test.mjs` | 1 | ✅ Refonte, phase 4a |
 | 39 | Ayoub | Scénario `ping.json` | `scenarios/ping.json` | 2 | ✅ Refonte, phase 4a |

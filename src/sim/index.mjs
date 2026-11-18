@@ -18,6 +18,7 @@ import { createMockSimulation, DEMO_SCENARIO } from './mock.mjs';
 import { TOPICS } from './events.mjs';
 import { createTrafficMeter, SLOWDOWN, transmissionModel } from './traffic.mjs';
 import { diagnose } from './diagnostics.mjs';
+import { networkTables } from './stack.mjs';
 
 /**
  * @param {object} [app] objet partagé rempli par main.js
@@ -40,7 +41,7 @@ export async function init(app = {}, { library = createScenarioLibrary(), option
   }
 
   // Phase 5 : chaque trame a une taille et un temps d'émission (bande passante), et le trafic est mesuré.
-  const sim = createSimulation({ ...options, devices: DEVICE_BEHAVIOURS, transmission: transmissionModel });
+  const sim = createSimulation({ ...options, devices: DEVICE_BEHAVIOURS, transmission: transmissionModel, tables: networkTables });
   const meter = createTrafficMeter();
   sim.on(TOPICS.NETWORK, (event) => meter.add(event));
   sim.on(TOPICS.RESET, () => meter.reset());

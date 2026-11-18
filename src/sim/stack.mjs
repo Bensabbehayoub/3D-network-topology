@@ -119,6 +119,26 @@ export function openPort(ctx, deviceId, transport, port = null) {
   return chosen;
 }
 
+/**
+ * Tables réseau d'un équipement, en lecture seule, à partir de sa mémoire d'exécution
+ * (ctx.memory). Sert à l'inspecteur et aux tests : voir sim.getDeviceTables(id).
+ * @param {object} [memory] mémoire de l'équipement pour l'exécution en cours
+ * @returns {{ arp: Array<{ ip: string, mac: string }>, pendingArp: string[],
+ *   macTable: Array<{ mac: string, interface: string }> }}
+ *   arp : cache ARP (hôte, serveur, routeur), dans l'ordre d'apprentissage ;
+ *   pendingArp : adresses IP dont la réponse ARP est attendue ;
+ *   macTable : table MAC d'un switch (adresse apprise → port).
+ */
+export function networkTables(memory = {}) {
+  const net = memory.net;
+  if (!net) return { arp: [], pendingArp: [], macTable: [] };
+  return {
+    arp: [...net.arp].map(([ip, mac]) => ({ ip, mac })),
+    pendingArp: [...net.waiting.keys()],
+    macTable: [...net.macTable].map(([mac, port]) => ({ mac, interface: port })),
+  };
+}
+
 /** Cache ARP d'un équipement : Map adresse IP → adresse MAC. */
 export function arpCache(ctx, deviceId) {
   return netMemory(ctx, deviceId).arp;
@@ -270,6 +290,9 @@ export function handleArp(ctx, scenarioDevice, packet, meta) {
   const data = packet.data ?? {};
   const own = addressOn(device, meta.interface);
   const memory = netMemory(ctx, device.id);
+  // RFC 826, « merge flag » : si l'émetteur est déjà dans le cache, son entrée est rafraîchie,
+  // que la question nous soit adressée ou non (ex. une carte réseau changée garde la même IP).
+  if (own && data.senderIp && memory.arp.has(data.senderIp)) memory.arp.set(data.senderIp, data.senderMac);
   if (data.operation === 'request') {
     if (own && data.targetIp === own.ip) {
       memory.arp.set(data.senderIp, data.senderMac); // le demandeur se présente : on le retient

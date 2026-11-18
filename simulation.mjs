@@ -38,3 +38,4 @@ export {
   setGateway, setRole,
 } from './src/sim/config.mjs';
 export { RUNS, assembleRun, defaultValues, runFields, validateRun } from './src/sim/runs.mjs';
+export { ARP_TIMEOUT, networkTables } from './src/sim/stack.mjs';

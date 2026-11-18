@@ -278,9 +278,22 @@ sim.isAllowed('pause');      // activer / désactiver un bouton
 sim.describe(packet);        // lignes de l'inspecteur
 sim.getHistory();            // évènements réseau depuis la dernière réinitialisation (S2)
 sim.getPacketsInFlight();    // [{ event, progress }] : paquets sur les liens maintenant (S2)
+sim.getDeviceTables('pc1');  // { arp, pendingArp, macTable } : tables de l'équipement maintenant (S3)
 sim.on(TOPICS.STATE, (state) => { /* rafraîchir les boutons */ });
 sim.tick(deltaMs);           // avance la lecture d'une image, depuis la boucle de rendu (voir ci-dessous)
 ```
+
+**Tables d'un équipement (S3).** `getDeviceTables(id)` renvoie une copie en lecture seule de l'état réseau d'un équipement à l'instant courant :
+
+```jsonc
+{
+  "arp": [{ "ip": "192.168.1.1", "mac": "02:00:00:00:00:a0" }],   // cache ARP (PC, serveur, routeur)
+  "pendingArp": ["192.168.1.20"],                                  // réponses ARP attendues
+  "macTable": [{ "mac": "02:00:00:00:01:10", "interface": "p1" }]  // table MAC (switch)
+}
+```
+
+Les tables sont vides après une réinitialisation. La fonction renvoie `null` pour un équipement inconnu, et avec le faux moteur. Pour l'afficher pendant la lecture, l'interface la relit à chaque `TOPICS.NETWORK` ou `TOPICS.TICK`.
 
 Une commande non permise renvoie `false` sans exception : un clic au mauvais moment ne casse rien.
 
